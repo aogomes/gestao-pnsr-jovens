@@ -1,0 +1,17 @@
+-- AlterTable
+ALTER TABLE "pessoas" ADD COLUMN     "camiseta" TEXT,
+ADD COLUMN     "comunidade" TEXT,
+ADD COLUMN     "dataNascimento" TIMESTAMP(3),
+ADD COLUMN     "emailResponsavel" TEXT,
+ADD COLUMN     "emailResponsavel2" TEXT,
+ADD COLUMN     "fotoPassaporte" TEXT,
+ADD COLUMN     "necessidadesMedicas" TEXT,
+ADD COLUMN     "nomeConjuge" TEXT,
+ADD COLUMN     "orgaoEmissor" TEXT,
+ADD COLUMN     "passaporte" TEXT,
+ADD COLUMN     "passaporteEmissaoValidade" TEXT,
+ADD COLUMN     "perfis" TEXT[],
+ADD COLUMN     "responsavelLegal" TEXT,
+ADD COLUMN     "rg" TEXT,
+ADD COLUMN     "sexo" TEXT,
+ADD COLUMN     "vaiComConjuge" BOOLEAN DEFAULT false;

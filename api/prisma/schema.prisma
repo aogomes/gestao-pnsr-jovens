@@ -1,0 +1,460 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id           Int          @id @default(autoincrement())
+  login        String       @unique
+  senha        String
+  papel        PapelUsuario @default(USUARIO)
+  pessoaId     Int          @unique
+  pessoa       Pessoa       @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  @@map("usuarios")
+}
+
+model Pessoa {
+  id           Int          @id @default(autoincrement())
+  nome         String
+  email        String?      @unique
+  documento    String?
+  telefone     String?
+  ativo        Boolean      @default(true)
+
+  transacoes   Transacao[]
+  inscricoes   Inscricao[]
+  usuario      Usuario?
+  alocacoes    AlocacaoRifa[]
+  bilhetes     Bilhete[]    // Bilhetes vendidos por esta pessoa
+  trabalhosIndividuais Trabalho[] @relation("TrabalhoIndividual")
+  trabalhosEquipe      MembroTrabalho[]
+  recebimentosTrabalho RecebimentoTrabalho[]
+  recebimentosRifa     RecebimentoRifa[]
+  paroquiaId   Int?
+  paroquia     Paroquia?    @relation(fields: [paroquiaId], references: [id])
+  
+  // Novos campos da imagem
+  dataNascimento DateTime?
+  sexo           String?
+  rg             String?
+  orgaoEmissor   String?
+  emailResponsavel String?
+  emailResponsavel2 String?
+  comunidade     String?
+  passaporte     String?
+  passaporteEmissaoValidade String?
+  camiseta       String?
+  vaiComConjuge  Boolean?     @default(false)
+  nomeConjuge    String?
+  necessidadesMedicas String?
+  responsavelLegal String?
+  fotoPassaporte String?
+  perfis         String[]
+
+  criadoEm     DateTime     @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  @@map("pessoas")
+}
+
+model Transacao {
+  id           Int           @id @default(autoincrement())
+  valor        Float
+  tipo         TipoTransacao
+  origem       OrigemTransacao?
+  descricao    String
+  metodo       String?       // PIX, Dinheiro, Cartão, etc.
+  data         DateTime      @default(now())
+  pessoaId     Int?
+  pessoa       Pessoa?       @relation(fields: [pessoaId], references: [id])
+  contaId      Int?
+  conta        Conta?        @relation(fields: [contaId], references: [id])
+  loteRateioId Int?
+  loteRateio   LoteRateio?   @relation(fields: [loteRateioId], references: [id], onDelete: Cascade)
+  rifaId       Int?
+  rifa         Rifa?         @relation(fields: [rifaId], references: [id], onDelete: SetNull)
+  
+  // Vínculos relacionais de integridade com inscrições e eventos
+  inscricaoId  Int?
+  inscricao    Inscricao?    @relation(fields: [inscricaoId], references: [id], onDelete: SetNull)
+  eventoId     Int?
+  evento       Evento?       @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  @@map("transacoes")
+}
+
+model Paroquia {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  paroco       String
+  cidade       String
+  eventos      Evento[]
+  pessoas      Pessoa[]
+  contas       Conta[]
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("paroquias")
+}
+
+model Evento {
+  id               Int           @id @default(autoincrement())
+  nome             String
+  paroquiaId       Int
+  paroquia         Paroquia      @relation(fields: [paroquiaId], references: [id])
+  contaId          Int
+  conta            Conta         @relation(fields: [contaId], references: [id])
+  dataInicio       DateTime
+  dataFim          DateTime
+  valor            Float
+  limiteInscricao  DateTime
+  status           StatusEvento  @default(ATIVO)
+  inscricoes       Inscricao[]
+  transacoes       Transacao[]   // Relação reversa para Transacao
+  criadoEm         DateTime      @default(now())
+  atualizadoEm     DateTime      @updatedAt
+
+  @@map("eventos")
+}
+
+model Inscricao {
+  id           Int      @id @default(autoincrement())
+  pessoaId     Int
+  pessoa       Pessoa   @relation(fields: [pessoaId], references: [id])
+  eventoId     Int
+  evento       Evento   @relation(fields: [eventoId], references: [id])
+  status       StatusInscricao @default(PENDENTE)
+  transacoes   Transacao[]   // Relação reversa para Transacao
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([pessoaId, eventoId])
+  @@map("inscricoes")
+}
+
+
+
+enum PapelUsuario {
+  ADMIN
+  USUARIO
+}
+
+enum TipoTransacao {
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+}
+
+enum OrigemTransacao {
+  RIFA
+  DEPOSITO
+  TRABALHO
+  PAGAMENTO
+  CONTAS
+  EVENTOS
+}
+
+enum StatusEvento {
+  ATIVO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum TipoTrabalho {
+  INDIVIDUAL
+  GRUPO
+}
+
+enum StatusTrabalho {
+  ABERTO
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum StatusRecebimentoTrabalho {
+  PAGO
+  PENDENTE
+}
+
+model Trabalho {
+  id             Int              @id @default(autoincrement())
+  descricao      String
+  dataTrabalho   DateTime
+  tipo           TipoTrabalho     
+  status         StatusTrabalho   @default(ABERTO)
+  proporcao      Float            
+  
+  contaId        Int?
+  conta          Conta?            @relation(fields: [contaId], references: [id])
+  
+  pessoaId       Int?
+  pessoa         Pessoa?          @relation("TrabalhoIndividual", fields: [pessoaId], references: [id])
+
+  membros        MembroTrabalho[]
+  recebimentos   RecebimentoTrabalho[]
+  despesas       DespesaTrabalho[]
+  lotesRateio    LoteRateio[]
+  vendas         Venda[]
+  trabalhoProdutos TrabalhoProduto[]
+
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+  
+  @@map("trabalhos")
+}
+
+model MembroTrabalho {
+  id             Int      @id @default(autoincrement())
+  trabalhoId     Int
+  trabalho       Trabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  pessoaId       Int
+  pessoa         Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  @@unique([trabalhoId, pessoaId]) 
+  @@map("membros_trabalho")
+}
+
+model RecebimentoTrabalho {
+  id               Int      @id @default(autoincrement())
+  valor            Float    
+  descricao        String?
+  metodo           String?  
+  dataRecebimento  DateTime @default(now())
+  status           StatusRecebimentoTrabalho @default(PENDENTE)
+
+  trabalhoId       Int
+  trabalho         Trabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  pessoaId         Int?
+  pessoa           Pessoa?  @relation(fields: [pessoaId], references: [id])
+  loteRateioId     Int?
+  loteRateio       LoteRateio? @relation(fields: [loteRateioId], references: [id], onDelete: SetNull)
+  venda            Venda?
+
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @updatedAt
+
+  @@map("recebimentos_trabalho")
+}
+
+model DespesaTrabalho {
+  id           Int      @id @default(autoincrement())
+  valor        Float
+  descricao    String
+  trabalhoId   Int
+  trabalho     Trabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("despesas_trabalho")
+}
+
+model LoteRateio {
+  id              Int                  @id @default(autoincrement())
+  trabalhoId      Int
+  trabalho        Trabalho             @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  valorArrecadado Float
+  valorDespesas   Float
+  valorLiquido    Float
+  data            DateTime             @default(now())
+  
+  recebimentos    RecebimentoTrabalho[]
+  transacoes      Transacao[]
+
+  criadoEm        DateTime             @default(now())
+  atualizadoEm    DateTime             @updatedAt
+
+  @@map("lotes_rateio")
+}
+
+model Rifa {
+  id              Int            @id @default(autoincrement())
+  nome            String
+  titulo          String?
+  descricao       String?
+  dataInicio      DateTime
+  dataFim         DateTime
+  dataSorteio     DateTime
+  valorNumero     Float
+  numerosPorCartela Int          @default(50)
+  totalNumeros    Int
+  status          StatusRifa     @default(ATIVA)
+  premios         Premio[]
+  alocacoes       AlocacaoRifa[]
+  bilhetes        Bilhete[]
+  premioVendedor  String?        // Descrição do prêmio para o vendedor do bilhete premiado
+  percentualRateio Float         @default(100)
+  contaId         Int?
+  conta           Conta?         @relation(fields: [contaId], references: [id])
+  chavePix        String?        // Chave PIX para recebimento
+  tipoChavePix    String?        // Tipo da chave (CPF, CNPJ, EMAIL, TELEFONE, ALEATORIA)
+  transacoes      Transacao[]
+  recebimentos    RecebimentoRifa[]
+  criadoEm        DateTime       @default(now())
+  atualizadoEm    DateTime       @updatedAt
+
+  @@map("rifas")
+}
+
+enum StatusRifa {
+  ATIVA
+  PAUSADA
+  FINALIZADA
+  SORTEADA
+}
+
+model Premio {
+  id           Int      @id @default(autoincrement())
+  descricao    String
+  posicao      Int      // 1 para 1º lugar, 2 para 2º, etc.
+  rifaId       Int
+  rifa         Rifa     @relation(fields: [rifaId], references: [id])
+
+  @@map("premios")
+}
+
+model AlocacaoRifa {
+  id           Int      @id @default(autoincrement())
+  rifaId       Int
+  rifa         Rifa     @relation(fields: [rifaId], references: [id])
+  pessoaId     Int
+  pessoa       Pessoa   @relation(fields: [pessoaId], references: [id])
+  inicioRange  Int
+  fimRange     Int
+  ativa        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+
+  @@map("alocacoes_rifa")
+}
+
+model Bilhete {
+  id           Int           @id @default(autoincrement())
+  numero       Int
+  status       StatusBilhete @default(LIVRE)
+  rifaId       Int
+  rifa         Rifa          @relation(fields: [rifaId], references: [id])
+  vendedorId   Int?          // Pessoa (Promotor) que vendeu
+  vendedor     Pessoa?       @relation(fields: [vendedorId], references: [id])
+  dataVenda    DateTime?
+  recebimentoId Int?
+  recebimento   RecebimentoRifa? @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  @@unique([rifaId, numero])
+  @@map("bilhetes")
+}
+
+enum StatusBilhete {
+  LIVRE
+  RESERVADO
+  VENDIDO
+}
+
+model Conta {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  saldo        Float    @default(0)
+  paroquiaId   Int
+  paroquia     Paroquia @relation(fields: [paroquiaId], references: [id])
+  rifas        Rifa[]
+  transacoes   Transacao[]
+  trabalhos    Trabalho[]
+  eventos      Evento[]
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("contas")
+}
+enum StatusInscricao {
+  PENDENTE
+  CONFIRMADO
+  REJEITADA
+  EM_ANALISE
+  AGUARDANDO_VAGA
+}
+
+model ProdutoVenda {
+  id           Int                   @id @default(autoincrement())
+  nome         String
+  valor        Float
+  ativo        Boolean               @default(true)
+  trabalhos    TrabalhoProduto[]     
+  itensVenda   ItemVenda[]           
+  criadoEm     DateTime              @default(now())
+  atualizadoEm DateTime              @updatedAt
+
+  @@map("produtos_venda")
+}
+
+model TrabalhoProduto {
+  id             Int          @id @default(autoincrement())
+  trabalhoId     Int
+  trabalho       Trabalho     @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  produtoId      Int
+  produto        ProdutoVenda @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@unique([trabalhoId, produtoId])
+  @@map("trabalho_produtos")
+}
+
+model Venda {
+  id               Int          @id @default(autoincrement())
+  descricao        String?      
+  valorTotal       Float
+  metodoPagamento  String       
+  statusPagamento  String       
+  trabalhoId       Int
+  trabalho         Trabalho     @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  itens            ItemVenda[]
+  recebimentoId    Int?         @unique 
+  recebimento      RecebimentoTrabalho? @relation(fields: [recebimentoId], references: [id], onDelete: SetNull)
+  criadoEm         DateTime     @default(now())
+  atualizadoEm     DateTime     @updatedAt
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id           Int          @id @default(autoincrement())
+  vendaId      Int
+  venda        Venda        @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  produtoId    Int
+  produto      ProdutoVenda @relation(fields: [produtoId], references: [id])
+  quantidade   Int
+  valorUnitario Float       
+  valorTotal   Float
+
+  @@map("itens_venda")
+}
+
+model RecebimentoRifa {
+  id              Int            @id @default(autoincrement())
+  valor           Float
+  comprovante     String?
+  metodo          String?        // PIX, Dinheiro, etc.
+  nomeCliente     String?
+  foneCliente     String?
+  dataRecebimento DateTime       @default(now())
+
+  rifaId          Int
+  rifa            Rifa           @relation(fields: [rifaId], references: [id])
+  vendedorId      Int?
+  vendedor        Pessoa?        @relation(fields: [vendedorId], references: [id])
+
+  bilhetes        Bilhete[]
+
+  criadoEm        DateTime       @default(now())
+  atualizadoEm    DateTime       @updatedAt
+
+  @@map("recebimentos_rifa")
+}

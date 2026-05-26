@@ -1,0 +1,14 @@
+npx nest g module prisma --no-spec
+npx nest g service prisma --no-spec
+npx nest g module auth --no-spec
+npx nest g controller auth --no-spec
+npx nest g service auth --no-spec
+npx nest g module users --no-spec
+npx nest g controller users --no-spec
+npx nest g service users --no-spec
+npx nest g module persons --no-spec
+npx nest g controller persons --no-spec
+npx nest g service persons --no-spec
+npx nest g module transactions --no-spec
+npx nest g controller transactions --no-spec
+npx nest g service transactions --no-spec
