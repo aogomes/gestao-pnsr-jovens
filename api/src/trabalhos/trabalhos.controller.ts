@@ -68,6 +68,12 @@ export class TrabalhosController {
     return this.trabalhosService.executarRateio(+id);
   }
 
+  @Post(':id/importar-extrato')
+  @HttpCode(HttpStatus.OK)
+  importarDoExtrato(@Param('id') id: string) {
+    return this.trabalhosService.importarDoExtrato(+id);
+  }
+
   // Despesas
   @Post(':id/despesas')
   addDespesa(@Param('id') id: string, @Body() data: { valor: number; descricao: string }) {

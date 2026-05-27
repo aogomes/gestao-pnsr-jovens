@@ -14,6 +14,7 @@ import { ContasModule } from './contas/contas.module';
 import { TrabalhosModule } from './trabalhos/trabalhos.module';
 import { ProdutosVendaModule } from './produtos-venda/produtos-venda.module';
 import { VendasModule } from './vendas/vendas.module';
+import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extrato.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { VendasModule } from './vendas/vendas.module';
     ContasModule,
     TrabalhosModule,
     ProdutosVendaModule,
-    VendasModule
+    VendasModule,
+    LancamentosExtratoModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -367,6 +367,75 @@ export class TrabalhosService {
     };
   }
 
+  async importarDoExtrato(id: number) {
+    const trabalho = await this.prisma.trabalho.findUnique({
+      where: { id },
+      include: { recebimentos: true, conta: true }
+    });
+
+    if (!trabalho) throw new NotFoundException('Trabalho não encontrado');
+
+    const dateStr = trabalho.dataTrabalho.toISOString().split('T')[0];
+    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+
+    const whereClause: any = {
+      data: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      tipo: 'RECEITA',
+      conciliado: false,
+    };
+
+    if (trabalho.contaId) {
+      whereClause.contaId = trabalho.contaId;
+    }
+
+    const lancamentos = await this.prisma.lancamentoExtrato.findMany({
+      where: whereClause,
+    });
+
+    if (lancamentos.length === 0) {
+      const [year, month, day] = dateStr.split('-');
+      const dataFormatada = `${day}/${month}/${year}`;
+      const contaNome = trabalho.conta?.nome || 'Nenhuma';
+      throw new BadRequestException(
+        `Nenhum lançamento de extrato (receita) não conciliado encontrado na data ${dataFormatada} para a conta "${contaNome}". Certifique-se de que o extrato foi importado para essa conta ou edite o Trabalho para vincular a conta bancária correta.`
+      );
+    }
+
+    const novosRecebimentos = await this.prisma.$transaction(async (prisma) => {
+      const criados: any[] = [];
+      for (const lancamento of lancamentos) {
+        const recebimento = await prisma.recebimentoTrabalho.create({
+          data: {
+            trabalhoId: id,
+            valor: lancamento.valor,
+            descricao: lancamento.descricao || `Importado do extrato bancário`,
+            metodo: 'PIX',
+            status: 'PAGO',
+            dataRecebimento: lancamento.data,
+            pessoaId: trabalho.tipo === 'INDIVIDUAL' ? trabalho.pessoaId : null,
+          },
+        });
+        criados.push(recebimento);
+
+        await prisma.lancamentoExtrato.update({
+          where: { id: lancamento.id },
+          data: { conciliado: true },
+        });
+      }
+      return criados;
+    });
+
+    return {
+      message: `${novosRecebimentos.length} recebimento(s) importado(s) com sucesso a partir do extrato.`,
+      quantidade: novosRecebimentos.length,
+      novosRecebimentos,
+    };
+  }
+
   async addDespesa(id: number, data: { valor: number; descricao: string }) {
     await this.findOne(id);
     return this.prisma.despesaTrabalho.create({

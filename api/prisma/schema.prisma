@@ -370,6 +370,7 @@ model Conta {
   transacoes   Transacao[]
   trabalhos    Trabalho[]
   eventos      Evento[]
+  lancamentosExtrato LancamentoExtrato[]
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
@@ -457,4 +458,22 @@ model RecebimentoRifa {
   atualizadoEm    DateTime       @updatedAt
 
   @@map("recebimentos_rifa")
+}
+
+model LancamentoExtrato {
+  id           Int           @id @default(autoincrement())
+  data         DateTime
+  descricao    String
+  valor        Float
+  tipo         TipoTransacao
+  metodo       String?
+  conciliado   Boolean       @default(false)
+  
+  contaId      Int
+  conta        Conta         @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  criadoEm     DateTime      @default(now())
+  atualizadoEm DateTime      @updatedAt
+
+  @@map("lancamentos_extrato")
 }
