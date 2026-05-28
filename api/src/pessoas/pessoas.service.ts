@@ -49,15 +49,17 @@ export class PessoasService {
     const where = user.papel === 'ADMIN' ? { ativo: true } : { paroquiaId: user.paroquiaId, ativo: true };
     const pessoas = await this.prisma.pessoa.findMany({
       where,
-      include: { paroquia: true, transacoes: true },
+      include: { paroquia: true, transacoes: true, saques: true },
       orderBy: { nome: 'asc' }
     });
     return pessoas.map((p: any) => {
-      const saldoCalculado = p.transacoes.reduce((acc: number, t: any) => {
+      const totalTransacoes = p.transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
       }, 0);
+      const totalSaques = p.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
+      const saldoCalculado = totalTransacoes - totalSaques;
       const { transacoes, ...pessoaSemTransacoes } = p;
       return { ...pessoaSemTransacoes, saldo: saldoCalculado };
     });
@@ -69,17 +71,22 @@ export class PessoasService {
       include: { 
         transacoes: {
           orderBy: { data: 'desc' }
-        } 
+        },
+        saques: {
+          orderBy: { data: 'desc' }
+        }
       }
     });
     if (!pessoa) {
       throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
     }
-    const saldoCalculado = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
+    const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
+    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
+    const saldoCalculado = totalTransacoes - totalSaques;
     return { ...pessoa, saldo: saldoCalculado };
   }
 
@@ -103,6 +110,9 @@ export class PessoasService {
         },
         transacoes: {
           orderBy: { data: 'desc' }
+        },
+        saques: {
+          orderBy: { data: 'desc' }
         }
       }
     });
@@ -111,11 +121,13 @@ export class PessoasService {
       throw new NotFoundException('Perfil não encontrado para o identificador informado.');
     }
 
-    const saldoCalculado = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
+    const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
+    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
+    const saldoCalculado = totalTransacoes - totalSaques;
 
     const inscricoesFormatadas = (pessoa.inscricoes || []).map((insc: any) => {
       const pagamentosSintetizados = (insc.transacoes || [])
