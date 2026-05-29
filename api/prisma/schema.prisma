@@ -121,6 +121,9 @@ model Evento {
   status           StatusEvento  @default(ATIVO)
   inscricoes       Inscricao[]
   transacoes       Transacao[]   // Relação reversa para Transacao
+  rifas            Rifa[]        // Relação reversa para Rifa
+  trabalhos        Trabalho[]    // Relação reversa para Trabalho
+  saques           Saque[]       // Relação reversa para Saque
   criadoEm         DateTime      @default(now())
   atualizadoEm     DateTime      @updatedAt
 
@@ -195,8 +198,8 @@ model Trabalho {
   status         StatusTrabalho   @default(ABERTO)
   proporcao      Float            
   
-  contaId        Int?
-  conta          Conta?            @relation(fields: [contaId], references: [id])
+  eventoId       Int
+  evento         Evento           @relation(fields: [eventoId], references: [id])
   
   pessoaId       Int?
   pessoa         Pessoa?          @relation("TrabalhoIndividual", fields: [pessoaId], references: [id])
@@ -294,8 +297,8 @@ model Rifa {
   bilhetes        Bilhete[]
   premioVendedor  String?        // Descrição do prêmio para o vendedor do bilhete premiado
   percentualRateio Float         @default(100)
-  contaId         Int?
-  conta           Conta?         @relation(fields: [contaId], references: [id])
+  eventoId        Int
+  evento          Evento         @relation(fields: [eventoId], references: [id])
   chavePix        String?        // Chave PIX para recebimento
   tipoChavePix    String?        // Tipo da chave (CPF, CNPJ, EMAIL, TELEFONE, ALEATORIA)
   transacoes      Transacao[]
@@ -367,9 +370,7 @@ model Conta {
   saldo        Float    @default(0)
   paroquiaId   Int
   paroquia     Paroquia @relation(fields: [paroquiaId], references: [id])
-  rifas        Rifa[]
   transacoes   Transacao[]
-  trabalhos    Trabalho[]
   eventos      Evento[]
   lancamentosExtrato LancamentoExtrato[]
   criadoEm     DateTime @default(now())
@@ -487,6 +488,9 @@ model Saque {
   
   pessoaId     Int
   pessoa       Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+
+  eventoId     Int
+  evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt

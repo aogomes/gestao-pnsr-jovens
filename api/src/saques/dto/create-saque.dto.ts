@@ -14,4 +14,7 @@ export class CreateSaqueDto {
 
   @IsInt()
   pessoaId: number;
+
+  @IsInt()
+  eventoId: number;
 }

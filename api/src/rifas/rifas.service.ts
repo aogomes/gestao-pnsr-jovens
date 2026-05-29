@@ -10,14 +10,14 @@ export class RifasService {
   constructor(private prisma: PrismaService) {}
 
   async criar(createRifaDto: CreateRifaDto, user: any) {
-    const { premios, contaId, ...dadosRifa } = createRifaDto;
+    const { premios, eventoId, ...dadosRifa } = createRifaDto;
 
     return this.prisma.$transaction(async (tx) => {
       try {
         const rifa = await tx.rifa.create({
           data: {
             ...dadosRifa,
-            contaId: contaId || null,
+            eventoId: eventoId,
             chavePix: createRifaDto.chavePix || null,
             tipoChavePix: createRifaDto.tipoChavePix || null,
             premios: {
@@ -53,7 +53,7 @@ export class RifasService {
     
     if (user.papel !== 'ADMIN') {
       if (user.paroquiaId) {
-        where = { conta: { is: { paroquiaId: user.paroquiaId } } };
+        where = { evento: { paroquiaId: user.paroquiaId } };
       } else {
         // Se for um usuário comum sem paróquia vinculada, não deve ver rifas restritas
         return [];
@@ -64,8 +64,8 @@ export class RifasService {
       where,
       include: {
         premios: true,
-        conta: {
-          include: { paroquia: true }
+        evento: {
+          include: { paroquia: true, conta: true }
         },
         alocacoes: {
           include: { pessoa: true }
@@ -97,8 +97,8 @@ export class RifasService {
       where: { id },
       include: {
         premios: true,
-        conta: {
-          include: { paroquia: true }
+        evento: {
+          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
         },
         alocacoes: {
           include: { pessoa: true }
@@ -107,7 +107,7 @@ export class RifasService {
     });
     if (!rifa) throw new NotFoundException('Rifa não encontrada');
     
-    if (user.papel !== 'ADMIN' && rifa.conta?.paroquiaId !== user.paroquiaId) {
+    if (user.papel !== 'ADMIN' && rifa.evento?.paroquiaId !== user.paroquiaId) {
       throw new ForbiddenException('Acesso negado a esta rifa');
     }
 
@@ -125,6 +125,14 @@ export class RifasService {
       if (!rifa) throw new NotFoundException('Rifa não encontrada');
       if (rifa.status === 'FINALIZADA' || rifa.status === 'SORTEADA') {
         throw new BadRequestException('Não é permitido alocar cartelas para uma campanha finalizada ou sorteada.');
+      }
+
+      // Validar trava de segurança: Apenas inscritos no evento da rifa podem participar
+      const inscrito = await tx.inscricao.findUnique({
+        where: { pessoaId_eventoId: { pessoaId, eventoId: rifa.eventoId } }
+      });
+      if (!inscrito) {
+        throw new BadRequestException('Apenas pessoas inscritas no evento desta rifa podem ser alocadas.');
       }
 
       // 1. Validar trava de estoque: Se houver números LIVRE ou RESERVADO na alocação anterior, não permite nova
@@ -340,7 +348,7 @@ export class RifasService {
       status: dto.status,
       premioVendedor: dto.premioVendedor,
       percentualRateio: dto.percentualRateio,
-      contaId: dto.contaId || null,
+      eventoId: dto.eventoId ? Number(dto.eventoId) : undefined,
       chavePix: dto.chavePix || null,
       tipoChavePix: dto.tipoChavePix || null,
       dataInicio: dto.dataInicio ? new Date(dto.dataInicio) : undefined,
@@ -373,7 +381,7 @@ export class RifasService {
 
     const rifa = await this.prisma.rifa.findUnique({
       where: { id },
-      include: { bilhetes: true }
+      include: { bilhetes: true, evento: true }
     });
 
     if (!rifa) throw new NotFoundException('Rifa não encontrada');
@@ -384,8 +392,8 @@ export class RifasService {
     if (!isEncerrada) {
       throw new BadRequestException('A campanha ainda não atingiu a data limite de vendas.');
     }
-    if (!rifa.contaId) {
-      throw new BadRequestException('Não há uma conta bancária vinculada a esta rifa para o rateio. Edite a rifa e vincule uma conta primeiro.');
+    if (!rifa.evento?.contaId) {
+      throw new BadRequestException('Não há uma conta bancária vinculada ao evento desta rifa para o rateio.');
     }
 
     const bilhetesVendidos = rifa.bilhetes.filter(b => b.status === 'VENDIDO');
@@ -406,8 +414,9 @@ export class RifasService {
           tipo: 'RECEITA',
           origem: 'RIFA',
           descricao: `Rateio de Arrecadação - Rifa: ${rifa.nome}`,
-          contaId: rifa.contaId,
+          contaId: rifa.evento.contaId,
           rifaId: rifa.id,
+          eventoId: rifa.eventoId,
           data: new Date()
         }
       });
@@ -415,7 +424,7 @@ export class RifasService {
       // 2. Incrementar saldo da Conta
       if (valorParaConta > 0) {
         await tx.conta.update({
-          where: { id: rifa.contaId! },
+          where: { id: rifa.evento.contaId },
           data: { saldo: { increment: valorParaConta } }
         });
       }
@@ -442,6 +451,7 @@ export class RifasService {
               descricao: `Comissão de Vendas (${qtd} bilhetes) - Rifa: ${rifa.nome}`,
               pessoaId: pessoaId,
               rifaId: rifa.id,
+              eventoId: rifa.eventoId,
               data: new Date()
             }
           });
@@ -467,11 +477,11 @@ export class RifasService {
   async obterResumo(id: number, user: any) {
     const rifaCheck = await this.prisma.rifa.findUnique({
       where: { id },
-      include: { conta: true }
+      include: { evento: true }
     });
     
     if (!rifaCheck) throw new NotFoundException('Rifa não encontrada');
-    if (user.papel !== 'ADMIN' && rifaCheck.conta?.paroquiaId !== user.paroquiaId) {
+    if (user.papel !== 'ADMIN' && rifaCheck.evento?.paroquiaId !== user.paroquiaId) {
       throw new ForbiddenException('Acesso negado');
     }
 

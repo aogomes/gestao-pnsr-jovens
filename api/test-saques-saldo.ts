@@ -46,7 +46,31 @@ async function runTest() {
       console.log(`✅ Conta bancária selecionada: ${conta.nome} (ID: ${conta.id})`);
     }
 
-    // 4. Inserir uma receita (repasse/entrada) para a pessoa
+    // 3b. Criar um Evento temporário associado a essa conta
+    const evento = await prisma.evento.create({
+      data: {
+        nome: `Evento Teste Saques ${Date.now()}`,
+        paroquiaId: paroquia.id,
+        contaId: conta.id,
+        dataInicio: new Date(),
+        dataFim: new Date(Date.now() + 86400000),
+        valor: 100.00,
+        limiteInscricao: new Date(),
+      }
+    });
+    console.log(`✅ Evento temporário de teste criado: ${evento.nome} (ID: ${evento.id})`);
+
+    // 3c. Criar Inscrição da pessoa no Evento (trava de segurança)
+    const inscricao = await prisma.inscricao.create({
+      data: {
+        pessoaId: pessoa.id,
+        eventoId: evento.id,
+        status: 'CONFIRMADO'
+      }
+    });
+    console.log(`✅ Inscrição de teste criada com status CONFIRMADO`);
+
+    // 4. Inserir uma receita (repasse/entrada) para a pessoa vinculada ao evento
     const transacao1 = await prisma.transacao.create({
       data: {
         valor: 150.00,
@@ -54,6 +78,7 @@ async function runTest() {
         tipo: 'RECEITA',
         pessoaId: pessoa.id,
         contaId: conta.id,
+        eventoId: evento.id,
         data: new Date(),
       },
     });
@@ -76,12 +101,13 @@ async function runTest() {
     console.log(`📊 Saldo inicial calculado: R$ ${saldoCalculado.toFixed(2)} (Esperado: 150.00)`);
     if (saldoCalculado !== 150.00) throw new Error('Falha no cálculo do saldo inicial');
 
-    // 6. Criar um Saque (retirada virtual isolada)
+    // 6. Criar um Saque (retirada virtual isolada) passando o eventoId
     const saque = await prisma.saque.create({
       data: {
         valor: 45.00,
         descricao: 'Saque Rápido para Passagem',
         pessoaId: friendshipId(pessoa.id),
+        eventoId: evento.id,
       },
     });
     function friendshipId(id: number) { return id; }
@@ -129,6 +155,8 @@ async function runTest() {
 
     // 10. Limpar massa de testes
     await prisma.transacao.delete({ where: { id: transacao1.id } });
+    await prisma.inscricao.delete({ where: { id: inscricao.id } });
+    await prisma.evento.delete({ where: { id: evento.id } });
     if (contaCriadaTemporaria && conta) {
       await prisma.conta.delete({ where: { id: conta.id } });
     }

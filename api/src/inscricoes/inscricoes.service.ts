@@ -31,7 +31,12 @@ export class InscricoesService {
     const inscricoes = await this.prisma.inscricao.findMany({
       where: eventoId ? { eventoId } : {},
       include: {
-        pessoa: { include: { transacoes: true } },
+        pessoa: {
+          include: {
+            transacoes: true,
+            saques: true
+          }
+        },
         evento: true,
         transacoes: true
       },
@@ -42,8 +47,8 @@ export class InscricoesService {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
-      }, 0);
-      const { transacoes, ...pessoaSemTransacoes } = insc.pessoa as any;
+      }, 0) - (insc.pessoa.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0);
+      const { transacoes, saques, ...pessoaSemTransacoes } = insc.pessoa as any;
 
       // Sintetizar dinamicamente o array de pagamentos a partir de transacoes
       const pagamentosSintetizados = insc.transacoes
@@ -140,7 +145,15 @@ export class InscricoesService {
       // 1. Buscar a inscrição e a pessoa para validar saldo
       const inscricao = await tx.inscricao.findUnique({
         where: { id: createPagamentoDto.inscricaoId },
-        include: { pessoa: { include: { transacoes: true } }, evento: true }
+        include: {
+          pessoa: {
+            include: {
+              transacoes: true,
+              saques: true
+            }
+          },
+          evento: true
+        }
       });
 
       if (!inscricao) throw new BadRequestException('Inscrição não encontrada.');
@@ -153,7 +166,7 @@ export class InscricoesService {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
-      }, 0);
+      }, 0) - (inscricao.pessoa.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0);
 
       if (saldoCalculado < createPagamentoDto.valor) {
         throw new BadRequestException(`Saldo insuficiente. Saldo atual: R$ ${saldoCalculado.toFixed(2)}`);

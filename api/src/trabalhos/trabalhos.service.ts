@@ -13,12 +13,33 @@ export class TrabalhosService {
     const { membrosIds, ...dados } = createTrabalhoDto;
 
     return this.prisma.$transaction(async (prisma) => {
+      // Validar trava de segurança: Apenas inscritos no evento do trabalho podem ser escalados
+      if (dados.tipo === 'INDIVIDUAL' && dados.pessoaId) {
+        const inscrito = await prisma.inscricao.findUnique({
+          where: { pessoaId_eventoId: { pessoaId: dados.pessoaId, eventoId: dados.eventoId } }
+        });
+        if (!inscrito) {
+          throw new BadRequestException('O participante individual deve estar inscrito no evento deste trabalho.');
+        }
+      }
+
+      if (dados.tipo === 'GRUPO' && membrosIds && membrosIds.length > 0) {
+        for (const pessoaId of membrosIds) {
+          const inscrito = await prisma.inscricao.findUnique({
+            where: { pessoaId_eventoId: { pessoaId, eventoId: dados.eventoId } }
+          });
+          if (!inscrito) {
+            throw new BadRequestException(`O participante ID ${pessoaId} deve estar inscrito no evento deste trabalho para ser escalado.`);
+          }
+        }
+      }
+
       const trabalho = await prisma.trabalho.create({
         data: {
           descricao: dados.descricao,
           tipo: dados.tipo,
           proporcao: dados.proporcao,
-          contaId: dados.contaId || null,
+          eventoId: dados.eventoId,
           pessoaId: dados.pessoaId || null,
           dataTrabalho: new Date(dados.dataTrabalho),
         },
@@ -51,7 +72,9 @@ export class TrabalhosService {
           orderBy: { id: 'asc' },
         },
         despesas: true,
-        conta: true,
+        evento: {
+          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
+        },
         lotesRateio: {
           include: { transacoes: true, recebimentos: true }
         }
@@ -73,7 +96,9 @@ export class TrabalhosService {
           orderBy: { id: 'asc' },
         },
         despesas: true,
-        conta: true,
+        evento: {
+          include: { paroquia: true, conta: true }
+        },
         lotesRateio: {
           include: { transacoes: true, recebimentos: true }
         }
@@ -100,6 +125,32 @@ export class TrabalhosService {
     const data: any = { ...dados, status };
     if (dataTrabalho) {
       data.dataTrabalho = new Date(dataTrabalho);
+    }
+    if (data.eventoId) {
+      data.eventoId = Number(data.eventoId);
+    }
+
+    const evId = data.eventoId || trabalhoExistente.eventoId;
+
+    // Validar trava de segurança: Apenas inscritos no evento do trabalho podem ser escalados
+    if (trabalhoExistente.tipo === 'INDIVIDUAL' && data.pessoaId) {
+      const inscrito = await this.prisma.inscricao.findUnique({
+        where: { pessoaId_eventoId: { pessoaId: data.pessoaId, eventoId: evId } }
+      });
+      if (!inscrito) {
+        throw new BadRequestException('O participante individual deve estar inscrito no evento deste trabalho.');
+      }
+    }
+
+    if (trabalhoExistente.tipo === 'GRUPO' && membrosIds !== undefined && membrosIds.length > 0) {
+      for (const pessoaId of membrosIds) {
+        const inscrito = await this.prisma.inscricao.findUnique({
+          where: { pessoaId_eventoId: { pessoaId, eventoId: evId } }
+        });
+        if (!inscrito) {
+          throw new BadRequestException(`O participante ID ${pessoaId} deve estar inscrito no evento deste trabalho para ser escalado.`);
+        }
+      }
     }
 
     return this.prisma.$transaction(async (prisma) => {
@@ -192,9 +243,9 @@ export class TrabalhosService {
 
   async executarRateio(id: number) {
     const trabalho = await this.findOne(id);
-    if (!trabalho.contaId) {
+    if (!trabalho.evento?.contaId) {
       throw new BadRequestException(
-        'Não é possível processar o rateio. O administrador precisa associar uma Conta Financeira a este Trabalho primeiro.'
+        'Não é possível processar o rateio. O evento deste trabalho não possui uma conta financeira vinculada.'
       );
     }
     const dataFormatada = new Date(trabalho.dataTrabalho).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
@@ -293,6 +344,7 @@ export class TrabalhosService {
                   metodo,
                   pessoaId,
                   loteRateioId: lote.id,
+                  eventoId: trabalho.eventoId,
                   data: new Date()
                 }
               });
@@ -307,8 +359,9 @@ export class TrabalhosService {
                 origem: 'TRABALHO',
                 descricao: `Comunidade Trabalho (${trabalho.descricao}) - Lote #${lote.id}`,
                 metodo,
-                contaId: trabalho.contaId,
+                contaId: trabalho.evento.contaId,
                 loteRateioId: lote.id,
+                eventoId: trabalho.eventoId,
                 data: new Date()
               }
             });
@@ -325,8 +378,9 @@ export class TrabalhosService {
                 origem: 'TRABALHO',
                 descricao: `Reembolso Despesas (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
                 metodo,
-                contaId: trabalho.contaId,
+                contaId: trabalho.evento.contaId,
                 loteRateioId: lote.id,
+                eventoId: trabalho.eventoId,
                 data: new Date()
               }
             });
@@ -348,6 +402,7 @@ export class TrabalhosService {
                   metodo,
                   pessoaId: membro.pessoaId,
                   loteRateioId: lote.id,
+                  eventoId: trabalho.eventoId,
                   data: new Date()
                 }
               });
@@ -370,7 +425,7 @@ export class TrabalhosService {
   async importarDoExtrato(id: number) {
     const trabalho = await this.prisma.trabalho.findUnique({
       where: { id },
-      include: { recebimentos: true, conta: true }
+      include: { recebimentos: true, evento: { include: { conta: true } } }
     });
 
     if (!trabalho) throw new NotFoundException('Trabalho não encontrado');
@@ -388,8 +443,8 @@ export class TrabalhosService {
       conciliado: false,
     };
 
-    if (trabalho.contaId) {
-      whereClause.contaId = trabalho.contaId;
+    if (trabalho.evento?.contaId) {
+      whereClause.contaId = trabalho.evento.contaId;
     }
 
     const lancamentos = await this.prisma.lancamentoExtrato.findMany({
@@ -399,7 +454,7 @@ export class TrabalhosService {
     if (lancamentos.length === 0) {
       const [year, month, day] = dateStr.split('-');
       const dataFormatada = `${day}/${month}/${year}`;
-      const contaNome = trabalho.conta?.nome || 'Nenhuma';
+      const contaNome = trabalho.evento?.conta?.nome || 'Nenhuma';
       throw new BadRequestException(
         `Nenhum lançamento de extrato (receita) não conciliado encontrado na data ${dataFormatada} para a conta "${contaNome}". Certifique-se de que o extrato foi importado para essa conta ou edite o Trabalho para vincular a conta bancária correta.`
       );
@@ -461,15 +516,15 @@ export class TrabalhosService {
       where: { id: loteId }
     });
 
-    if (trabalho.contaId) {
+    if (trabalho.evento?.contaId) {
       const transacoes = await this.prisma.transacao.findMany({
-        where: { contaId: trabalho.contaId }
+        where: { contaId: trabalho.evento.contaId }
       });
       const saldo = transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
       await this.prisma.conta.update({
-        where: { id: trabalho.contaId },
+        where: { id: trabalho.evento.contaId },
         data: { saldo }
       });
     }

@@ -48,6 +48,10 @@ function assertEqual(actual: any, expected: any, description: string) {
   }
 }
 
+function sellerIdHelper(id: number | undefined): number {
+  return id as number;
+}
+
 async function bootstrap() {
   logHeader('INICIALIZANDO CONTEXTO DO NESTJS PARA TESTES');
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -58,6 +62,9 @@ async function bootstrap() {
   // Variáveis para rastrear IDs criados para limpeza posterior, inicializadas para TS
   let paroquiaId: number | undefined = undefined;
   let contaId: number | undefined = undefined;
+  let eventoId: number | undefined = undefined;
+  let inscricao1Id: number | undefined = undefined;
+  let inscricao2Id: number | undefined = undefined;
   let pessoa1Id: number | undefined = undefined;
   let pessoa2Id: number | undefined = undefined;
   let rifa1Id: number | undefined = undefined;
@@ -67,7 +74,7 @@ async function bootstrap() {
     logHeader('FASE 0: CORREÇÃO E ALINHAMENTO DE SEQUENCES POSTGRESQL');
     
     // Alinhar sequências para evitar erros de Constraint de ID único comuns após seeds manuais
-    const tables = ['paroquias', 'contas', 'pessoas', 'usuarios', 'rifas', 'bilhetes', 'alocacoes_rifa', 'transacoes', 'recebimentos_rifa'];
+    const tables = ['paroquias', 'contas', 'eventos', 'inscricoes', 'pessoas', 'usuarios', 'rifas', 'bilhetes', 'alocacoes_rifa', 'transacoes', 'recebimentos_rifa'];
     for (const table of tables) {
       try {
         await prisma.$executeRawUnsafe(
@@ -106,6 +113,13 @@ async function bootstrap() {
     });
     await prisma.rifa.deleteMany({
       where: { nome: { in: ['Rifa Teste Integral (100%)', 'Rifa Teste Proporcional (30%)'] } }
+    });
+
+    await prisma.inscricao.deleteMany({
+      where: { evento: { nome: 'Evento Teste Rifa' } }
+    });
+    await prisma.evento.deleteMany({
+      where: { nome: 'Evento Teste Rifa' }
     });
 
     // Deleta pessoas e paróquia de teste anteriores
@@ -152,6 +166,21 @@ async function bootstrap() {
     contaId = conta.id;
     logSuccess(`Conta de Teste criada: [ID ${contaId}] ${conta.nome} com Saldo R$ ${conta.saldo}`);
 
+    // 2b. Criar Evento de Teste
+    const evento = await prisma.evento.create({
+      data: {
+        nome: 'Evento Teste Rifa',
+        paroquiaId: paroquiaId,
+        contaId: contaId,
+        dataInicio: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        dataFim: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        valor: 150.00,
+        limiteInscricao: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      }
+    });
+    eventoId = evento.id;
+    logSuccess(`Evento de Teste criado: [ID ${eventoId}] ${evento.nome}`);
+
     // 3. Criar dois Vendedores (Pessoas)
     const vendedor1 = await prisma.pessoa.create({
       data: {
@@ -175,6 +204,27 @@ async function bootstrap() {
     pessoa2Id = vendedor2.id;
     logSuccess(`Vendedor 2 criado: [ID ${pessoa2Id}] ${vendedor2.nome}`);
 
+    // 3b. Inscrever vendedores no Evento
+    const inscricao1 = await prisma.inscricao.create({
+      data: {
+        pessoaId: vendedor1.id,
+        eventoId: eventoId,
+        status: 'CONFIRMADO'
+      }
+    });
+    inscricao1Id = inscricao1.id;
+    logSuccess(`Inscrição do Vendedor 1 criada e CONFIRMADA.`);
+
+    const inscricao2 = await prisma.inscricao.create({
+      data: {
+        pessoaId: vendedor2.id,
+        eventoId: eventoId,
+        status: 'CONFIRMADO'
+      }
+    });
+    inscricao2Id = inscricao2.id;
+    logSuccess(`Inscrição do Vendedor 2 criada e CONFIRMADA.`);
+
     // ==========================================
     // CENÁRIO 1: RATEIO INTEGRAL (100% VENDEDOR)
     // ==========================================
@@ -191,7 +241,7 @@ async function bootstrap() {
       totalNumeros: 50,
       numerosPorCartela: 10,
       percentualRateio: 100, // 100% comissão
-      contaId: contaId,
+      eventoId: eventoId,
       premios: [{ descricao: 'Premio Teste Integral', posicao: 1 }]
     }, { papel: 'ADMIN', paroquiaId: null });
     rifa1Id = rifa1.id;
@@ -289,7 +339,7 @@ async function bootstrap() {
     // 1. Criar campanha de rifa proporcional
     const rifa2 = await rifasService.criar({
       nome: 'Rifa Teste Proporcional (30%)',
-      descricao: 'Campanha de teste com rateio 30% vendedor e 70% paróquia.',
+      descricao: 'Campanha de teste com rateio 30% vendedor and 70% paróquia.',
       dataInicio: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       dataFim: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       dataSorteio: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
@@ -297,7 +347,7 @@ async function bootstrap() {
       totalNumeros: 50,
       numerosPorCartela: 10,
       percentualRateio: 30, // 30% comissão vendedor, 70% paróquia
-      contaId: contaId,
+      eventoId: eventoId,
       premios: [{ descricao: 'Premio Teste Proporcional', posicao: 1 }]
     }, { papel: 'ADMIN', paroquiaId: null });
     rifa2Id = rifa2.id;
@@ -326,7 +376,7 @@ async function bootstrap() {
         comprovante: `COMPROVANTE_PROPORCIONAL_${i+1}`,
         nomeCliente: `Cliente Proporcional ${i+1}`,
         foneCliente: '11988888889'
-      }, pessoa2Id);
+      }, sellerIdHelper(pessoa2Id));
     }
     logSuccess('8 bilhetes marcados como VENDIDOS com sucesso.');
 
@@ -378,13 +428,13 @@ async function bootstrap() {
       where: { rifaId: rifa2Id }
     });
     assertEqual(recebimentosRifa2.length, 8, 'Quantidade de recebimentos registrados para a Rifa 2');
-    const todosVendedor2 = recebimentosRifa2.every(r => r.vendedorId === pessoa2Id && r.valor === 20.0);
+    const todosVendedor2 = recebimentosRifa2.every(r => r.vendedorId === sellerIdHelper(pessoa2Id) && r.valor === 20.0);
     assertEqual(todosVendedor2, true, 'Todos os recebimentos da Rifa 2 pertencem ao Vendedor 2 e têm valor R$ 20,00');
 
     // Verificar Transações do Vendedor 2
     // Deve conter exatamente 1 transação de RECEITA de comissão no rateio (R$ 48,00)
     const transacoesVendedor2 = await prisma.transacao.findMany({
-      where: { pessoaId: pessoa2Id }
+      where: { pessoaId: sellerIdHelper(pessoa2Id) }
     });
     assertEqual(transacoesVendedor2.length, 1, 'Quantidade de transações para o Vendedor 2 (1 comissão no rateio)');
     assertEqual(transacoesVendedor2[0].valor, 48.0, 'Valor da comissão lançada no rateio');
@@ -394,7 +444,7 @@ async function bootstrap() {
 
     // Verificar Saldo Dinâmico do Vendedor 2 (deve sobrar exatamente a comissão líquida de R$ 48,00)
     const infoVendedor2 = await prisma.pessoa.findUnique({
-      where: { id: pessoa2Id },
+      where: { id: sellerIdHelper(pessoa2Id) },
       include: { transacoes: true }
     });
     const saldoDinamicov2 = infoVendedor2?.transacoes.reduce((acc, t) => {
@@ -498,7 +548,7 @@ async function bootstrap() {
       const transacoesDel = await prisma.transacao.deleteMany({
         where: {
           OR: [
-            { pessoaId: { in: [pessoa1Id, pessoa2Id].filter(Boolean) as number[] } },
+            { pessoaId: { in: [pessoa1Id, sellerIdHelper(pessoa2Id)].filter(Boolean) as number[] } },
             { contaId: contaId }
           ]
         }
@@ -510,6 +560,20 @@ async function bootstrap() {
         where: { id: { in: [rifa1Id, rifa2Id].filter(Boolean) as number[] } }
       });
       logInfo(`Deletadas ${rifasDel.count} campanhas de rifa de teste.`);
+
+      // 5.5 Deletar Inscrições
+      if (inscricao1Id || inscricao2Id) {
+        await prisma.inscricao.deleteMany({
+          where: { id: { in: [inscricao1Id, inscricao2Id].filter(Boolean) as number[] } }
+        });
+        logInfo('Deletadas inscrições de teste.');
+      }
+
+      // 5.6 Deletar Evento
+      if (eventoId) {
+        await prisma.evento.delete({ where: { id: eventoId } });
+        logInfo('Deletado evento de teste.');
+      }
 
       // 6. Deletar Vendedores
       if (pessoa1Id || pessoa2Id) {
@@ -536,7 +600,6 @@ async function bootstrap() {
         await prisma.paroquia.delete({ where: { id: paroquiaId } });
         logInfo('Deletada paróquia de teste.');
       }
-
       logSuccess('Todos os dados criados para o teste foram totalmente limpos do banco de dados.');
       logSuccess('Banco de dados restaurado ao estado original com sucesso!');
     } catch (cleanError: any) {
