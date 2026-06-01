@@ -7,7 +7,7 @@ import { UpdateRecebimentoDto } from './dto/update-recebimento.dto';
 
 @Injectable()
 export class TrabalhosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createTrabalhoDto: CreateTrabalhoDto) {
     const { membrosIds, ...dados } = createTrabalhoDto;
@@ -187,8 +187,8 @@ export class TrabalhosService {
     if (trabalhoExistente.lotesRateio && trabalhoExistente.lotesRateio.length > 0) {
       throw new BadRequestException('Não é possível excluir um trabalho que já possui lotes de rateio executados.');
     }
-    if (trabalhoExistente.status !== 'ABERTO') {
-      throw new BadRequestException('Apenas trabalhos com status ABERTO podem ser excluídos.');
+    if (trabalhoExistente.status !== 'ABERTO' && trabalhoExistente.status !== 'EM_ANDAMENTO') {
+      throw new BadRequestException('Apenas trabalhos com status ABERTO ou EM_ANDAMENTO podem ser excluídos.');
     }
     return this.prisma.trabalho.delete({ where: { id } });
   }
@@ -261,11 +261,11 @@ export class TrabalhosService {
 
     // Calcular totais
     const valorArrecadado = recebimentosPendentesRateio.reduce((acc, r) => acc + r.valor, 0);
-    
+
     // As despesas acumuladas do trabalho que ainda não foram abatidas em lotes anteriores
-    const totalDespesasTrabalho = trabalho.tipo === 'GRUPO' ? 
+    const totalDespesasTrabalho = trabalho.tipo === 'GRUPO' ?
       trabalho.despesas.reduce((acc, d) => acc + d.valor, 0) : 0;
-    
+
     const despesasJaAbatidas = trabalho.lotesRateio.reduce((acc, l) => acc + l.valorDespesas, 0);
     const valorDespesasPendente = Math.max(0, totalDespesasTrabalho - despesasJaAbatidas);
 
@@ -310,7 +310,7 @@ export class TrabalhosService {
 
       for (const [metodo, recs] of Object.entries(recebimentosPorMetodo)) {
         const valorMetodo = recs.reduce((acc, r) => acc + r.valor, 0);
-        
+
         // Despesa proporcional a este método no lote
         const proporcaoMetodo = valorMetodo / valorArrecadado;
         const despesaProporcionalMetodo = valorDespesasLote * proporcaoMetodo;
@@ -357,7 +357,7 @@ export class TrabalhosService {
                 valor: totalComunidadeMetodo,
                 tipo: 'RECEITA',
                 origem: 'TRABALHO',
-                descricao: `Comunidade Trabalho (${trabalho.descricao}) - Lote #${lote.id}`,
+                descricao: `Custos do trabalho (${trabalho.descricao}) - Lote #${lote.id}`,
                 metodo,
                 contaId: trabalho.evento.contaId,
                 loteRateioId: lote.id,
@@ -511,7 +511,7 @@ export class TrabalhosService {
     if (trabalho.status === 'CONCLUIDO') {
       throw new BadRequestException('Não é possível cancelar rateios de um trabalho já concluído.');
     }
-    
+
     const result = await this.prisma.loteRateio.delete({
       where: { id: loteId }
     });

@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrigemTransacao } from '@prisma/client';
 import { CreateSaqueDto } from './dto/create-saque.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class SaquesService {
@@ -25,28 +27,22 @@ export class SaquesService {
       throw new BadRequestException('Apenas pessoas inscritas no evento podem realizar saques deste evento.');
     }
 
-    // Calcular saldo específico no evento
+    // Calcular saldo específico no evento de forma pura
     const transacoes = await this.prisma.transacao.findMany({
       where: { pessoaId: rest.pessoaId, eventoId: rest.eventoId }
     });
-    const totalTransacoes = transacoes.reduce((acc: number, t: any) => {
+    const saldoDisponivel = transacoes.reduce((acc: number, t: any) => {
       if (t.tipo === 'RECEITA') return acc + t.valor;
       if (t.tipo === 'DESPESA') return acc - t.valor;
       return acc;
     }, 0);
 
-    const saques = await this.prisma.saque.findMany({
-      where: { pessoaId: rest.pessoaId, eventoId: rest.eventoId }
-    });
-    const totalSaques = saques.reduce((acc: number, s: any) => acc + s.valor, 0);
-
-    const saldoDisponivel = totalTransacoes - totalSaques;
-
-    if (saldoDisponivel < rest.valor) {
+    if (Math.round(saldoDisponivel * 100) < Math.round(rest.valor * 100)) {
       throw new BadRequestException(
         `Saldo insuficiente para este evento. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}`
       );
     }
+
     const evento = await this.prisma.evento.findUnique({
       where: { id: rest.eventoId },
     });
@@ -55,53 +51,48 @@ export class SaquesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Criar o Saque
-      const saque = await tx.saque.create({
+      const saqueId = randomUUID().substring(0, 8).toUpperCase();
+      const descricaoBase = rest.descricao || 'Retirada de saldo';
+
+      // 1. Criar a Transação de DESPESA correspondente da Pessoa (Débito do participante)
+      const transacaoPessoa = await tx.transacao.create({
         data: {
-          ...rest,
-          data: data ? new Date(data) : undefined,
-        },
+          valor: rest.valor,
+          tipo: 'DESPESA',
+          origem: OrigemTransacao.SAQUE,
+          descricao: `[SAQUE-${saqueId}] Saque efetuado: ${descricaoBase}`,
+          pessoaId: rest.pessoaId,
+          contaId: null,
+          eventoId: rest.eventoId,
+          data: data ? new Date(data) : new Date(),
+        }
       });
 
-      // 2. Criar a Transação de DESPESA correspondente da Pessoa (Débito do participante)
+      // 2. Criar a Transação de DESPESA correspondente na Conta do Evento (Débito do caixa da paróquia/evento)
       await tx.transacao.create({
         data: {
           valor: rest.valor,
           tipo: 'DESPESA',
-          origem: 'CONTAS',
-          descricao: `[SAQUE #${saque.id}] Saque efetuado (Débito Participante): ${rest.descricao || 'Retirada de saldo'} - ${pessoa.nome}`,
-          pessoaId: rest.pessoaId, // VINCULADA À PESSOA!
-          contaId: null, // Sem conta física para a despesa pessoal
+          origem: OrigemTransacao.SAQUE,
+          descricao: `[SAQUE-${saqueId}] Saque efetuado (Saída Caixa): ${descricaoBase} - ${pessoa.nome}`,
+          pessoaId: null,
+          contaId: evento.contaId,
           eventoId: rest.eventoId,
           data: data ? new Date(data) : new Date(),
         }
       });
 
-      // 3. Criar a Transação de RECEITA correspondente na Conta do Evento (Crédito do caixa da paróquia/evento)
-      await tx.transacao.create({
-        data: {
-          valor: rest.valor,
-          tipo: 'RECEITA',
-          origem: 'CONTAS',
-          descricao: `[SAQUE #${saque.id}] Saque efetuado (Crédito Conta): ${rest.descricao || 'Retirada de saldo'} - ${pessoa.nome}`,
-          pessoaId: null, // Sem pessoaId para a receita do caixa
-          contaId: evento.contaId, // VINCULADA À CONTA DO EVENTO!
-          eventoId: rest.eventoId,
-          data: data ? new Date(data) : new Date(),
-        }
-      });
-
-      // 4. Atualizar o saldo físico da Conta no banco de dados incrementando o valor recebido
+      // 3. Atualizar o saldo físico da Conta no banco de dados decrementando o valor sacado
       await tx.conta.update({
         where: { id: evento.contaId },
         data: {
           saldo: {
-            increment: rest.valor
+            decrement: rest.valor
           }
         }
       });
 
-      return saque;
+      return transacaoPessoa;
     });
   }
 
@@ -114,67 +105,63 @@ export class SaquesService {
       throw new NotFoundException(`Pessoa com ID ${pessoaId} não encontrada`);
     }
 
-    return this.prisma.saque.findMany({
-      where: { pessoaId },
+    // Busca apenas transações de DESPESA que tenham a origem SAQUE ou descrição de legados
+    return this.prisma.transacao.findMany({
+      where: { 
+        pessoaId,
+        tipo: 'DESPESA',
+        OR: [
+          { origem: OrigemTransacao.SAQUE },
+          { descricao: { startsWith: '[SAQUE' } }
+        ]
+      },
       orderBy: { data: 'desc' },
     });
   }
 
   async remover(id: number) {
-    const saque = await this.prisma.saque.findUnique({
+    const transacaoDespesa = await this.prisma.transacao.findUnique({
       where: { id },
       include: { evento: true }
     });
-    if (!saque) {
-      throw new NotFoundException(`Saque com ID ${id} não encontrado`);
+    if (!transacaoDespesa) {
+      throw new NotFoundException(`Transação de saque com ID ${id} não encontrada`);
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Buscar a Transação de RECEITA correspondente ao saque para estornar o saldo da Conta
-      const transacaoReceita = await tx.transacao.findFirst({
-        where: {
-          tipo: 'RECEITA',
-          descricao: {
-            startsWith: `[SAQUE #${id}]`
-          }
-        }
-      });
+      // Extrai a tag identificadora [SAQUE-ABCD] ou [SAQUE #123] da descrição para achar a transação espelho na conta
+      const match = transacaoDespesa.descricao.match(/^(\[SAQUE[A-Za-z0-9\s#-]+\])/);
+      const tag = match ? match[1] : null;
 
-      if (transacaoReceita) {
-        // Estornar o saldo da Conta decrementando o valor de volta
-        await tx.conta.update({
-          where: { id: saque.evento.contaId },
-          data: {
-            saldo: {
-              decrement: saque.valor
+      if (tag) {
+        // 1. Buscar a Transação da Conta correspondente ao saque para estornar o saldo
+        const transacaoConta = await tx.transacao.findFirst({
+          where: {
+            contaId: { not: null },
+            descricao: { startsWith: tag },
+            eventoId: transacaoDespesa.eventoId
+          }
+        });
+
+        if (transacaoConta && transacaoDespesa.evento) {
+          const ehDespesa = transacaoConta.tipo === 'DESPESA';
+          // Estornar o saldo da Conta incrementando o valor de volta
+          await tx.conta.update({
+            where: { id: transacaoDespesa.evento.contaId },
+            data: {
+              saldo: ehDespesa ? { increment: transacaoConta.valor } : { decrement: transacaoConta.valor }
             }
-          }
-        });
+          });
 
-        // Deletar a transação correspondente
-        await tx.transacao.delete({
-          where: { id: transacaoReceita.id }
-        });
-      }
-
-      // 2. Buscar e deletar a Transação de DESPESA correspondente à pessoa
-      const transacaoDespesa = await tx.transacao.findFirst({
-        where: {
-          tipo: 'DESPESA',
-          descricao: {
-            startsWith: `[SAQUE #${id}]`
-          }
+          // Deletar a transação espelho
+          await tx.transacao.delete({
+            where: { id: transacaoConta.id }
+          });
         }
-      });
-
-      if (transacaoDespesa) {
-        await tx.transacao.delete({
-          where: { id: transacaoDespesa.id }
-        });
       }
 
-      // 3. Deletar o Saque
-      return tx.saque.delete({
+      // 3. Deletar a transação original do saque da pessoa
+      return tx.transacao.delete({
         where: { id },
       });
     });

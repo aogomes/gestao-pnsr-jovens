@@ -36,7 +36,8 @@ export class ContasService {
         paroquia: true,
         transacoes: {
           orderBy: { data: 'desc' }
-        }
+        },
+        lancamentosExtrato: true
       }
     });
 
@@ -44,9 +45,13 @@ export class ContasService {
       throw new NotFoundException(`Conta com ID ${id} não encontrada.`);
     }
 
-    const saldoCalculado = conta.transacoes.reduce((acc: number, t: any) => {
+    let saldoCalculado = conta.transacoes.reduce((acc: number, t: any) => {
       return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
     }, 0);
+
+    saldoCalculado += conta.lancamentosExtrato?.reduce((acc: number, l: any) => {
+      return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+    }, 0) || 0;
 
     return { ...conta, saldo: saldoCalculado };
   }
@@ -57,15 +62,19 @@ export class ContasService {
       include: {
         transacoes: {
           orderBy: { data: 'desc' }
-        }
+        },
+        lancamentosExtrato: true
       },
       orderBy: { nome: 'asc' },
     });
 
     return contas.map(c => {
-      const saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
+      let saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
+      saldoCalculado += c.lancamentosExtrato?.reduce((acc: number, l: any) => {
+        return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+      }, 0) || 0;
       return { ...c, saldo: saldoCalculado };
     });
   }
@@ -76,15 +85,19 @@ export class ContasService {
         paroquia: true,
         transacoes: {
           orderBy: { data: 'desc' }
-        }
+        },
+        lancamentosExtrato: true
       },
       orderBy: { nome: 'asc' },
     });
 
     return contas.map(c => {
-      const saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
+      let saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
+      saldoCalculado += c.lancamentosExtrato?.reduce((acc: number, l: any) => {
+        return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+      }, 0) || 0;
       return { ...c, saldo: saldoCalculado };
     });
   }

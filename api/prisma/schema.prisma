@@ -36,7 +36,7 @@ model Pessoa {
   trabalhosEquipe      MembroTrabalho[]
   recebimentosTrabalho RecebimentoTrabalho[]
   recebimentosRifa     RecebimentoRifa[]
-  saques               Saque[]
+
   paroquiaId   Int?
   paroquia     Paroquia?    @relation(fields: [paroquiaId], references: [id])
   
@@ -123,7 +123,7 @@ model Evento {
   transacoes       Transacao[]   // Relação reversa para Transacao
   rifas            Rifa[]        // Relação reversa para Rifa
   trabalhos        Trabalho[]    // Relação reversa para Trabalho
-  saques           Saque[]       // Relação reversa para Saque
+
   criadoEm         DateTime      @default(now())
   atualizadoEm     DateTime      @updatedAt
 
@@ -165,6 +165,7 @@ enum OrigemTransacao {
   PAGAMENTO
   CONTAS
   EVENTOS
+  SAQUE
 }
 
 enum StatusEvento {
@@ -480,21 +481,4 @@ model LancamentoExtrato {
   @@map("lancamentos_extrato")
 }
 
-model Saque {
-  id           Int      @id @default(autoincrement())
-  valor        Float
-  descricao    String
-  data         DateTime @default(now())
-  
-  pessoaId     Int
-  pessoa       Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
-
-  eventoId     Int
-  evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
-
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
-
-  @@map("saques")
-}
 

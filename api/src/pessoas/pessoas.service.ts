@@ -45,31 +45,22 @@ export class PessoasService {
     });
   }
 
-  obterSaldosPorEvento(transacoes: any[], saques: any[]) {
-    const eventosMap: Record<number, { id: number, nome: string, receitas: number, despesas: number, saques: number }> = {};
+  obterSaldosPorEvento(transacoes: any[]) {
+    const eventosMap: Record<number, { id: number, nome: string, receitas: number, despesas: number }> = {};
     
     transacoes.forEach((t: any) => {
-      if (t.descricao?.startsWith('[SAQUE #')) return; // IGNORA DUPLICADOS DE SAQUES NO DETALHAMENTO
       if (!t.eventoId) return;
       if (!eventosMap[t.eventoId]) {
-        eventosMap[t.eventoId] = { id: t.eventoId, nome: t.evento?.nome || `Evento #${t.eventoId}`, receitas: 0, despesas: 0, saques: 0 };
+        eventosMap[t.eventoId] = { id: t.eventoId, nome: t.evento?.nome || `Evento #${t.eventoId}`, receitas: 0, despesas: 0 };
       }
       if (t.tipo === 'RECEITA') eventosMap[t.eventoId].receitas += t.valor;
       if (t.tipo === 'DESPESA') eventosMap[t.eventoId].despesas += t.valor;
     });
 
-    saques?.forEach((s: any) => {
-      if (!s.eventoId) return;
-      if (!eventosMap[s.eventoId]) {
-        eventosMap[s.eventoId] = { id: s.eventoId, nome: s.evento?.nome || `Evento #${s.eventoId}`, receitas: 0, despesas: 0, saques: 0 };
-      }
-      eventosMap[s.eventoId].saques += s.valor;
-    });
-
     return Object.values(eventosMap).map((ev: any) => ({
       eventoId: ev.id,
       nomeEvento: ev.nome,
-      saldo: ev.receitas - ev.despesas - ev.saques
+      saldo: ev.receitas - ev.despesas
     }));
   }
 
@@ -78,18 +69,12 @@ export class PessoasService {
       where: { pessoaId, eventoId }
     });
     const totalTransacoes = transacoes.reduce((acc: number, t: any) => {
-      if (t.descricao?.startsWith('[SAQUE #')) return acc; // IGNORA DUPLICADOS DE SAQUES NO DETALHAMENTO
       if (t.tipo === 'RECEITA') return acc + t.valor;
       if (t.tipo === 'DESPESA') return acc - t.valor;
       return acc;
     }, 0);
 
-    const saques = await this.prisma.saque.findMany({
-      where: { pessoaId, eventoId }
-    });
-    const totalSaques = saques.reduce((acc: number, s: any) => acc + s.valor, 0);
-
-    return totalTransacoes - totalSaques;
+    return totalTransacoes;
   }
 
   async buscarTodas(user: any) {
@@ -98,23 +83,19 @@ export class PessoasService {
       where,
       include: { 
         paroquia: true, 
-        transacoes: { include: { evento: true } }, 
-        saques: { include: { evento: true } } 
+        transacoes: { include: { evento: true } }
       },
       orderBy: { nome: 'asc' }
     });
     return pessoas.map((p: any) => {
       const totalTransacoes = p.transacoes.reduce((acc: number, t: any) => {
-        if (t.descricao?.startsWith('[SAQUE #')) return acc; // IGNORA DUPLICADOS DE SAQUES
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
       }, 0);
-      const totalSaques = p.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-      const saldoCalculado = totalTransacoes - totalSaques;
-      const saldosDetalhados = this.obterSaldosPorEvento(p.transacoes, p.saques);
-      const { transacoes, ...pessoaSemTransacoes } = p;
-      return { ...pessoaSemTransacoes, saldo: saldoCalculado, saldos: saldosDetalhados };
+      const saldoCalculado = totalTransacoes;
+      const saldosDetalhados = this.obterSaldosPorEvento(p.transacoes);
+      return { ...p, saldo: saldoCalculado, saldos: saldosDetalhados };
     });
   }
 
@@ -125,10 +106,6 @@ export class PessoasService {
         transacoes: {
           include: { evento: true },
           orderBy: { data: 'desc' }
-        },
-        saques: {
-          include: { evento: true },
-          orderBy: { data: 'desc' }
         }
       }
     });
@@ -136,14 +113,12 @@ export class PessoasService {
       throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
     }
     const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
-        if (t.descricao?.startsWith('[SAQUE #')) return acc; // IGNORA DUPLICADOS DE SAQUES
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-    const saldoCalculado = totalTransacoes - totalSaques;
-    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes, (pessoa as any).saques);
+    const saldoCalculado = totalTransacoes;
+    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
     return { ...pessoa, saldo: saldoCalculado, saldos: saldosDetalhados };
   }
 
@@ -168,10 +143,6 @@ export class PessoasService {
         transacoes: {
           include: { evento: true },
           orderBy: { data: 'desc' }
-        },
-        saques: {
-          include: { evento: true },
-          orderBy: { data: 'desc' }
         }
       }
     });
@@ -181,14 +152,12 @@ export class PessoasService {
     }
 
     const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
-        if (t.descricao?.startsWith('[SAQUE #')) return acc; // IGNORA DUPLICADOS DE SAQUES
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-    const saldoCalculado = totalTransacoes - totalSaques;
-    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes, (pessoa as any).saques);
+    const saldoCalculado = totalTransacoes;
+    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
 
     const inscricoesFormatadas = (pessoa.inscricoes || []).map((insc: any) => {
       const pagamentosSintetizados = (insc.transacoes || [])

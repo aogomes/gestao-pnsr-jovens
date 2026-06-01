@@ -33,8 +33,7 @@ export class InscricoesService {
       include: {
         pessoa: {
           include: {
-            transacoes: true,
-            saques: true
+            transacoes: true
           }
         },
         evento: true,
@@ -47,8 +46,8 @@ export class InscricoesService {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
-      }, 0) - (insc.pessoa.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0);
-      const { transacoes, saques, ...pessoaSemTransacoes } = insc.pessoa as any;
+      }, 0);
+      const { transacoes, ...pessoaSemTransacoes } = insc.pessoa as any;
 
       // Sintetizar dinamicamente o array de pagamentos a partir de transacoes
       const pagamentosSintetizados = insc.transacoes
@@ -148,8 +147,7 @@ export class InscricoesService {
         include: {
           pessoa: {
             include: {
-              transacoes: true,
-              saques: true
+              transacoes: true
             }
           },
           evento: true
@@ -166,9 +164,9 @@ export class InscricoesService {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
-      }, 0) - (inscricao.pessoa.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0);
+      }, 0);
 
-      if (saldoCalculado < createPagamentoDto.valor) {
+      if (Math.round(saldoCalculado * 100) < Math.round(createPagamentoDto.valor * 100)) {
         throw new BadRequestException(`Saldo insuficiente. Saldo atual: R$ ${saldoCalculado.toFixed(2)}`);
       }
 
@@ -177,7 +175,7 @@ export class InscricoesService {
         data: {
           valor: createPagamentoDto.valor,
           tipo: 'DESPESA',
-          descricao: `Pagamento Inscrição: ${inscricao.evento.nome}`,
+          descricao: `Pagamento: ${inscricao.evento.nome}`,
           pessoaId: inscricao.pessoaId,
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
@@ -191,7 +189,7 @@ export class InscricoesService {
         data: {
           valor: createPagamentoDto.valor,
           tipo: 'RECEITA',
-          descricao: `Recebimento Inscrição [${inscricao.pessoa.nome}]: ${inscricao.evento.nome}`,
+          descricao: `Recebimento [${inscricao.pessoa.nome}]: ${inscricao.evento.nome}`,
           contaId: inscricao.evento.contaId,
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
