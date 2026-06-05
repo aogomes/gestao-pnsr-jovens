@@ -97,7 +97,7 @@ export class TrabalhosService {
         },
         despesas: true,
         evento: {
-          include: { paroquia: true, conta: true }
+          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
         },
         lotesRateio: {
           include: { transacoes: true, recebimentos: true }
@@ -263,8 +263,7 @@ export class TrabalhosService {
     const valorArrecadado = recebimentosPendentesRateio.reduce((acc, r) => acc + r.valor, 0);
 
     // As despesas acumuladas do trabalho que ainda não foram abatidas em lotes anteriores
-    const totalDespesasTrabalho = trabalho.tipo === 'GRUPO' ?
-      trabalho.despesas.reduce((acc, d) => acc + d.valor, 0) : 0;
+    const totalDespesasTrabalho = trabalho.despesas.reduce((acc, d) => acc + d.valor, 0);
 
     const despesasJaAbatidas = trabalho.lotesRateio.reduce((acc, l) => acc + l.valorDespesas, 0);
     const valorDespesasPendente = Math.max(0, totalDespesasTrabalho - despesasJaAbatidas);
@@ -275,8 +274,8 @@ export class TrabalhosService {
       );
     }
 
-    const valorDespesasLote = trabalho.tipo === 'GRUPO' ? valorDespesasPendente : 0;
-    const valorLiquidoLote = valorArrecadado - valorDespesasLote;
+    const valorDespesasLote = valorDespesasPendente;
+    const valorLiquidoLote = trabalho.tipo === 'GRUPO' ? valorArrecadado - valorDespesasLote : valorArrecadado;
 
     let loteRateioId: number = 0;
 
@@ -409,6 +408,23 @@ export class TrabalhosService {
             }
           }
         }
+      }
+
+      // Para trabalho INDIVIDUAL, as despesas não são deduzidas do rateio (o valor líquido já ignora as despesas),
+      // mas devem gerar um lançamento de DESPESA na conta do trabalho.
+      if (trabalho.tipo === 'INDIVIDUAL' && valorDespesasLote > 0) {
+        await prisma.transacao.create({
+          data: {
+            valor: valorDespesasLote,
+            tipo: 'DESPESA',
+            origem: 'TRABALHO',
+            descricao: `Despesas do trabalho individual (${trabalho.descricao}) - Lote #${lote.id}`,
+            contaId: trabalho.evento.contaId,
+            loteRateioId: lote.id,
+            eventoId: trabalho.eventoId,
+            data: new Date()
+          }
+        });
       }
     });
 
