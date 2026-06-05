@@ -30,7 +30,9 @@ import {
   ToggleLeft,
   ToggleRight,
   ArrowDownCircle,
-  MoreVertical
+  MoreVertical,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -40,6 +42,8 @@ export default function TrabalhosPage() {
   const [subTabRelatorios, setSubTabRelatorios] = useState<'GERAL' | 'PESSOAS' | 'PENDENCIAS'>('GERAL');
   const [eventoSelecionadoId, setEventoSelecionadoId] = useState<string>('');
   const [menuAcaoAbertoId, setMenuAcaoAbertoId] = useState<number | null>(null);
+  const [menuCabecalhoAberto, setMenuCabecalhoAberto] = useState(false);
+  const [valoresCardsVisiveisMobile, setValoresCardsVisiveisMobile] = useState(false);
 
   // Estados de Trabalhos
   const [trabalhos, setTrabalhos] = useState<any[]>([]);
@@ -1018,7 +1022,7 @@ export default function TrabalhosPage() {
             {abaAtiva === 'TRABALHOS' ? 'Gestão de Trabalhos' : 'Relatórios de Gestão'}
           </h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-            {abaAtiva === 'TRABALHOS' ? 'Serviços, Equipes e Rateios Financeiros' : 'Painel de Visualização e Auditoria Financeira de Cotas'}
+            {abaAtiva === 'TRABALHOS' ? 'Serviços, Equipes e Rateios Financeiros' : 'Gestão Financeira dos Trabalhos'}
           </p>
         </div>
       </div>
@@ -1108,21 +1112,49 @@ export default function TrabalhosPage() {
               <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{trabalhosFiltrados.length} trabalho{trabalhosFiltrados.length !== 1 ? 's' : ''}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => abrirModalCadastro()}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-                    >
-                      <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-                      Novo Trabalho
-                    </button>
-                    <button
-                      onClick={() => setModalGerenciarProdutosAberto(true)}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all shadow-sm group"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Novo Produto
-                    </button>
+                  <div className="relative">
+                    {/* Mobile 3-dots header */}
+                    <div className="sm:hidden">
+                      <button onClick={() => setMenuCabecalhoAberto(!menuCabecalhoAberto)} className="p-2 text-slate-400 hover:text-[#1351b4]">
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      {menuCabecalhoAberto && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setMenuCabecalhoAberto(false)} />
+                          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
+                            <button
+                              onClick={() => { setMenuCabecalhoAberto(false); abrirModalCadastro(); }}
+                              className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left"
+                            >
+                              <Plus className="w-4 h-4" /> Novo Trabalho
+                            </button>
+                            <button
+                              onClick={() => { setMenuCabecalhoAberto(false); setModalGerenciarProdutosAberto(true); }}
+                              className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-800 rounded-sm text-left"
+                            >
+                              <Package className="w-4 h-4" /> Novo Produto
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {/* Desktop buttons */}
+                    <div className="hidden sm:flex items-center gap-2">
+                      <button
+                        onClick={() => abrirModalCadastro()}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
+                      >
+                        <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                        Novo Trabalho
+                      </button>
+                      <button
+                        onClick={() => setModalGerenciarProdutosAberto(true)}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all shadow-sm group"
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                        Novo Produto
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -1454,8 +1486,16 @@ export default function TrabalhosPage() {
           <div className="space-y-6 animate-in fade-in duration-200">
 
 
+            {/* Header com Toggle para Mobile */}
+            <div className="flex items-center justify-between sm:hidden">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Resumo Financeiro</span>
+              <button onClick={() => setValoresCardsVisiveisMobile(!valoresCardsVisiveisMobile)} className="p-2 text-slate-400 hover:text-[#1351b4] bg-white border border-slate-200 rounded-sm shadow-sm transition-colors">
+                {valoresCardsVisiveisMobile ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+
             {/* Cards de Métricas Gerais do Período Filtrado */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ${!valoresCardsVisiveisMobile ? 'hidden sm:grid' : 'grid'}`}>
 
               {/* Card 1: Repasse Trabalhadores */}
               <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-200 p-2 rounded-sm flex flex-col justify-between shadow-sm relative overflow-hidden group">
@@ -1496,33 +1536,39 @@ export default function TrabalhosPage() {
 
             {/* Sub-abas de Relatórios */}
             <div className="border-b border-slate-200 overflow-x-auto custom-scrollbar no-scrollbar w-full mb-6">
-              <div className="flex justify-center gap-8">
+              <div className="flex justify-center gap-2 sm:gap-8 px-2 sm:px-0 w-full min-w-full sm:min-w-0">
                 <button
                   onClick={() => setSubTabRelatorios('GERAL')}
-                  className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${subTabRelatorios === 'GERAL'
+                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'GERAL'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
+                  title="Consolidado Geral"
                 >
-                  Consolidado Geral
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Consolidado Geral</span>
                 </button>
                 <button
                   onClick={() => setSubTabRelatorios('PESSOAS')}
-                  className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${subTabRelatorios === 'PESSOAS'
+                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PESSOAS'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
+                  title="Consolidado por Pessoa"
                 >
-                  Consolidado por Pessoa
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Consolidado por Pessoa</span>
                 </button>
                 <button
                   onClick={() => setSubTabRelatorios('PENDENCIAS')}
-                  className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${subTabRelatorios === 'PENDENCIAS'
+                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PENDENCIAS'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
+                  title="Pendências por Trabalho"
                 >
-                  Pendências por Trabalho
+                  <List className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline">Pendências por Trabalho</span>
                 </button>
               </div>
             </div>
@@ -1530,14 +1576,14 @@ export default function TrabalhosPage() {
             {/* Visualização de Relatório Geral */}
             {subTabRelatorios === 'GERAL' && (
               <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/30">
                   <div>
                     <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Pré-visualização: Relatório Geral Consolidado</h3>
                     <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Exibição dos dados antes da geração do documento PDF</p>
                   </div>
                   <button
                     onClick={gerarPDFGeral}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group hover:-translate-y-0.5"
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group hover:-translate-y-0.5 w-full sm:w-auto shrink-0"
                   >
                     <FileText className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                     Gerar PDF
@@ -1689,25 +1735,25 @@ export default function TrabalhosPage() {
             {/* Visualização de Relatório por Pessoas */}
             {subTabRelatorios === 'PESSOAS' && (
               <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-slate-50/30">
                   <div>
                     <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Pré-visualização: Relatório por Pessoas</h3>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Exibição detalhada de cotas acumuladas por pessoa no período</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Detalhamento dos valores por pessoa</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-auto flex-1">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         placeholder="Buscar por nome..."
                         value={termoBuscaPessoas}
                         onChange={(e) => setTermoBuscaPessoas(e.target.value)}
-                        className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                        className="pl-9 pr-4 py-2 w-full bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] shadow-sm sm:w-64"
                       />
                     </div>
                     <button
                       onClick={gerarPDFPorPessoa}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group hover:-translate-y-0.5"
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group hover:-translate-y-0.5 w-full sm:w-auto shrink-0"
                     >
                       <Users className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                       Gerar PDF
