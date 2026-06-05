@@ -11,11 +11,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     if (!url) {
       console.error('❌ ERRO: DATABASE_URL não encontrada no ambiente!');
     }
+    const isLocalhost = url?.includes('localhost') || url?.includes('127.0.0.1');
     const pool = new Pool({
       connectionString: url,
       min: 5,
       max: 20,
-      ssl: { rejectUnauthorized: false }
+      ssl: isLocalhost ? false : { rejectUnauthorized: false }
     });
     const adapter = new PrismaPg(pool);
     super({ adapter });
