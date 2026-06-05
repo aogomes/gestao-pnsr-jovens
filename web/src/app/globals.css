@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@custom-variant hover (&:hover);
+
+:root {
+  --background: #f2f3f7;
+  --foreground: #333333;
+  --primary: #1351b4;
+  --primary-hover: #0047b7;
+  --surface: #ffffff;
+  --surface-border: #e6e6e6;
+  --accent: #168821;
+  /* Verde gov.br */
+  --danger: #df1616;
+  /* Vermelho gov.br */
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --font-sans: 'Inter', sans-serif;
+  --font-weight-black: 600;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.institutional-card {
+  background: white;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.institutional-card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.glass-card {
+  background: white;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+}
+
+.glass-modal {
+  background: white;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.input-aurora {
+  background: #ffffff;
+  border: 1px solid #dcdce6;
+  color: #333333;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.input-aurora:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(19, 81, 180, 0.1);
+  outline: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+.text-gradient {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.btn-primary-shadow {
+  box-shadow: 0 4px 10px rgba(19, 81, 180, 0.2);
+}
+
+.gov-blue-header {
+  background-color: #1351b4;
+  color: white;
+}
+
+.gov-top-bar {
+  background-color: #0047b7;
+  color: white;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
