@@ -21,7 +21,8 @@ import {
   ArrowRight,
   DollarSign,
   History,
-  Wallet
+  Wallet,
+  MoreVertical
 } from 'lucide-react';
 
 export default function InscricoesPage() {
@@ -35,6 +36,7 @@ export default function InscricoesPage() {
 
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
+  const [menuAcaoAbertoId, setMenuAcaoAbertoId] = useState<number | null>(null);
   const [dadosForm, setDadosForm] = useState({ pessoaId: '' });
   const [enviando, setEnviando] = useState(false);
 
@@ -329,12 +331,12 @@ export default function InscricoesPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Pessoa / Participante</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Documento de Identidade</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data do Vínculo</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Total Pago</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Pessoa / Participante</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Documento de Identidade</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Data do Vínculo</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Total Pago</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center hidden sm:table-cell">Status</th>
+                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -377,7 +379,7 @@ export default function InscricoesPage() {
 
                   return inscricoesFiltradas.map((inscricao) => (
                     <tr key={inscricao.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-3 py-2">
+                    <td className="px-4 md:px-6 py-2">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] border border-slate-200 shadow-sm group-hover:scale-110 transition-transform">
                           <UserIcon className="w-5 h-5" />
@@ -387,17 +389,17 @@ export default function InscricoesPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 md:px-6 py-2 hidden md:table-cell">
                       <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-black tracking-widest border border-slate-200">
                         {inscricao.pessoa.documento || 'NÃO INFORMADO'}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 md:px-6 py-2 hidden lg:table-cell">
                       <div className="flex flex-col">
                         <span className="text-[11px] font-black text-slate-500 uppercase">{formatarData(inscricao.criadoEm)}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-4 md:px-6 py-2 text-right">
                       <div className="flex flex-col items-end">
                         <span className={`text-[11px] font-black ${(inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0) >= (eventoSelecionado?.valor || 0)
                           ? 'text-emerald-600'
@@ -408,7 +410,7 @@ export default function InscricoesPage() {
                         <span className="text-[8px] text-slate-400 font-bold uppercase">de {formatarMoeda(eventoSelecionado?.valor || 0)}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 md:px-6 py-2 text-center hidden sm:table-cell">
                       <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                             inscricao.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
@@ -420,69 +422,135 @@ export default function InscricoesPage() {
                               'Pendente'}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-center gap-2">
-                        {/* Botão Pagamentos */}
-                        <button
-                          onClick={() => abrirModalPagamento(inscricao)}
-                          className="w-7 h-7 flex items-center justify-center bg-blue-50 text-[#1351b4] hover:bg-blue-100 rounded-sm border border-blue-100 transition-all shadow-sm"
-                          title="Gestão de Pagamentos"
-                        >
-                          <DollarSign className="w-5 h-5" />
-                        </button>
-
-                        {/* Botão Confirmar: Disponível se NÃO estiver confirmado */}
-                        {inscricao.status !== 'CONFIRMADO' && (
-                          <button
-                            onClick={() => atualizarStatus(inscricao.id, 'CONFIRMADO')}
-                            className="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-sm border border-emerald-100 transition-all shadow-sm"
-                            title="Confirmar Inscrição"
-                          >
-                            <CheckCircle2 className="w-5 h-5" />
+                    <td className="px-4 md:px-6 py-2">
+                      <div className="relative flex items-center justify-center">
+                        {/* Mobile 3-dots */}
+                        <div className="sm:hidden">
+                          <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
+                            <MoreVertical className="w-5 h-5" />
                           </button>
-                        )}
+                          {menuAcaoAbertoId === inscricao.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
+                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
+                                <button
+                                  onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                                >
+                                  <DollarSign className="w-4 h-4" /> Pagamentos
+                                </button>
+                                {inscricao.status !== 'CONFIRMADO' && (
+                                  <button
+                                    onClick={() => { setMenuAcaoAbertoId(null); atualizarStatus(inscricao.id, 'CONFIRMADO'); }}
+                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-sm text-left"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" /> Aprovar
+                                  </button>
+                                )}
+                                {inscricao.status !== 'EM_ANALISE' && (
+                                  <button
+                                    onClick={() => { setMenuAcaoAbertoId(null); atualizarStatus(inscricao.id, 'EM_ANALISE'); }}
+                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-sm text-left"
+                                  >
+                                    <Clock className="w-4 h-4" /> Em Análise
+                                  </button>
+                                )}
+                                {inscricao.status !== 'REJEITADA' && (
+                                  <button
+                                    onClick={() => {
+                                      setMenuAcaoAbertoId(null);
+                                      const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                                      if (totalPago > 0) {
+                                        if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+                                          return;
+                                        }
+                                      } else {
+                                        if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
+                                          return;
+                                        }
+                                      }
+                                      atualizarStatus(inscricao.id, 'REJEITADA');
+                                    }}
+                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                  >
+                                    <X className="w-4 h-4" /> Rejeitar
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                >
+                                  <Trash2 className="w-4 h-4" /> Remover
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
 
-                        {/* Botão Em Análise: Disponível se NÃO estiver em análise */}
-                        {inscricao.status !== 'EM_ANALISE' && (
+                        {/* Desktop buttons */}
+                        <div className="hidden sm:flex items-center justify-center gap-2">
+                          {/* Botão Pagamentos */}
                           <button
-                            onClick={() => atualizarStatus(inscricao.id, 'EM_ANALISE')}
-                            className="w-7 h-7 flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-sm border border-indigo-100 transition-all shadow-sm"
-                            title="Colocar Em Análise"
+                            onClick={() => abrirModalPagamento(inscricao)}
+                            className="w-7 h-7 flex items-center justify-center bg-blue-50 text-[#1351b4] hover:bg-blue-100 rounded-sm border border-blue-100 transition-all shadow-sm"
+                            title="Gestão de Pagamentos"
                           >
-                            <Clock className="w-5 h-5" />
+                            <DollarSign className="w-5 h-5" />
                           </button>
-                        )}
 
-                        {/* Botão Rejeitar: Disponível se NÃO estiver rejeitada */}
-                        {inscricao.status !== 'REJEITADA' && (
-                          <button
-                            onClick={() => {
-                              const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
-                              if (totalPago > 0) {
-                                if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
-                                  return;
+                          {/* Botão Confirmar: Disponível se NÃO estiver confirmado */}
+                          {inscricao.status !== 'CONFIRMADO' && (
+                            <button
+                              onClick={() => atualizarStatus(inscricao.id, 'CONFIRMADO')}
+                              className="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-sm border border-emerald-100 transition-all shadow-sm"
+                              title="Confirmar Inscrição"
+                            >
+                              <CheckCircle2 className="w-5 h-5" />
+                            </button>
+                          )}
+
+                          {/* Botão Em Análise: Disponível se NÃO estiver em análise */}
+                          {inscricao.status !== 'EM_ANALISE' && (
+                            <button
+                              onClick={() => atualizarStatus(inscricao.id, 'EM_ANALISE')}
+                              className="w-7 h-7 flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-sm border border-indigo-100 transition-all shadow-sm"
+                              title="Colocar Em Análise"
+                            >
+                              <Clock className="w-5 h-5" />
+                            </button>
+                          )}
+
+                          {/* Botão Rejeitar: Disponível se NÃO estiver rejeitada */}
+                          {inscricao.status !== 'REJEITADA' && (
+                            <button
+                              onClick={() => {
+                                const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                                if (totalPago > 0) {
+                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+                                    return;
+                                  }
+                                } else {
+                                  if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
+                                    return;
+                                  }
                                 }
-                              } else {
-                                if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
-                                  return;
-                                }
-                              }
-                              atualizarStatus(inscricao.id, 'REJEITADA');
-                            }}
-                            className="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-sm border border-rose-100 transition-all shadow-sm"
-                            title="Rejeitar Inscrição"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                                atualizarStatus(inscricao.id, 'REJEITADA');
+                              }}
+                              className="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-sm border border-rose-100 transition-all shadow-sm"
+                              title="Rejeitar Inscrição"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
 
-                        <button
-                          onClick={() => confirmarExclusao(inscricao.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all"
-                          title="Remover Registro"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <button
+                            onClick={() => confirmarExclusao(inscricao.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all"
+                            title="Remover Registro"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </td>
                     </tr>

@@ -206,15 +206,15 @@ export default function MeuPainelPage() {
     <div className="h-full flex flex-col space-y-6 pb-10">
 
       {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 px-2 sm:px-0">
         <div>
-          <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">Meu Painel Pessoal</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Visão geral da sua conta e atividades</p>
+          <h1 className="text-xl sm:text-2xl font-black text-[#1351b4] uppercase tracking-tight">Meu Painel Pessoal</h1>
+          <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest mt-1">Visão geral da sua conta e atividades</p>
         </div>
       </div>
 
       {/* SEÇÃO 1: PERFIL E SALDO (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 sm:p-8 relative overflow-hidden">
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-10">
 
@@ -224,7 +224,7 @@ export default function MeuPainelPage() {
               {perfil.nome?.charAt(0).toUpperCase() || 'P'}
             </div>
             <div className="flex flex-col">
-              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
+              <h2 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
               <div className="mt-2 flex flex-col items-start gap-2">
                 <span className="text-[9px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-black uppercase tracking-wider border border-emerald-100 flex items-center gap-1">
                   <UserCheck className="w-3 h-3" /> Membro Ativo
@@ -298,7 +298,7 @@ export default function MeuPainelPage() {
       </div>
 
       {/* SEÇÃO 2: INSCRIÇÕES E EVENTOS (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 flex flex-col space-y-6">
+      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 sm:p-8 flex flex-col space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
@@ -458,23 +458,23 @@ export default function MeuPainelPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-5xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
-              <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-sm bg-[#1351b4] text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
-                    <ArrowRightLeft className="w-6 h-6" />
+              <div className="px-5 sm:px-10 py-6 sm:py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm bg-[#1351b4] text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
+                    <ArrowRightLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Histórico Financeiro</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Extrato detalhado de todas as movimentações</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tight">Histórico Financeiro</h2>
+                    <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Extrato detalhado</p>
                   </div>
                 </div>
                 <button onClick={() => setModalExtratoAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-                  <X className="w-7 h-7" />
+                  <X className="w-6 h-6 sm:w-7 sm:h-7" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="p-8 pb-0">
+                <div className="p-4 sm:p-8 pb-0">
                   {/* Detalhamento de saldos por evento */}
                   {perfil.saldos && perfil.saldos.length > 0 && (
                     <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-sm">
@@ -520,75 +520,128 @@ export default function MeuPainelPage() {
                   </div>
                 </div>
 
-                <table className="w-full text-sm text-left border-separate border-spacing-0">
-                  <thead>
-                    <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                      <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                      <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Descrição</th>
-                      <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {itensCombinados.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="px-10 py-32 text-center text-slate-300">
-                          <div className="flex flex-col items-center gap-4 opacity-20">
-                            <Info className="w-16 h-16" />
-                            <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhum registro localizado</span>
-                          </div>
-                        </td>
+                <div className="hidden lg:block w-full">
+                  <table className="w-full text-sm text-left border-separate border-spacing-0">
+                    <thead>
+                      <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
+                        <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
+                        <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Descrição</th>
+                        <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
                       </tr>
-                    ) : (
-                      itensCombinados.map((item: any, itemIdx: number) => {
-                        const isReceita = item.tipo === 'RECEITA';
-                        const isDespesa = item.tipo === 'DESPESA';
-                        const isSaque = item.isSaque;
-                        const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
-                        const bgIconColor = isReceita
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          : isDespesa
-                            ? 'bg-rose-50 text-rose-600 border-rose-100'
-                            : isSaque
-                              ? 'bg-amber-50 text-amber-600 border-amber-100'
-                              : 'bg-slate-50 text-slate-600 border-slate-100';
-                        const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
-                        const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {itensCombinados.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-10 py-32 text-center text-slate-300">
+                            <div className="flex flex-col items-center gap-4 opacity-20">
+                              <Info className="w-16 h-16" />
+                              <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhum registro localizado</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        itensCombinados.map((item: any, itemIdx: number) => {
+                          const isReceita = item.tipo === 'RECEITA';
+                          const isDespesa = item.tipo === 'DESPESA';
+                          const isSaque = item.isSaque;
+                          const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
+                          const bgIconColor = isReceita
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                            : isDespesa
+                              ? 'bg-rose-50 text-rose-600 border-rose-100'
+                              : isSaque
+                                ? 'bg-amber-50 text-amber-600 border-amber-100'
+                                : 'bg-slate-50 text-slate-600 border-slate-100';
+                          const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
+                          const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
 
-                        return (
-                          <tr key={`${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              <div className="flex flex-col">
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{formatarData(item.data)}</span>
-                                <span className="text-[9px] text-slate-300 font-bold uppercase mt-1 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> Processado
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 w-full">
-                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
-                                  <Icon className="w-5 h-5" />
-                                </div>
+                          return (
+                            <tr key={`${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-3 py-2 whitespace-nowrap">
                                 <div className="flex flex-col">
-                                  <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{item.descricao}</span>
-                                  <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-black">
-                                    {isSaque ? 'RETIRADA / SAQUE' : item.tipo} {item.nomeEvento && ` • ${item.nomeEvento}`}
+                                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{formatarData(item.data)}</span>
+                                  <span className="text-[9px] text-slate-300 font-bold uppercase mt-1 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> Processado
                                   </span>
                                 </div>
+                              </td>
+                              <td className="px-3 py-2 w-full">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{item.descricao}</span>
+                                    <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-black">
+                                      {isSaque ? 'RETIRADA / SAQUE' : item.tipo} {item.nomeEvento && ` • ${item.nomeEvento}`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className={`px-3 py-2 font-black text-sm text-right whitespace-nowrap ${valorColor}`}>
+                                <div className="flex items-center justify-end gap-1">
+                                  <span className="text-xs opacity-50">{sinal}</span>
+                                  {formatarMoeda(item.valor)}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="lg:hidden flex flex-col divide-y divide-slate-100">
+                  {itensCombinados.length === 0 ? (
+                    <div className="py-20 text-center text-slate-300 flex flex-col items-center gap-4 opacity-40">
+                      <Info className="w-12 h-12" />
+                      <span className="font-black uppercase tracking-widest text-[10px]">Nenhum registro</span>
+                    </div>
+                  ) : (
+                    itensCombinados.map((item: any, itemIdx: number) => {
+                      const isReceita = item.tipo === 'RECEITA';
+                      const isDespesa = item.tipo === 'DESPESA';
+                      const isSaque = item.isSaque;
+                      const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
+                      const bgIconColor = isReceita
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        : isDespesa
+                          ? 'bg-rose-50 text-rose-600 border-rose-100'
+                          : isSaque
+                            ? 'bg-amber-50 text-amber-600 border-amber-100'
+                            : 'bg-slate-50 text-slate-600 border-slate-100';
+                      const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
+                      const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
+
+                      return (
+                        <div key={`mob-${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="p-4 flex flex-col gap-3 bg-white hover:bg-slate-50 active:bg-slate-100 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border shadow-sm ${bgIconColor}`}>
+                                <Icon className="w-5 h-5" />
                               </div>
-                            </td>
-                            <td className={`px-3 py-2 font-black text-sm text-right whitespace-nowrap ${valorColor}`}>
-                              <div className="flex items-center justify-end gap-1">
-                                <span className="text-xs opacity-50">{sinal}</span>
+                              <div className="flex flex-col">
+                                <span className="font-black text-slate-700 text-xs uppercase tracking-tight line-clamp-2">{item.descricao}</span>
+                                <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold">
+                                  {isSaque ? 'RETIRADA' : item.tipo} {item.nomeEvento && `• ${item.nomeEvento}`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className={`flex flex-col items-end shrink-0 ${valorColor}`}>
+                              <div className="flex items-center gap-1 font-black text-sm">
+                                <span className="text-[10px] opacity-60">{sinal}</span>
                                 {formatarMoeda(item.valor)}
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                              <span className="text-[9px] text-slate-400 uppercase font-bold tracking-tight mt-1">{formatarData(item.data)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-center">

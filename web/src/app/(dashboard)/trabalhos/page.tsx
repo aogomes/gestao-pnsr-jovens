@@ -29,7 +29,8 @@ import {
   Package,
   ToggleLeft,
   ToggleRight,
-  ArrowDownCircle
+  ArrowDownCircle,
+  MoreVertical
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -38,6 +39,7 @@ export default function TrabalhosPage() {
   const [abaAtiva, setAbaAtiva] = useState<'TRABALHOS' | 'PRODUTOS' | 'RELATORIOS'>('TRABALHOS');
   const [subTabRelatorios, setSubTabRelatorios] = useState<'GERAL' | 'PESSOAS' | 'PENDENCIAS'>('GERAL');
   const [eventoSelecionadoId, setEventoSelecionadoId] = useState<string>('');
+  const [menuAcaoAbertoId, setMenuAcaoAbertoId] = useState<number | null>(null);
 
   // Estados de Trabalhos
   const [trabalhos, setTrabalhos] = useState<any[]>([]);
@@ -1127,12 +1129,12 @@ export default function TrabalhosPage() {
                   <table className="w-full text-sm text-left border-separate border-spacing-0">
                     <thead>
                       <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Trabalho</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Equipe / Proporção</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Financeiro</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 w-24 text-center">Status</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Trabalho</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Participante(s)</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 w-24 text-center hidden sm:table-cell">Status</th>
+                        <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1146,10 +1148,10 @@ export default function TrabalhosPage() {
 
                         return (
                           <tr key={trabalho.id} className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="px-6 py-4">
+                            <td className="px-4 md:px-6 py-4 hidden lg:table-cell">
                               <p className="font-black text-slate-800 uppercase tracking-tight">{trabalho.descricao}</p>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="flex items-center gap-1.5 text-slate-500">
                                 <Calendar className="w-3.5 h-3.5" />
                                 <span className="text-[11px] font-bold uppercase tracking-widest">
@@ -1157,7 +1159,7 @@ export default function TrabalhosPage() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-4 md:px-6 py-4">
                               <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-1.5 text-slate-600">
                                   {/* Trigger wrapper strictly around the icon using a named group */}
@@ -1209,7 +1211,7 @@ export default function TrabalhosPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-right">
+                            <td className="px-4 md:px-6 py-4 text-right">
                               <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-1.5 justify-end" title="Recebido">
                                   <span className="text-xs font-black text-emerald-600">
@@ -1226,7 +1228,7 @@ export default function TrabalhosPage() {
                                 </div>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 md:px-6 py-4 text-center hidden sm:table-cell">
                               <div className={`inline-block px-3 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest border ${trabalho.status === 'CONCLUIDO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                                 trabalho.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                   'bg-amber-50 text-amber-600 border-amber-100'
@@ -1234,37 +1236,67 @@ export default function TrabalhosPage() {
                                 {trabalho.status}
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center justify-center gap-2">
-                                <button
-                                  onClick={() => abrirModalRecebimentos(trabalho)}
-                                  className="relative p-2 text-slate-400 hover:text-[#1351b4] transition-colors border border-transparent hover:border-slate-200 rounded-sm bg-white hover:bg-slate-50 shadow-sm"
-                                  title="Recebimentos e Rateio"
-                                >
-                                  <DollarSign className="w-4 h-4" />
-                                  {recebimentosPendentes > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full text-[8px] font-black flex items-center justify-center animate-pulse">
-                                      {recebimentosPendentes}
-                                    </span>
+                            <td className="px-4 md:px-6 py-4">
+                              <div className="relative flex items-center justify-center">
+                                {/* Mobile 3-dots */}
+                                <div className="sm:hidden">
+                                  <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === trabalho.id ? null : trabalho.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
+                                    <MoreVertical className="w-5 h-5" />
+                                    {recebimentosPendentes > 0 && (
+                                      <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                                    )}
+                                  </button>
+                                  {menuAcaoAbertoId === trabalho.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
+                                      <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                                        <button onClick={() => { setMenuAcaoAbertoId(null); abrirModalRecebimentos(trabalho); }} className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left">
+                                          <DollarSign className="w-4 h-4" />
+                                          Financeiro
+                                          {recebimentosPendentes > 0 && <span className="ml-auto w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] flex items-center justify-center">{recebimentosPendentes}</span>}
+                                        </button>
+                                        <button onClick={() => { setMenuAcaoAbertoId(null); abrirModalCadastro(trabalho); }} className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left">
+                                          <Activity className="w-4 h-4" /> Editar
+                                        </button>
+                                        <button onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(trabalho.id); }} disabled={(trabalho.status !== 'ABERTO' && trabalho.status !== 'EM_ANDAMENTO') || (trabalho.lotesRateio && trabalho.lotesRateio.length > 0)} className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left disabled:opacity-50">
+                                          <Trash2 className="w-4 h-4" /> Excluir
+                                        </button>
+                                      </div>
+                                    </>
                                   )}
-                                </button>
-                                <button onClick={() => abrirModalCadastro(trabalho)} className="p-2 text-slate-400 hover:text-[#1351b4] transition-colors border border-transparent hover:border-slate-200 rounded-sm bg-white hover:bg-slate-50 shadow-sm">
-                                  <Activity className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => confirmarExclusao(trabalho.id)}
-                                  disabled={(trabalho.status !== 'ABERTO' && trabalho.status !== 'EM_ANDAMENTO') || (trabalho.lotesRateio && trabalho.lotesRateio.length > 0)}
-                                  className="p-2 text-slate-400 hover:text-rose-600 transition-colors border border-transparent hover:border-rose-100 rounded-sm bg-white hover:bg-rose-50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent disabled:hover:text-slate-400"
-                                  title={
-                                    trabalho.lotesRateio && trabalho.lotesRateio.length > 0
-                                      ? "Não é possível excluir um trabalho que já possui rateio executado"
-                                      : (trabalho.status !== 'ABERTO' && trabalho.status !== 'EM_ANDAMENTO')
-                                        ? "Apenas trabalhos com status ABERTO ou EM_ANDAMENTO podem ser excluídos"
-                                        : "Excluir trabalho"
-                                  }
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                </div>
+                                {/* Desktop buttons */}
+                                <div className="hidden sm:flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => abrirModalRecebimentos(trabalho)}
+                                    className="relative p-2 text-slate-400 hover:text-[#1351b4] transition-colors border border-transparent hover:border-slate-200 rounded-sm bg-white hover:bg-slate-50 shadow-sm"
+                                    title="Recebimentos e Rateio"
+                                  >
+                                    <DollarSign className="w-4 h-4" />
+                                    {recebimentosPendentes > 0 && (
+                                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 text-white rounded-full text-[8px] font-black flex items-center justify-center animate-pulse">
+                                        {recebimentosPendentes}
+                                      </span>
+                                    )}
+                                  </button>
+                                  <button onClick={() => abrirModalCadastro(trabalho)} className="p-2 text-slate-400 hover:text-[#1351b4] transition-colors border border-transparent hover:border-slate-200 rounded-sm bg-white hover:bg-slate-50 shadow-sm">
+                                    <Activity className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => confirmarExclusao(trabalho.id)}
+                                    disabled={(trabalho.status !== 'ABERTO' && trabalho.status !== 'EM_ANDAMENTO') || (trabalho.lotesRateio && trabalho.lotesRateio.length > 0)}
+                                    className="p-2 text-slate-400 hover:text-rose-600 transition-colors border border-transparent hover:border-rose-100 rounded-sm bg-white hover:bg-rose-50 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent disabled:hover:text-slate-400"
+                                    title={
+                                      trabalho.lotesRateio && trabalho.lotesRateio.length > 0
+                                        ? "Não é possível excluir um trabalho que já possui rateio executado"
+                                        : (trabalho.status !== 'ABERTO' && trabalho.status !== 'EM_ANDAMENTO')
+                                          ? "Apenas trabalhos com status ABERTO ou EM_ANDAMENTO podem ser excluídos"
+                                          : "Excluir trabalho"
+                                    }
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             </td>
                           </tr>
