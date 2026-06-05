@@ -51,8 +51,7 @@ export class CreateRifaDto {
   premioVendedor?: string;
 
   @IsInt()
-  @IsOptional()
-  contaId?: number;
+  eventoId: number;
 
   @IsString()
   @IsOptional()

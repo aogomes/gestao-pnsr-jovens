@@ -57,6 +57,10 @@ async function bootstrap() {
   // Variáveis para limpeza posterior
   let paroquiaId: number | undefined = undefined;
   let contaId: number | undefined = undefined;
+  let eventoId: number | undefined = undefined;
+  let inscricao1Id: number | undefined = undefined;
+  let inscricao2Id: number | undefined = undefined;
+  let inscricao3Id: number | undefined = undefined;
   let pessoa1Id: number | undefined = undefined;
   let pessoa2Id: number | undefined = undefined;
   let pessoa3Id: number | undefined = undefined;
@@ -68,6 +72,8 @@ async function bootstrap() {
     const tables = [
       'paroquias',
       'contas',
+      'eventos',
+      'inscricoes',
       'pessoas',
       'trabalhos',
       'membros_trabalho',
@@ -108,6 +114,13 @@ async function bootstrap() {
     });
     await prisma.trabalho.deleteMany({
       where: { descricao: { contains: 'Trabalho Teste' } },
+    });
+
+    await prisma.inscricao.deleteMany({
+      where: { evento: { nome: 'Evento Teste Trabalho' } }
+    });
+    await prisma.evento.deleteMany({
+      where: { nome: 'Evento Teste Trabalho' }
     });
 
     const antigasPessoas = await prisma.pessoa.findMany({
@@ -151,6 +164,21 @@ async function bootstrap() {
     contaId = conta.id;
     logSuccess(`Paróquia (ID: ${paroquiaId}) e Conta Bancária (ID: ${contaId}) criadas.`);
 
+    // 1b. Criar Evento de Teste
+    const evento = await prisma.evento.create({
+      data: {
+        nome: 'Evento Teste Trabalho',
+        paroquiaId: paroquiaId,
+        contaId: contaId,
+        dataInicio: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        dataFim: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        valor: 150.00,
+        limiteInscricao: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      }
+    });
+    eventoId = evento.id;
+    logSuccess(`Evento de Teste criado: [ID ${eventoId}] ${evento.nome}`);
+
     // 2. Criar 3 Pessoas (Trabalhadores)
     const trabalhador1 = await prisma.pessoa.create({
       data: {
@@ -183,6 +211,35 @@ async function bootstrap() {
     pessoa3Id = trabalhador3.id;
     logSuccess(`3 Trabalhadores de teste criados: [IDs: ${pessoa1Id}, ${pessoa2Id}, ${pessoa3Id}]`);
 
+    // 2c. Inscrever trabalhadores no Evento
+    const inscricao1 = await prisma.inscricao.create({
+      data: {
+        pessoaId: trabalhador1.id,
+        eventoId: eventoId,
+        status: 'CONFIRMADO'
+      }
+    });
+    inscricao1Id = inscricao1.id;
+
+    const inscricao2 = await prisma.inscricao.create({
+      data: {
+        pessoaId: trabalhador2.id,
+        eventoId: eventoId,
+        status: 'CONFIRMADO'
+      }
+    });
+    inscricao2Id = inscricao2.id;
+
+    const inscricao3 = await prisma.inscricao.create({
+      data: {
+        pessoaId: trabalhador3.id,
+        eventoId: eventoId,
+        status: 'CONFIRMADO'
+      }
+    });
+    inscricao3Id = inscricao3.id;
+    logSuccess(`3 inscrições criadas com status CONFIRMADO para os trabalhadores.`);
+
 
     // ==========================================
     // CENÁRIO 1: TRABALHO INDIVIDUAL - RATEIO PROPORCIONAL
@@ -196,7 +253,7 @@ async function bootstrap() {
       dataTrabalho: new Date().toISOString(),
       tipo: 'INDIVIDUAL',
       proporcao: 70, // 70% repasse para trabalhador
-      contaId: contaId,
+      eventoId: eventoId,
     });
     trabalhoIndividualId = trabalhoIndividual.id;
     assertEqual(trabalhoIndividual.tipo, 'INDIVIDUAL', 'Tipo do trabalho');
@@ -282,7 +339,7 @@ async function bootstrap() {
       dataTrabalho: new Date().toISOString(),
       tipo: 'GRUPO',
       proporcao: 100, // Embora o código de GRUPO force 100% e divida líquido igualmente
-      contaId: contaId,
+      eventoId: eventoId,
       membrosIds: [pessoa1Id, pessoa2Id, pessoa3Id], // 3 membros
     });
     trabalhoGrupoId = trabalhoGrupo.id;
@@ -470,6 +527,19 @@ async function bootstrap() {
         where: { id: { in: [trabalhoIndividualId, trabalhoGrupoId].filter(Boolean) as number[] } },
       });
       logInfo(`Deletados ${trabDel.count} trabalhos de teste.`);
+
+      // 5.5 Deletar inscrições de teste
+      if (inscricao1Id || inscricao2Id || inscricao3Id) {
+        const idsInsc = [inscricao1Id, inscricao2Id, inscricao3Id].filter(Boolean) as number[];
+        await prisma.inscricao.deleteMany({ where: { id: { in: idsInsc } } });
+        logInfo('Deletadas inscrições de teste.');
+      }
+
+      // 5.6 Deletar evento de teste
+      if (eventoId) {
+        await prisma.evento.delete({ where: { id: eventoId } });
+        logInfo('Deletado evento de teste.');
+      }
 
       // 7. Limpar pessoas
       if (pessoa1Id || pessoa2Id || pessoa3Id) {

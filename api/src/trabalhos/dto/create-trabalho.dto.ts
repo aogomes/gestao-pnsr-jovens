@@ -14,9 +14,8 @@ export class CreateTrabalhoDto {
   @IsNumber()
   proporcao: number;
 
-  @IsOptional()
   @IsNumber()
-  contaId?: number;
+  eventoId: number;
 
   @IsOptional()
   @IsNumber()

@@ -45,11 +45,46 @@ export class PessoasService {
     });
   }
 
+  obterSaldosPorEvento(transacoes: any[]) {
+    const eventosMap: Record<number, { id: number, nome: string, receitas: number, despesas: number }> = {};
+    
+    transacoes.forEach((t: any) => {
+      if (!t.eventoId) return;
+      if (!eventosMap[t.eventoId]) {
+        eventosMap[t.eventoId] = { id: t.eventoId, nome: t.evento?.nome || `Evento #${t.eventoId}`, receitas: 0, despesas: 0 };
+      }
+      if (t.tipo === 'RECEITA') eventosMap[t.eventoId].receitas += t.valor;
+      if (t.tipo === 'DESPESA') eventosMap[t.eventoId].despesas += t.valor;
+    });
+
+    return Object.values(eventosMap).map((ev: any) => ({
+      eventoId: ev.id,
+      nomeEvento: ev.nome,
+      saldo: ev.receitas - ev.despesas
+    }));
+  }
+
+  async calcularSaldoPorEvento(pessoaId: number, eventoId: number): Promise<number> {
+    const transacoes = await this.prisma.transacao.findMany({
+      where: { pessoaId, eventoId }
+    });
+    const totalTransacoes = transacoes.reduce((acc: number, t: any) => {
+      if (t.tipo === 'RECEITA') return acc + t.valor;
+      if (t.tipo === 'DESPESA') return acc - t.valor;
+      return acc;
+    }, 0);
+
+    return totalTransacoes;
+  }
+
   async buscarTodas(user: any) {
     const where = user.papel === 'ADMIN' ? { ativo: true } : { paroquiaId: user.paroquiaId, ativo: true };
     const pessoas = await this.prisma.pessoa.findMany({
       where,
-      include: { paroquia: true, transacoes: true, saques: true },
+      include: { 
+        paroquia: true, 
+        transacoes: { include: { evento: true } }
+      },
       orderBy: { nome: 'asc' }
     });
     return pessoas.map((p: any) => {
@@ -58,10 +93,9 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
       }, 0);
-      const totalSaques = p.saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-      const saldoCalculado = totalTransacoes - totalSaques;
-      const { transacoes, ...pessoaSemTransacoes } = p;
-      return { ...pessoaSemTransacoes, saldo: saldoCalculado };
+      const saldoCalculado = totalTransacoes;
+      const saldosDetalhados = this.obterSaldosPorEvento(p.transacoes);
+      return { ...p, saldo: saldoCalculado, saldos: saldosDetalhados };
     });
   }
 
@@ -70,9 +104,7 @@ export class PessoasService {
       where: { id },
       include: { 
         transacoes: {
-          orderBy: { data: 'desc' }
-        },
-        saques: {
+          include: { evento: true },
           orderBy: { data: 'desc' }
         }
       }
@@ -85,9 +117,9 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-    const saldoCalculado = totalTransacoes - totalSaques;
-    return { ...pessoa, saldo: saldoCalculado };
+    const saldoCalculado = totalTransacoes;
+    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
+    return { ...pessoa, saldo: saldoCalculado, saldos: saldosDetalhados };
   }
 
   async buscarMeuPerfil(identificador: string) {
@@ -109,9 +141,7 @@ export class PessoasService {
           }
         },
         transacoes: {
-          orderBy: { data: 'desc' }
-        },
-        saques: {
+          include: { evento: true },
           orderBy: { data: 'desc' }
         }
       }
@@ -126,8 +156,8 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const totalSaques = (pessoa as any).saques?.reduce((acc: number, s: any) => acc + s.valor, 0) || 0;
-    const saldoCalculado = totalTransacoes - totalSaques;
+    const saldoCalculado = totalTransacoes;
+    const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
 
     const inscricoesFormatadas = (pessoa.inscricoes || []).map((insc: any) => {
       const pagamentosSintetizados = (insc.transacoes || [])
@@ -147,7 +177,7 @@ export class PessoasService {
       };
     });
 
-    return { ...pessoa, inscricoes: inscricoesFormatadas, saldo: saldoCalculado };
+    return { ...pessoa, inscricoes: inscricoesFormatadas, saldo: saldoCalculado, saldos: saldosDetalhados };
   }
 
   async atualizar(id: number, updatePessoaDto: UpdatePessoaDto) {

@@ -31,7 +31,11 @@ export class InscricoesService {
     const inscricoes = await this.prisma.inscricao.findMany({
       where: eventoId ? { eventoId } : {},
       include: {
-        pessoa: { include: { transacoes: true } },
+        pessoa: {
+          include: {
+            transacoes: true
+          }
+        },
         evento: true,
         transacoes: true
       },
@@ -140,7 +144,14 @@ export class InscricoesService {
       // 1. Buscar a inscrição e a pessoa para validar saldo
       const inscricao = await tx.inscricao.findUnique({
         where: { id: createPagamentoDto.inscricaoId },
-        include: { pessoa: { include: { transacoes: true } }, evento: true }
+        include: {
+          pessoa: {
+            include: {
+              transacoes: true
+            }
+          },
+          evento: true
+        }
       });
 
       if (!inscricao) throw new BadRequestException('Inscrição não encontrada.');
@@ -155,7 +166,7 @@ export class InscricoesService {
         return acc;
       }, 0);
 
-      if (saldoCalculado < createPagamentoDto.valor) {
+      if (Math.round(saldoCalculado * 100) < Math.round(createPagamentoDto.valor * 100)) {
         throw new BadRequestException(`Saldo insuficiente. Saldo atual: R$ ${saldoCalculado.toFixed(2)}`);
       }
 
@@ -164,7 +175,7 @@ export class InscricoesService {
         data: {
           valor: createPagamentoDto.valor,
           tipo: 'DESPESA',
-          descricao: `Pagamento Inscrição: ${inscricao.evento.nome}`,
+          descricao: `Pagamento: ${inscricao.evento.nome}`,
           pessoaId: inscricao.pessoaId,
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
@@ -178,7 +189,7 @@ export class InscricoesService {
         data: {
           valor: createPagamentoDto.valor,
           tipo: 'RECEITA',
-          descricao: `Recebimento Inscrição [${inscricao.pessoa.nome}]: ${inscricao.evento.nome}`,
+          descricao: `Recebimento [${inscricao.pessoa.nome}]: ${inscricao.evento.nome}`,
           contaId: inscricao.evento.contaId,
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
