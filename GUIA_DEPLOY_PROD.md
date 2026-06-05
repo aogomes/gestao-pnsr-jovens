@@ -55,4 +55,4 @@ Abra a sanfona de "Environment Variables" e adicione:
 
 4. Clique no botão **Deploy** e espere a mágica acontecer!
 
-Em poucos minutos, a Vercel vai te mostrar confetes na tela e fornecer um domínio gratuito (ex: `web-gestao-pnsr.vercel.app`) onde você e todos da paróquia poderão acessar o sistema de qualquer lugar do mundo! 🌍
+Em poucos minutos, a Vercel vai te mostrar confetes na tela e fornecer um domínio gratuito (ex: `app-pnsrjmj.vercel.app`) onde você e todos da paróquia poderão acessar o sistema de qualquer lugar do mundo! 🌍
