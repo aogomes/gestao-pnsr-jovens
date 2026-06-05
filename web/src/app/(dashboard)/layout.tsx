@@ -196,22 +196,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Bottom Navigation (Mobile Only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-16 z-[60] px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
-        <Link href="/meu-painel" className={`flex flex-col items-center justify-center w-16 h-full space-y-1 ${pathname === '/meu-painel' || pathname === '/' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-16 z-[60] px-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
+        <Link href="/meu-painel" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/meu-painel' || pathname === '/' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
           <UserIcon className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Painel</span>
+          <span className="text-[9px] font-bold">Painel</span>
         </Link>
-        <Link href="/vendas" className={`flex flex-col items-center justify-center w-16 h-full space-y-1 ${pathname === '/vendas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <ShoppingBag className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Vendas</span>
+        <Link href="/trabalhos" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/trabalhos' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+          <Briefcase className="w-5 h-5" />
+          <span className="text-[9px] font-bold truncate">Trabalhos</span>
         </Link>
-        <Link href="/minhas-rifas" className={`flex flex-col items-center justify-center w-16 h-full space-y-1 ${pathname === '/minhas-rifas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+        <Link href="/inscricoes" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/inscricoes' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+          <UserCheck className="w-5 h-5" />
+          <span className="text-[9px] font-bold truncate">Inscrições</span>
+        </Link>
+        <Link href="/minhas-rifas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/minhas-rifas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
           <Ticket className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Rifas</span>
+          <span className="text-[9px] font-bold truncate">Rifas</span>
         </Link>
-        <button onClick={() => setSidebarAberta(true)} className={`flex flex-col items-center justify-center w-16 h-full space-y-1 ${sidebarAberta ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+        <button onClick={() => setSidebarAberta(true)} className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${sidebarAberta ? 'text-[#1351b4]' : 'text-slate-400'}`}>
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] font-bold">Menu</span>
+          <span className="text-[9px] font-bold">Menu</span>
         </button>
       </nav>
     </div>
