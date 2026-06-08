@@ -136,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Sidebar */}
         <aside className={`
           ${sidebarAberta ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'} 
-          fixed lg:relative h-full
+          fixed lg:relative h-full pb-20 lg:pb-0
           bg-white border-r border-slate-200 flex flex-col z-50 
           transition-all duration-300 ease-in-out overflow-visible
         `}>

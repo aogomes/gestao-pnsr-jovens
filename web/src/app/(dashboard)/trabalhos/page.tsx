@@ -1233,14 +1233,17 @@ export default function TrabalhosPage() {
                                   </div>
 
                                   <span className="text-[11px] font-black uppercase tracking-tighter">
-                                    {trabalho.tipo === 'INDIVIDUAL' ? 'Rateio Individual' : `${trabalho.membros.length} Membros`}
+                                    {trabalho.tipo === 'INDIVIDUAL' ? '' : `(${trabalho.membros.length})`}
                                   </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-slate-500">
                                   <span className="text-[10px] font-bold tracking-widest">
-                                    Rateio {trabalho.proporcao}%
+                                    {trabalho.proporcao}%
                                   </span>
                                 </div>
+                                {/* <div className="flex items-center gap-1.5 text-slate-500">
+                                  <span className="text-[10px] font-bold tracking-widest">
+                                    {trabalho.proporcao}%
+                                  </span>
+                                </div> */}
                               </div>
                             </td>
                             <td className="px-4 md:px-6 py-4 text-right">

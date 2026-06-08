@@ -426,6 +426,8 @@ export class TrabalhosService {
           }
         });
       }
+    }, {
+      timeout: 15000, // Aumenta o tempo limite da transação para 15 segundos
     });
 
     return {
