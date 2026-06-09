@@ -308,7 +308,7 @@ export default function PessoasPage() {
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                          #{pessoa.id.toString().padStart(3, '0')}
+                          {pessoa.id.toString().padStart(3, '0')}
                         </div>
                         <div className="flex flex-col">
                           <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{pessoa.nome}</span>
@@ -1110,7 +1110,7 @@ export default function PessoasPage() {
                     }
                     return pessoasComSaldo.map((pessoa: any) => {
                       const saldosAtivos = (pessoa.saldos || []).filter((s: any) => s.saldo !== 0);
-                      
+
                       return (
                         <tr key={pessoa.id} className="hover:bg-slate-50/50 transition-colors group">
                           <td className="px-10 py-4 align-top">
