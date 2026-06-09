@@ -397,7 +397,7 @@ export class TrabalhosService {
                   valor: valorPorMembro,
                   tipo: 'RECEITA',
                   origem: 'TRABALHO',
-                  descricao: `Repasse Grupo (${trabalho.descricao}) - Lote #${lote.id}`,
+                  descricao: `Crédito Rateio (${trabalho.descricao}) - Lote #${lote.id}`,
                   metodo,
                   pessoaId: membro.pessoaId,
                   loteRateioId: lote.id,
