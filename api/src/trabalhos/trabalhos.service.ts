@@ -339,7 +339,7 @@ export class TrabalhosService {
                   valor: valorTrabalhadorPessoa,
                   tipo: 'RECEITA',
                   origem: 'TRABALHO',
-                  descricao: `Repasse Trabalho (${trabalho.descricao}) - Lote #${lote.id}`,
+                  descricao: `Crédito Rateio (${trabalho.descricao}) - Lote #${lote.id}`,
                   metodo,
                   pessoaId,
                   loteRateioId: lote.id,
