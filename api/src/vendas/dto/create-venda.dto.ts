@@ -14,6 +14,10 @@ export class CreateVendaDto {
   @IsString()
   descricao?: string;
 
+  @IsOptional()
+  @IsString()
+  telefone?: string;
+
   @IsString()
   metodoPagamento: string;
 

@@ -11,6 +11,10 @@ export class AddRecebimentoDto {
 
   @IsOptional()
   @IsString()
+  telefone?: string;
+
+  @IsOptional()
+  @IsString()
   metodo?: string;
 
   @IsOptional()
