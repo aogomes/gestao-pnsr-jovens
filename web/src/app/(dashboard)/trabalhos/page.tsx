@@ -2269,6 +2269,7 @@ export default function TrabalhosPage() {
                           setDadosRecebimento({
                             valor: '',
                             descricao: '',
+                            telefone: '',
                             metodo: 'PIX',
                             status: 'PAGO',
                             pessoaId: ''
