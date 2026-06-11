@@ -8,7 +8,7 @@ export class VendasService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateVendaDto) {
-    const { trabalhoId, itens, descricao, metodoPagamento, statusPagamento } = dto;
+    const { trabalhoId, itens, descricao, telefone, metodoPagamento, statusPagamento } = dto;
 
     // Verificar se o trabalho existe
     const trabalho = await this.prisma.trabalho.findUnique({
@@ -70,6 +70,7 @@ export class VendasService {
           trabalhoId,
           valor: valorTotalVenda,
           descricao: (descricao?.toUpperCase() || 'VENDA GERAL').trim(),
+          telefone,
           metodo: metodoPagamento.toUpperCase(),
           status: statusPagamento.toUpperCase() as StatusRecebimentoTrabalho,
         },
@@ -79,6 +80,7 @@ export class VendasService {
       return prisma.venda.create({
         data: {
           descricao: descricao?.toUpperCase() || 'S/ IDENTIFICAÇÃO',
+          telefone,
           valorTotal: valorTotalVenda,
           metodoPagamento: metodoPagamento.toUpperCase(),
           statusPagamento: statusPagamento.toUpperCase(),
@@ -112,7 +114,7 @@ export class VendasService {
   }
 
   async update(id: number, dto: CreateVendaDto) {
-    const { trabalhoId, itens, descricao, metodoPagamento, statusPagamento } = dto;
+    const { trabalhoId, itens, descricao, telefone, metodoPagamento, statusPagamento } = dto;
 
     const vendaExistente = await this.prisma.venda.findUnique({
       where: { id },
@@ -179,6 +181,7 @@ export class VendasService {
         where: { id },
         data: {
           descricao: descricao?.toUpperCase() || 'S/ IDENTIFICAÇÃO',
+          telefone,
           valorTotal: valorTotalVenda,
           metodoPagamento: metodoPagamento.toUpperCase(),
           statusPagamento: statusPagamento.toUpperCase(),
@@ -202,6 +205,7 @@ export class VendasService {
           data: {
             valor: valorTotalVenda,
             descricao: (descricao?.toUpperCase() || 'VENDA GERAL').trim(),
+            telefone,
             metodo: metodoPagamento.toUpperCase(),
             status: statusPagamento.toUpperCase() as StatusRecebimentoTrabalho,
           },

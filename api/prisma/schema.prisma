@@ -233,6 +233,7 @@ model RecebimentoTrabalho {
   id               Int      @id @default(autoincrement())
   valor            Float    
   descricao        String?
+  telefone         String?
   metodo           String?  
   dataRecebimento  DateTime @default(now())
   status           StatusRecebimentoTrabalho @default(PENDENTE)
@@ -414,6 +415,7 @@ model TrabalhoProduto {
 model Venda {
   id               Int          @id @default(autoincrement())
   descricao        String?      
+  telefone         String?
   valorTotal       Float
   metodoPagamento  String       
   statusPagamento  String       

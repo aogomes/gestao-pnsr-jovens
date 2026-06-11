@@ -141,6 +141,7 @@ export default function TrabalhosPage() {
   const [dadosRecebimento, setDadosRecebimento] = useState({
     valor: '',
     descricao: '',
+    telefone: '',
     metodo: 'PIX',
     status: 'PAGO',
     pessoaId: ''
@@ -327,6 +328,7 @@ export default function TrabalhosPage() {
     setDadosRecebimento({
       valor: '',
       descricao: '',
+      telefone: '',
       metodo: 'PIX',
       status: 'PAGO',
       pessoaId: ''
@@ -415,6 +417,7 @@ export default function TrabalhosPage() {
         await api.patch(`/trabalhos/${trabalhoSelecionado.id}/recebimentos/${editandoRecebimentoId}`, {
           valor: parseFloat(dadosRecebimento.valor),
           descricao: dadosRecebimento.descricao,
+          telefone: dadosRecebimento.telefone || null,
           metodo: dadosRecebimento.metodo,
           status: dadosRecebimento.status,
           pessoaId: trabalhoSelecionado.tipo === 'INDIVIDUAL' ? Number(dadosRecebimento.pessoaId) : undefined
@@ -423,6 +426,7 @@ export default function TrabalhosPage() {
         await api.post(`/trabalhos/${trabalhoSelecionado.id}/recebimentos`, {
           valor: parseFloat(dadosRecebimento.valor),
           descricao: dadosRecebimento.descricao,
+          telefone: dadosRecebimento.telefone || null,
           metodo: dadosRecebimento.metodo,
           status: dadosRecebimento.status,
           pessoaId: trabalhoSelecionado.tipo === 'INDIVIDUAL' ? Number(dadosRecebimento.pessoaId) : undefined
@@ -435,6 +439,7 @@ export default function TrabalhosPage() {
       setDadosRecebimento({
         valor: '',
         descricao: '',
+        telefone: '',
         metodo: 'PIX',
         status: 'PAGO',
         pessoaId: trabalhoSelecionado.tipo === 'INDIVIDUAL' ? dadosRecebimento.pessoaId : ''
@@ -992,6 +997,7 @@ export default function TrabalhosPage() {
         setDadosRecebimento({
           valor: '',
           descricao: '',
+          telefone: '',
           metodo: 'PIX',
           status: 'PAGO',
           pessoaId: ''
@@ -2198,6 +2204,15 @@ export default function TrabalhosPage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Telefone (Opcional)</label>
+                    <input
+                      type="text"
+                      value={dadosRecebimento.telefone || ''} onChange={e => setDadosRecebimento({ ...dadosRecebimento, telefone: e.target.value })}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4] uppercase"
+                      placeholder="Ex: 11999999999"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
                     <input
                       type="number" step="0.01" required
@@ -2506,6 +2521,9 @@ export default function TrabalhosPage() {
                                     <div className={`w-2 h-2 rounded-full ${r.status === 'PAGO' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                                     <div>
                                       <p className="text-xs font-black text-slate-700 uppercase tracking-tighter">{r.descricao || 'Recebimento Geral'}</p>
+                                      {r.telefone && (
+                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{r.telefone}</p>
+                                      )}
                                       {trabalhoSelecionado.tipo === 'INDIVIDUAL' && r.pessoa && (
                                         <p className="text-[9px] font-bold text-[#1351b4] uppercase tracking-widest mt-0.5">{r.pessoa.nome}</p>
                                       )}
@@ -2540,6 +2558,7 @@ export default function TrabalhosPage() {
                                                 setDadosRecebimento({
                                                   valor: String(r.valor),
                                                   descricao: r.descricao || '',
+                                                  telefone: r.telefone || '',
                                                   metodo: r.metodo || 'PIX',
                                                   status: r.status,
                                                   pessoaId: String(r.pessoaId || '')
