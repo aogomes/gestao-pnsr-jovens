@@ -271,25 +271,25 @@ export default function MeuPainelPage() {
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Card de Saldo Integrado com Botão de Extrato */}
-          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-6 rounded-sm relative overflow-hidden flex flex-col justify-center min-h-[140px] shadow-sm">
+          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-6 rounded-sm relative overflow-hidden flex flex-col justify-center min-h-[120px] shadow-sm">
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1351b4]/5 rounded-bl-full pointer-events-none" />
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Wallet className="w-4 h-4 text-[#1351b4]" />
-                <span className="text-[9px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
+                <DollarSign className="w-4 h-4 text-[#1351b4]" />
+                <span className="text-[10px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
               </div>
               <div className="flex items-end justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-3xl font-black tracking-tighter text-[#1351b4]">
+                  <span className="text-xl font-black tracking-tighter text-[#1351b4]">
                     {formatarMoeda(perfil.saldo || 0)}
                   </span>
                   <button
                     onClick={() => setModalExtratoAberto(true)}
                     title="Ver Extrato Detalhado"
-                    className="p-2 bg-white border border-blue-100 text-[#1351b4] rounded-sm flex items-center justify-center transition-all hover:bg-[#1351b4] hover:text-white shadow-sm group/extrato"
+                    className="p-1 border border-blue-100 bg-[#1351b4]/10 text-[#1351b4] rounded-sm flex items-center justify-center transition-all hover:bg-[#1351b4] hover:text-white shadow-sm group/extrato"
                   >
-                    <History className="w-4 h-4 group-hover/extrato:rotate-[-45deg] transition-transform" />
+                    <Wallet className="w-4 h-4 group-hover/extrato:rotate-[-45deg] transition-transform" />
                   </button>
                 </div>
                 <TrendingUp className="w-6 h-6 text-emerald-500 opacity-20" />
@@ -357,7 +357,7 @@ export default function MeuPainelPage() {
                             className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
                             title="Ver histórico de pagamentos"
                           >
-                            <History className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
+                            <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
                           </button>
                         </div>
                       </div>
