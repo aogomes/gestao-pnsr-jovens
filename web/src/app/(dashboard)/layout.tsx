@@ -91,7 +91,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Cabeçalho Principal */}
       <header className="h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-[60] sticky top-0 shrink-0">
         <div className="flex items-center gap-4 lg:gap-6">
-          {/* Menu Mobile Button - Movido para a barra inferior no mobile */}
+          {/* Menu Mobile Button - Exibido no topo apenas quando a barra inferior estiver oculta (ex: Vendas) */}
+          {pathname === '/vendas' && (
+            <button onClick={() => setSidebarAberta(true)} className="lg:hidden p-2 -ml-2 text-slate-600 hover:text-[#1351b4]">
+              <Menu className="w-6 h-6" />
+            </button>
+          )}
 
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[#1351b4] rounded flex items-center justify-center text-white shadow-sm">
@@ -186,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {/* Conteúdo da Página */}
-        <main className="flex-1 flex flex-col bg-[#f2f3f7] overflow-y-auto custom-scrollbar pb-16 lg:pb-0">
+        <main className={`flex-1 flex flex-col bg-[#f2f3f7] overflow-y-auto custom-scrollbar ${pathname !== '/vendas' ? 'pb-16' : ''} lg:pb-0`}>
           <div className="flex-1 p-4 lg:p-5">
             <div className="max-w-7xl mx-auto h-full">
               {children}
@@ -196,28 +201,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Bottom Navigation (Mobile Only) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-16 z-[60] px-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
-        <Link href="/meu-painel" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/meu-painel' || pathname === '/' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <UserIcon className="w-5 h-5" />
-          <span className="text-[9px] font-bold">Painel</span>
-        </Link>
-        <Link href="/trabalhos" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/trabalhos' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <Briefcase className="w-5 h-5" />
-          <span className="text-[9px] font-bold truncate">Trabalhos</span>
-        </Link>
-        <Link href="/inscricoes" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/inscricoes' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <UserCheck className="w-5 h-5" />
-          <span className="text-[9px] font-bold truncate">Inscrições</span>
-        </Link>
-        <Link href="/minhas-rifas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/minhas-rifas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <Ticket className="w-5 h-5" />
-          <span className="text-[9px] font-bold truncate">Rifas</span>
-        </Link>
-        <button onClick={() => setSidebarAberta(true)} className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${sidebarAberta ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-          <Menu className="w-5 h-5" />
-          <span className="text-[9px] font-bold">Menu</span>
-        </button>
-      </nav>
+      {pathname !== '/vendas' && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-16 z-[60] px-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
+          <Link href="/meu-painel" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/meu-painel' || pathname === '/' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <UserIcon className="w-5 h-5" />
+            <span className="text-[9px] font-bold">Painel</span>
+          </Link>
+          <Link href="/trabalhos" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/trabalhos' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <Briefcase className="w-5 h-5" />
+            <span className="text-[9px] font-bold truncate">Trabalhos</span>
+          </Link>
+          <Link href="/inscricoes" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/inscricoes' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <UserCheck className="w-5 h-5" />
+            <span className="text-[9px] font-bold truncate">Inscrições</span>
+          </Link>
+          <Link href="/minhas-rifas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/minhas-rifas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <Ticket className="w-5 h-5" />
+            <span className="text-[9px] font-bold truncate">Rifas</span>
+          </Link>
+          <button onClick={() => setSidebarAberta(true)} className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${sidebarAberta ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <Menu className="w-5 h-5" />
+            <span className="text-[9px] font-bold">Menu</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
