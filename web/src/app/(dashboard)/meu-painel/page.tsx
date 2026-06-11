@@ -219,22 +219,20 @@ export default function MeuPainelPage() {
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-10">
 
           {/* Avatar e Nome */}
-          <div className="flex items-center gap-6 lg:w-1/3">
-            <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-              {perfil?.id?.toString().padStart(3, '0')}
-            </div>
-            <div className="flex flex-col">
-              <h2 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
-              <div className="mt-2 flex flex-col items-start gap-2">
-                <button
-                  onClick={abrirModalPerfil}
-                  className="mt-1 flex items-center gap-2 px-3 py-1.5 bg-[#1351b4] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md group"
-                >
-                  <Edit className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                  Atualizar Meus Dados
-                </button>
+          <div className="flex flex-col lg:w-1/3 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                {perfil?.id?.toString().padStart(3, '0')}
               </div>
+              <h2 className="font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
             </div>
+            <button
+              onClick={abrirModalPerfil}
+              className="py-2 px-3 w-fit bg-white border border-blue-100 text-[#1351b4] rounded-sm flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-blue-50 shadow-sm"
+            >
+              <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Atualizar Dados
+            </button>
           </div>
 
           {/* Divisor Vertical */}
