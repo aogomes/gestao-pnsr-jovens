@@ -244,21 +244,21 @@ export default function MeuPainelPage() {
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Dados de Contato */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="flex-1 flex flex-col gap-4">
             <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
+              <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
                 <Mail className="w-5 h-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col overflow-hidden">
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">E-mail de Contato</span>
                 <span className="text-xs font-bold text-slate-600 truncate">{perfil.email || 'Não informado'}</span>
               </div>
             </div>
             <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
+              <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
                 <Phone className="w-5 h-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col overflow-hidden">
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">WhatsApp / Celular</span>
                 <span className="text-xs font-bold text-slate-600 truncate">{perfil.telefone || 'Não informado'}</span>
               </div>
