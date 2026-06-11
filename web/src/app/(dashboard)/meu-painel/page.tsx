@@ -220,15 +220,12 @@ export default function MeuPainelPage() {
 
           {/* Avatar e Nome */}
           <div className="flex items-center gap-6 lg:w-1/3">
-            <div className="w-20 h-20 rounded-full bg-slate-50 border-4 border-white shadow-xl flex items-center justify-center text-[#1351b4] text-2xl font-black ring-1 ring-slate-100 shrink-0">
-              {perfil.nome?.charAt(0).toUpperCase() || 'P'}
+            <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+              {perfil?.id?.toString().padStart(3, '0')}
             </div>
             <div className="flex flex-col">
               <h2 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
               <div className="mt-2 flex flex-col items-start gap-2">
-                <span className="text-[9px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-black uppercase tracking-wider border border-emerald-100 flex items-center gap-1">
-                  <UserCheck className="w-3 h-3" /> Membro Ativo
-                </span>
                 <button
                   onClick={abrirModalPerfil}
                   className="mt-1 flex items-center gap-2 px-3 py-1.5 bg-[#1351b4] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md group"
@@ -325,9 +322,9 @@ export default function MeuPainelPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            insc.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                              'bg-slate-50 text-slate-400 border-slate-100'
+                        insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                          insc.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                            'bg-slate-50 text-slate-400 border-slate-100'
                         }`}>
                         {insc.status === 'CONFIRMADO' ? 'Confirmado' :
                           insc.status === 'EM_ANALISE' ? 'Em Análise' :

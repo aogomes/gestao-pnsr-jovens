@@ -14,8 +14,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     const isLocalhost = url?.includes('localhost') || url?.includes('127.0.0.1');
     const pool = new Pool({
       connectionString: url,
-      min: 5,
-      max: 20,
+      min: 1,
+      max: 2,
       ssl: isLocalhost ? false : { rejectUnauthorized: false }
     });
     const adapter = new PrismaPg(pool);
