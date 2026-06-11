@@ -613,3 +613,4 @@ export class RifasService {
   }
 }
 
+// Trigger restart

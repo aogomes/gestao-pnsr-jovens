@@ -289,13 +289,13 @@ async function bootstrap() {
 
     // 4. Validar as transações financeiras geradas no banco de dados
     logHeader('ASSERÇÕES DO CENÁRIO 1 (TRABALHO INDIVIDUAL)');
-    
+
     // Trabalhador 1 deve ter recebido 70% de R$ 100.00 = R$ 70.00
     const transacoesT1 = await prisma.transacao.findMany({ where: { pessoaId: pessoa1Id } });
     assertEqual(transacoesT1.length, 1, 'Quantidade de transações para o Trabalhador 1');
     assertEqual(transacoesT1[0].valor, 70.00, 'Valor creditado ao Trabalhador 1 (70%)');
     assertEqual(transacoesT1[0].tipo, 'RECEITA', 'Tipo da transação do Trabalhador 1');
-    assertEqual(transacoesT1[0].descricao.includes('Repasse Trabalho'), true, 'Descrição da transação do Trabalhador 1');
+    assertEqual(transacoesT1[0].descricao.includes('Crédito Rateio'), true, 'Descrição da transação do Trabalhador 1');
     assertEqual(transacoesT1[0].contaId, null, 'ContaId do repasse individual do Trabalhador 1 deve ser nulo');
 
     // Trabalhador 2 deve ter recebido 70% de R$ 200.00 = R$ 140.00
@@ -303,7 +303,7 @@ async function bootstrap() {
     assertEqual(transacoesT2.length, 1, 'Quantidade de transações para o Trabalhador 2');
     assertEqual(transacoesT2[0].valor, 140.00, 'Valor creditado ao Trabalhador 2 (70%)');
     assertEqual(transacoesT2[0].tipo, 'RECEITA', 'Tipo da transação do Trabalhador 2');
-    assertEqual(transacoesT2[0].descricao.includes('Repasse Trabalho'), true, 'Descrição da transação do Trabalhador 2');
+    assertEqual(transacoesT2[0].descricao.includes('Crédito Rateio'), true, 'Descrição da transação do Trabalhador 2');
     assertEqual(transacoesT2[0].contaId, null, 'ContaId do repasse individual do Trabalhador 2 deve ser nulo');
 
     // Comunidade/Paróquia deve ter recebido 30% de R$ 300.00 = R$ 90.00
@@ -314,7 +314,7 @@ async function bootstrap() {
       where: { contaId: contaId, pessoaId: null, descricao: { contains: 'Comunidade Trabalho' } },
     });
     assertEqual(transacoesContaComunidade.length, 2, 'Lançamentos de receita para a comunidade (1 por método)');
-    
+
     const transacaoComunidadePIX = transacoesContaComunidade.find(t => t.metodo === 'PIX');
     const transacaoComunidadeDINHEIRO = transacoesContaComunidade.find(t => t.metodo === 'DINHEIRO');
     assertEqual(transacaoComunidadePIX?.valor, 30.00, 'Share da comunidade via PIX (30% de 100)');
@@ -367,7 +367,7 @@ async function bootstrap() {
     logInfo('Executando rateio por lote do trabalho em grupo...');
     const resultRateioGrupo = await trabalhosService.executarRateio(trabalhoGrupoId);
     logSuccess('Rateio executado com sucesso.');
-    
+
     // Cálculo esperado:
     // Arrecadado Bruto = R$ 200.00
     // Despesas Pendentes = R$ 50.00

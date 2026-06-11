@@ -219,46 +219,48 @@ export default function MeuPainelPage() {
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-10">
 
           {/* Avatar e Nome */}
-          <div className="flex items-center gap-6 lg:w-1/3">
-            <div className="w-20 h-20 rounded-full bg-slate-50 border-4 border-white shadow-xl flex items-center justify-center text-[#1351b4] text-2xl font-black ring-1 ring-slate-100 shrink-0">
-              {perfil.nome?.charAt(0).toUpperCase() || 'P'}
-            </div>
-            <div className="flex flex-col">
-              <h2 className="text-lg sm:text-xl font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
-              <div className="mt-2 flex flex-col items-start gap-2">
-                <span className="text-[9px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-black uppercase tracking-wider border border-emerald-100 flex items-center gap-1">
-                  <UserCheck className="w-3 h-3" /> Membro Ativo
-                </span>
-                <button
-                  onClick={abrirModalPerfil}
-                  className="mt-1 flex items-center gap-2 px-3 py-1.5 bg-[#1351b4] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md group"
-                >
-                  <Edit className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                  Atualizar Meus Dados
-                </button>
+          <div className="flex flex-col lg:w-1/3 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#90a1b9] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                {perfil?.id?.toString().padStart(3, '0')}
+              </div>
+              <div className="flex flex-col w-full">
+                <h2 className="w-full font-black uppercase tracking-tight leading-tight">{perfil.nome}</h2>
+                {perfil?.perfis && perfil.perfis.length > 0 && (
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    {perfil.perfis.join(' • ')}
+                  </span>
+                )}
               </div>
             </div>
+            <button
+              onClick={abrirModalPerfil}
+              className="py-2 px-3 w-full flex items-center justify-center gap-2 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
+            >
+              <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Editar minhas informações
+            </button>
           </div>
 
           {/* Divisor Vertical */}
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Dados de Contato */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="flex-1 flex flex-col gap-4">
             <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
+              <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
                 <Mail className="w-5 h-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col overflow-hidden">
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">E-mail de Contato</span>
                 <span className="text-xs font-bold text-slate-600 truncate">{perfil.email || 'Não informado'}</span>
               </div>
             </div>
             <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
+              <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-[#1351b4] transition-colors border border-slate-100">
                 <Phone className="w-5 h-5" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col overflow-hidden">
                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">WhatsApp / Celular</span>
                 <span className="text-xs font-bold text-slate-600 truncate">{perfil.telefone || 'Não informado'}</span>
               </div>
@@ -269,29 +271,30 @@ export default function MeuPainelPage() {
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Card de Saldo Integrado com Botão de Extrato */}
-          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-6 rounded-sm relative overflow-hidden flex flex-col justify-between min-h-[140px] shadow-sm">
+          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-6 rounded-sm relative overflow-hidden flex flex-col justify-center min-h-[120px] shadow-sm">
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1351b4]/5 rounded-bl-full pointer-events-none" />
 
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Wallet className="w-4 h-4 text-[#1351b4]" />
-                <span className="text-[9px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
+                <DollarSign className="w-4 h-4 text-[#1351b4]" />
+                <span className="text-[10px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
               </div>
               <div className="flex items-end justify-between">
-                <span className="text-3xl font-black tracking-tighter text-[#1351b4]">
-                  {formatarMoeda(perfil.saldo || 0)}
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-xl font-black tracking-tighter text-[#1351b4]">
+                    {formatarMoeda(perfil.saldo || 0)}
+                  </span>
+                  <button
+                    onClick={() => setModalExtratoAberto(true)}
+                    title="Ver Extrato Detalhado"
+                    className="p-1 border border-blue-100 bg-[#1351b4]/10 text-[#1351b4] rounded-sm flex items-center justify-center transition-all hover:bg-[#1351b4] hover:text-white shadow-sm group/extrato"
+                  >
+                    <Wallet className="w-4 h-4 group-hover/extrato:rotate-[-45deg] transition-transform" />
+                  </button>
+                </div>
                 <TrendingUp className="w-6 h-6 text-emerald-500 opacity-20" />
               </div>
             </div>
-
-            <button
-              onClick={() => setModalExtratoAberto(true)}
-              className="mt-4 w-full py-3 bg-white border border-blue-100 text-[#1351b4] rounded-sm flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-blue-50 shadow-sm"
-            >
-              <History className="w-3.5 h-3.5" />
-              Ver Extrato Detalhado
-            </button>
           </div>
 
         </div>
@@ -311,7 +314,7 @@ export default function MeuPainelPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Eventos Inscritos */}
           {perfil.inscricoes && perfil.inscricoes.map((insc: any) => {
             const totalPago = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
@@ -325,9 +328,9 @@ export default function MeuPainelPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            insc.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                              'bg-slate-50 text-slate-400 border-slate-100'
+                        insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                          insc.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                            'bg-slate-50 text-slate-400 border-slate-100'
                         }`}>
                         {insc.status === 'CONFIRMADO' ? 'Confirmado' :
                           insc.status === 'EM_ANALISE' ? 'Em Análise' :
@@ -351,10 +354,10 @@ export default function MeuPainelPage() {
                               setInscricaoSelecionada(insc);
                               setModalPagamentosInscAberto(true);
                             }}
-                            className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-lg transition-all shadow-sm group/hist"
+                            className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
                             title="Ver histórico de pagamentos"
                           >
-                            <History className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
+                            <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
                           </button>
                         </div>
                       </div>
