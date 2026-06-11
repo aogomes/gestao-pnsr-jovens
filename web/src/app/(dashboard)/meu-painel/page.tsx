@@ -221,17 +221,24 @@ export default function MeuPainelPage() {
           {/* Avatar e Nome */}
           <div className="flex flex-col lg:w-1/3 gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+              <div className="w-8 h-8 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#90a1b9] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
                 {perfil?.id?.toString().padStart(3, '0')}
               </div>
-              <h2 className="font-black text-slate-800 uppercase tracking-tight leading-tight">{perfil.nome}</h2>
+              <div className="flex flex-col w-full">
+                <h2 className="w-full font-black uppercase tracking-tight leading-tight">{perfil.nome}</h2>
+                {perfil?.perfis && perfil.perfis.length > 0 && (
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    {perfil.perfis.join(' • ')}
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={abrirModalPerfil}
-              className="py-2 px-3 w-fit bg-white border border-blue-100 text-[#1351b4] rounded-sm flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-blue-50 shadow-sm"
+              className="py-2 px-3 w-full flex items-center justify-center gap-2 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-lg transition-all shadow-sm group/hist"
             >
               <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              Atualizar Dados
+              Editar minhas informações
             </button>
           </div>
 
@@ -306,7 +313,7 @@ export default function MeuPainelPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Eventos Inscritos */}
           {perfil.inscricoes && perfil.inscricoes.map((insc: any) => {
             const totalPago = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
