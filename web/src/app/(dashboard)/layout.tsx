@@ -22,7 +22,8 @@ import {
   Ticket,
   Briefcase,
   ShoppingBag,
-  Package
+  Package,
+  User
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -215,9 +216,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <UserCheck className="w-5 h-5" />
             <span className="text-[9px] font-bold truncate">Inscrições</span>
           </Link>
-          <Link href="/minhas-rifas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/minhas-rifas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-            <Ticket className="w-5 h-5" />
-            <span className="text-[9px] font-bold truncate">Rifas</span>
+          <Link href="/pessoas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/pessoas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+            <User className="w-5 h-5" />
+            <span className="text-[9px] font-bold truncate">Pessoas</span>
           </Link>
           <button onClick={() => setSidebarAberta(true)} className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${sidebarAberta ? 'text-[#1351b4]' : 'text-slate-400'}`}>
             <Menu className="w-5 h-5" />

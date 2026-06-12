@@ -213,7 +213,7 @@ export default function InscricoesPage() {
       </div>
 
       {/* SEÇÃO 1: SELETOR E RESUMO DO EVENTO (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 relative overflow-hidden">
 
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-8">
@@ -230,7 +230,7 @@ export default function InscricoesPage() {
               <select
                 value={eventoSelecionadoId}
                 onChange={(e) => setEventoSelecionadoId(e.target.value)}
-                className="w-full pl-16 pr-10 py-5 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
+                className="w-full pl-12 pr-10 py-2 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
               >
                 {eventos.map(e => (
                   <option key={e.id} value={e.id}>{e.nome}</option>
@@ -244,7 +244,7 @@ export default function InscricoesPage() {
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Cards de Info Rápida */}
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="hidden md:grid flex-1 md:grid-cols-3 gap-6">
             <div className="bg-slate-50/50 p-6 rounded-sm border border-slate-100 flex items-center gap-6">
               <div className="w-14 h-14 rounded-sm bg-white border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
                 <Users className="w-7 h-7" />
@@ -295,9 +295,9 @@ export default function InscricoesPage() {
 
       {/* SEÇÃO 2: LISTA DE INSCRITOS (HORIZONTAL / FULL WIDTH) */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+        <div className="px-4 md:px-6 py-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-slate-50/30 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-sm bg-white border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
+            <div className="w-10 h-10 rounded-sm bg-white border border-slate-200 flex flex-shrink-0 items-center justify-center text-[#1351b4] shadow-sm">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
@@ -305,7 +305,7 @@ export default function InscricoesPage() {
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{inscricoes.length} inscrito{inscricoes.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -313,13 +313,13 @@ export default function InscricoesPage() {
                 placeholder="Buscar por nome..."
                 value={termoBusca}
                 onChange={(e) => setTermoBusca(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                className="pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full md:w-64 shadow-sm"
               />
             </div>
             <button
               disabled={!eventoAbertoInscricao}
               onClick={abrirModal}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
+              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
               Nova Inscrição
@@ -331,17 +331,18 @@ export default function InscricoesPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Pessoa</th>
-                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Documento de Identidade</th>
-                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Total Pago</th>
-                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center hidden sm:table-cell">Status</th>
-                <th className="px-4 md:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Pessoa</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Documento de Identidade</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Créditos</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor Pago</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center hidden sm:table-cell">Status</th>
+                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="bg-white">
               {carregandoInscricoes ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-24 text-center">
+                  <td colSpan={7} className="px-8 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="w-12 h-12 animate-spin text-[#1351b4] opacity-20" />
                       <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Carregando dados...</span>
@@ -350,7 +351,7 @@ export default function InscricoesPage() {
                 </tr>
               ) : inscricoes.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
+                  <td colSpan={7} className="px-8 py-32 text-center text-slate-300">
                     <div className="flex flex-col items-center gap-4 opacity-20">
                       <AlertCircle className="w-16 h-16" />
                       <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição neste evento</span>
@@ -366,7 +367,7 @@ export default function InscricoesPage() {
                   if (inscricoesFiltradas.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
+                        <td colSpan={7} className="px-8 py-32 text-center text-slate-300">
                           <div className="flex flex-col items-center gap-4 opacity-20">
                             <AlertCircle className="w-16 h-16" />
                             <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada na busca</span>
@@ -376,122 +377,136 @@ export default function InscricoesPage() {
                     );
                   }
 
-                  return inscricoesFiltradas.map((inscricao) => (
-                    <tr key={inscricao.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-4 md:px-6 py-2">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                            {inscricao.pessoa.id.toString().padStart(3, '0')}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{inscricao.pessoa.nome}</span>
-                            <span className="text-[10px] text-slate-400 font-bold">{inscricao.pessoa.email || 'SEM E-MAIL CADASTRADO'}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 md:px-6 py-2 hidden md:table-cell">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px] font-black tracking-widest border border-slate-200">
-                          {inscricao.pessoa.documento || 'NÃO INFORMADO'}
-                        </span>
-                      </td>
-                      <td className="px-4 md:px-6 py-2 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className={`text-[11px] font-black ${(inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0) >= (eventoSelecionado?.valor || 0)
-                            ? 'text-emerald-600'
-                            : 'text-slate-700'
-                            }`}>
-                            {formatarMoeda(inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 md:px-6 py-2 text-center hidden sm:table-cell">
-                        <select
-                          value={inscricao.status}
-                          onChange={(e) => {
-                            const novoStatus = e.target.value;
-                            if (novoStatus === 'REJEITADA') {
-                              const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
-                              if (totalPago > 0) {
-                                if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
-                                  e.target.value = inscricao.status;
-                                  return;
-                                }
-                              } else {
-                                if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
-                                  e.target.value = inscricao.status;
-                                  return;
-                                }
-                              }
-                            }
-                            atualizarStatus(inscricao.id, novoStatus);
-                          }}
-                          className={`px-3 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest border shadow-sm outline-none cursor-pointer ${
-                            inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            inscricao.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                            'bg-slate-50 text-slate-400 border-slate-200'
-                          }`}
-                        >
-                          <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
-                          <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
-                          <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
-                          <option value="REJEITADA" className="text-rose-600 bg-white">Rejeitada</option>
-                        </select>
-                      </td>
-                      <td className="px-4 md:px-6 py-2">
-                        <div className="relative flex items-center justify-center">
-                          {/* Mobile 3-dots */}
-                          <div className="sm:hidden">
-                            <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
-                              <MoreVertical className="w-5 h-5" />
-                            </button>
-                            {menuAcaoAbertoId === inscricao.id && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
-                                <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
-                                  <button
-                                    onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
-                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
-                                  >
-                                    <DollarSign className="w-4 h-4" /> Pagamentos
-                                  </button>
+                  return inscricoesFiltradas.map((inscricao) => {
+                    const saldo = inscricao.pessoa.saldo || 0;
+                    const totalPagoCru = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                    const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
+                    const valorEvento = eventoSelecionado?.valor || 0;
 
-                                  <button
-                                    onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
-                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
-                                  >
-                                    <Trash2 className="w-4 h-4" /> Remover
-                                  </button>
-                                </div>
-                              </>
+                    return (
+                      <tr key={inscricao.id} className="hover:bg-[#1351b4]/[0.02] transition-all duration-500 ease-in-out group">
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                              {inscricao.pessoa.id.toString().padStart(3, '0')}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{inscricao.pessoa.nome}</span>
+                              <span className="text-[9px] text-slate-400 font-bold">{inscricao.pessoa.email || 'SEM E-MAIL CADASTRADO'}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 hidden md:table-cell">
+                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black tracking-widest border border-slate-200">
+                            {inscricao.pessoa.documento || 'NÃO INFORMADO'}
+                          </span>
+                        </td>
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-right">
+                          <div className="flex flex-col items-end">
+
+                            <span className={`text-[11px] font-black ${saldo > 0 ? 'text-[#1351b4]' : 'text-rose-500'}`}>
+                              {formatarMoeda(saldo)}
+                            </span>
+
+                          </div>
+                        </td>
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-right">
+                          <div className="flex flex-col items-end">
+                            {totalPago !== 0 && (
+                              <span className={`text-[11px] font-black ${totalPago >= valorEvento ? 'text-emerald-600' : 'text-slate-700'}`}>
+                                {formatarMoeda(totalPago)}
+                              </span>
                             )}
                           </div>
+                        </td>
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-center hidden sm:table-cell">
+                          <select
+                            value={inscricao.status}
+                            onChange={(e) => {
+                              const novoStatus = e.target.value;
+                              if (novoStatus === 'REJEITADA') {
+                                const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                                if (totalPago > 0) {
+                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+                                    e.target.value = inscricao.status;
+                                    return;
+                                  }
+                                } else {
+                                  if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
+                                    e.target.value = inscricao.status;
+                                    return;
+                                  }
+                                }
+                              }
+                              atualizarStatus(inscricao.id, novoStatus);
+                            }}
+                            className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest border shadow-sm outline-none cursor-pointer ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                              inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                inscricao.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                  'bg-slate-50 text-slate-400 border-slate-200'
+                              }`}
+                          >
+                            <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
+                            <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
+                            <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
+                            <option value="REJEITADA" className="text-rose-600 bg-white">Rejeitada</option>
+                          </select>
+                        </td>
+                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50">
+                          <div className="relative flex items-center justify-center">
+                            {/* Mobile 3-dots */}
+                            <div className="sm:hidden">
+                              <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
+                                <MoreVertical className="w-5 h-5" />
+                              </button>
+                              {menuAcaoAbertoId === inscricao.id && (
+                                <>
+                                  <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
+                                  <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
+                                    <button
+                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                                    >
+                                      <DollarSign className="w-4 h-4" /> Pagamentos
+                                    </button>
 
-                          {/* Desktop buttons */}
-                          <div className="hidden sm:flex items-center justify-center gap-2">
-                            {/* Botão Pagamentos */}
-                            <button
-                              onClick={() => abrirModalPagamento(inscricao)}
-                              className="w-7 h-7 flex items-center justify-center bg-blue-50 text-[#1351b4] hover:bg-blue-100 rounded-sm border border-blue-100 transition-all shadow-sm"
-                              title="Gestão de Pagamentos"
-                            >
-                              <DollarSign className="w-5 h-5" />
-                            </button>
+                                    <button
+                                      onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                    >
+                                      <Trash2 className="w-4 h-4" /> Remover
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Desktop buttons */}
+                            <div className="hidden sm:flex items-center justify-center gap-2">
+                              {/* Botão Pagamentos */}
+                              <button
+                                onClick={() => abrirModalPagamento(inscricao)}
+                                className="w-7 h-7 flex items-center justify-center bg-blue-50 text-[#1351b4] hover:bg-blue-100 rounded-sm border border-blue-100 transition-all shadow-sm"
+                                title="Gestão de Pagamentos"
+                              >
+                                <DollarSign className="w-5 h-5" />
+                              </button>
 
 
 
-                            <button
-                              onClick={() => confirmarExclusao(inscricao.id)}
-                              className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all"
-                              title="Remover Registro"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              <button
+                                onClick={() => confirmarExclusao(inscricao.id)}
+                                className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all"
+                                title="Remover Registro"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ));
+                        </td>
+                      </tr>
+                    );
+                  });
                 })()
               )}
             </tbody>
