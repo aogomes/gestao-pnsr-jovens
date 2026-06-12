@@ -15,7 +15,6 @@ import { TrabalhosModule } from './trabalhos/trabalhos.module';
 import { ProdutosVendaModule } from './produtos-venda/produtos-venda.module';
 import { VendasModule } from './vendas/vendas.module';
 import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extrato.module';
-import { SaquesModule } from './saques/saques.module';
 
 @Module({
   imports: [
@@ -32,8 +31,7 @@ import { SaquesModule } from './saques/saques.module';
     TrabalhosModule,
     ProdutosVendaModule,
     VendasModule,
-    LancamentosExtratoModule,
-    SaquesModule
+    LancamentosExtratoModule
   ],
   controllers: [AppController],
   providers: [AppService],

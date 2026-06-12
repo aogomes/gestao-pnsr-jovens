@@ -60,7 +60,7 @@ export class PessoasService {
     return Object.values(eventosMap).map((ev: any) => ({
       eventoId: ev.id,
       nomeEvento: ev.nome,
-      saldo: ev.receitas - ev.despesas
+      saldo: Number(Number(ev.receitas - ev.despesas).toFixed(2)) || 0
     }));
   }
 
@@ -74,7 +74,7 @@ export class PessoasService {
       return acc;
     }, 0);
 
-    return totalTransacoes;
+    return Number(Number(totalTransacoes).toFixed(2)) || 0;
   }
 
   async buscarTodas(user: any) {
@@ -93,7 +93,7 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
       }, 0);
-      const saldoCalculado = totalTransacoes;
+      const saldoCalculado = Number(Number(totalTransacoes).toFixed(2)) || 0;
       const saldosDetalhados = this.obterSaldosPorEvento(p.transacoes);
       return { ...p, saldo: saldoCalculado, saldos: saldosDetalhados };
     });
@@ -117,7 +117,7 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const saldoCalculado = totalTransacoes;
+    const saldoCalculado = Number(Number(totalTransacoes).toFixed(2)) || 0;
     const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
     return { ...pessoa, saldo: saldoCalculado, saldos: saldosDetalhados };
   }
@@ -156,7 +156,7 @@ export class PessoasService {
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
     }, 0);
-    const saldoCalculado = totalTransacoes;
+    const saldoCalculado = Number(Number(totalTransacoes).toFixed(2)) || 0;
     const saldosDetalhados = this.obterSaldosPorEvento((pessoa as any).transacoes);
 
     const inscricoesFormatadas = (pessoa.inscricoes || []).map((insc: any) => {

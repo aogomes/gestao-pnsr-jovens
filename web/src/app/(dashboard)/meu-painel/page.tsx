@@ -417,43 +417,24 @@ export default function MeuPainelPage() {
       </div>
 
       {modalExtratoAberto && (() => {
-        const isSaque = (t: any) => t.origem === 'EVENTOS' || t.descricao?.startsWith('[SAQUE');
-
         const totalEntradas = (perfil.transacoes || [])
-          .filter((t: any) => t.tipo === 'RECEITA' && !isSaque(t))
+          .filter((t: any) => t.tipo === 'RECEITA')
           .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
         const totalSaidas = (perfil.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && !isSaque(t))
-          .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
-        const totalRetiradas = (perfil.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && isSaque(t))
+          .filter((t: any) => t.tipo === 'DESPESA')
           .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
 
         const transacoesFormatadas = (perfil.transacoes || [])
-          .filter((t: any) => !isSaque(t))
           .map((t: any) => ({
             id: t.id,
             data: t.data,
             descricao: t.descricao,
             valor: t.valor,
             tipo: t.tipo,
-            isSaque: false,
             nomeEvento: t.evento?.nome || ''
           }));
 
-        const saquesFormatados = (perfil.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && isSaque(t))
-          .map((t: any) => ({
-            id: t.id,
-            data: t.data,
-            descricao: t.descricao,
-            valor: t.valor,
-            tipo: 'SAQUE',
-            isSaque: true,
-            nomeEvento: t.evento?.nome || ''
-          }));
-
-        const itensCombinados = [...transacoesFormatadas, ...saquesFormatados].sort(
+        const itensCombinados = [...transacoesFormatadas].sort(
           (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
         );
 
@@ -495,30 +476,24 @@ export default function MeuPainelPage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-sm">
-                      <span className="text-[8px] text-emerald-600 font-black uppercase tracking-widest block mb-1">Total Entradas</span>
-                      <span className="text-xl font-black text-emerald-700">
-                        {formatarMoeda(totalEntradas)}
-                      </span>
-                    </div>
-                    <div className="p-5 bg-rose-50 border border-rose-100 rounded-sm">
-                      <span className="text-[8px] text-rose-500 font-black uppercase tracking-widest block mb-1">Total Saídas (Repasses)</span>
-                      <span className="text-xl font-black text-rose-700">
-                        {formatarMoeda(totalSaidas)}
-                      </span>
-                    </div>
-                    <div className="p-5 bg-amber-50 border border-amber-100 rounded-sm">
-                      <span className="text-[8px] text-amber-600 font-black uppercase tracking-widest block mb-1">Retiradas (Saques)</span>
-                      <span className="text-xl font-black text-amber-700">
-                        {formatarMoeda(totalRetiradas)}
-                      </span>
-                    </div>
-                    <div className="p-5 bg-blue-50 border border-blue-100 rounded-sm">
-                      <span className="text-[8px] text-[#1351b4] font-black uppercase tracking-widest block mb-1">Saldo Atual</span>
-                      <span className="text-xl font-black text-[#1351b4]">
-                        {formatarMoeda(perfil.saldo || 0)}
-                      </span>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                    {/* Resumo Financeiro */}
+                    <div className="p-5 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col">
+                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Resumo Financeiro</h4>
+                      <div className="flex flex-col gap-3 flex-1 justify-center">
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Entradas</span>
+                          <span className="text-xs font-black text-emerald-600">{formatarMoeda(totalEntradas)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Saídas</span>
+                          <span className="text-xs font-black text-rose-500">{formatarMoeda(totalSaidas)}</span>
+                        </div>
+                        <div className="flex justify-between items-end pt-1 mt-auto">
+                          <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Saldo Atual</span>
+                          <span className="text-xl font-black text-[#1351b4] leading-none">{formatarMoeda(perfil.saldo || 0)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -546,26 +521,20 @@ export default function MeuPainelPage() {
                         itensCombinados.map((item: any, itemIdx: number) => {
                           const isReceita = item.tipo === 'RECEITA';
                           const isDespesa = item.tipo === 'DESPESA';
-                          const isSaque = item.isSaque;
-                          const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
+                          const valorColor = isReceita ? 'text-emerald-600' : isDespesa ? 'text-rose-600' : 'text-slate-600';
                           const bgIconColor = isReceita
                             ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                             : isDespesa
                               ? 'bg-rose-50 text-rose-600 border-rose-100'
-                              : isSaque
-                                ? 'bg-amber-50 text-amber-600 border-amber-100'
-                                : 'bg-slate-50 text-slate-600 border-slate-100';
-                          const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
-                          const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
+                              : 'bg-slate-50 text-slate-600 border-slate-100';
+                          const sinal = isReceita ? '+' : isDespesa ? '-' : '';
+                          const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : RefreshCw;
 
                           return (
-                            <tr key={`${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
+                            <tr key={`${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
                               <td className="px-3 py-2 whitespace-nowrap">
                                 <div className="flex flex-col">
                                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{formatarData(item.data)}</span>
-                                  <span className="text-[9px] text-slate-300 font-bold uppercase mt-1 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" /> Processado
-                                  </span>
                                 </div>
                               </td>
                               <td className="px-3 py-2 w-full">
@@ -576,7 +545,7 @@ export default function MeuPainelPage() {
                                   <div className="flex flex-col">
                                     <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{item.descricao}</span>
                                     <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-black">
-                                      {isSaque ? 'RETIRADA / SAQUE' : item.tipo} {item.nomeEvento && ` • ${item.nomeEvento}`}
+                                      {item.tipo} {item.nomeEvento && ` • ${item.nomeEvento}`}
                                     </span>
                                   </div>
                                 </div>
@@ -606,20 +575,17 @@ export default function MeuPainelPage() {
                     itensCombinados.map((item: any, itemIdx: number) => {
                       const isReceita = item.tipo === 'RECEITA';
                       const isDespesa = item.tipo === 'DESPESA';
-                      const isSaque = item.isSaque;
-                      const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
+                      const valorColor = isReceita ? 'text-emerald-600' : isDespesa ? 'text-rose-600' : 'text-slate-600';
                       const bgIconColor = isReceita
                         ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : isDespesa
                           ? 'bg-rose-50 text-rose-600 border-rose-100'
-                          : isSaque
-                            ? 'bg-amber-50 text-amber-600 border-amber-100'
-                            : 'bg-slate-50 text-slate-600 border-slate-100';
-                      const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
-                      const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
+                          : 'bg-slate-50 text-slate-600 border-slate-100';
+                      const sinal = isReceita ? '+' : isDespesa ? '-' : '';
+                      const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : RefreshCw;
 
                       return (
-                        <div key={`mob-${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="p-4 flex flex-col gap-3 bg-white hover:bg-slate-50 active:bg-slate-100 transition-colors">
+                        <div key={`mob-trans-${item.id}-${itemIdx}`} className="p-4 flex flex-col gap-3 bg-white hover:bg-slate-50 active:bg-slate-100 transition-colors">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center border shadow-sm ${bgIconColor}`}>
@@ -628,7 +594,7 @@ export default function MeuPainelPage() {
                               <div className="flex flex-col">
                                 <span className="font-black text-slate-700 text-xs uppercase tracking-tight line-clamp-2">{item.descricao}</span>
                                 <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold">
-                                  {isSaque ? 'RETIRADA' : item.tipo} {item.nomeEvento && `• ${item.nomeEvento}`}
+                                  {item.tipo} {item.nomeEvento && `• ${item.nomeEvento}`}
                                 </span>
                               </div>
                             </div>

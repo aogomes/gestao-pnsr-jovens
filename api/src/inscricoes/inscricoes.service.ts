@@ -42,11 +42,12 @@ export class InscricoesService {
     });
 
     return inscricoes.map((insc) => {
-      const saldoCalculado = insc.pessoa.transacoes.reduce((acc: number, t: any) => {
+      const totalTransacoes = insc.pessoa.transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
         return acc;
       }, 0);
+      const saldoCalculado = Number(Number(totalTransacoes).toFixed(2)) || 0;
       const { transacoes, ...pessoaSemTransacoes } = insc.pessoa as any;
 
       // Sintetizar dinamicamente o array de pagamentos a partir de transacoes

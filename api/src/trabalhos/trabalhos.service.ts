@@ -312,8 +312,8 @@ export class TrabalhosService {
 
         // Despesa proporcional a este método no lote
         const proporcaoMetodo = valorMetodo / valorArrecadado;
-        const despesaProporcionalMetodo = valorDespesasLote * proporcaoMetodo;
-        const liquidoProporcionalMetodo = valorMetodo - despesaProporcionalMetodo;
+        const despesaProporcionalMetodo = Number((valorDespesasLote * proporcaoMetodo).toFixed(2));
+        const liquidoProporcionalMetodo = Number((valorMetodo - despesaProporcionalMetodo).toFixed(2));
 
         if (trabalho.tipo === 'INDIVIDUAL') {
           // No individual, agrupamos por pessoa e por método
@@ -329,9 +329,9 @@ export class TrabalhosService {
 
           for (const [pessoaIdStr, valorPessoa] of Object.entries(recsPorPessoa)) {
             const pessoaId = Number(pessoaIdStr);
-            const valorTrabalhadorPessoa = valorPessoa * (trabalho.proporcao / 100);
-            const valorComunidadePessoa = valorPessoa - valorTrabalhadorPessoa;
-            totalComunidadeMetodo += valorComunidadePessoa;
+            const valorTrabalhadorPessoa = Number((valorPessoa * (trabalho.proporcao / 100)).toFixed(2));
+            const valorComunidadePessoa = Number((valorPessoa - valorTrabalhadorPessoa).toFixed(2));
+            totalComunidadeMetodo = Number((totalComunidadeMetodo + valorComunidadePessoa).toFixed(2));
 
             if (valorTrabalhadorPessoa > 0) {
               await prisma.transacao.create({
@@ -339,7 +339,7 @@ export class TrabalhosService {
                   valor: valorTrabalhadorPessoa,
                   tipo: 'RECEITA',
                   origem: 'TRABALHO',
-                  descricao: `Crédito Rateio (${trabalho.descricao}) - Lote #${lote.id}`,
+                  descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
                   metodo,
                   pessoaId,
                   loteRateioId: lote.id,
@@ -356,7 +356,7 @@ export class TrabalhosService {
                 valor: totalComunidadeMetodo,
                 tipo: 'RECEITA',
                 origem: 'TRABALHO',
-                descricao: `Custos do trabalho (${trabalho.descricao}) - Lote #${lote.id}`,
+                descricao: `Custos do trabalho (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
                 metodo,
                 contaId: trabalho.evento.contaId,
                 loteRateioId: lote.id,
@@ -390,14 +390,14 @@ export class TrabalhosService {
             if (trabalho.membros.length === 0) {
               throw new BadRequestException('Trabalho em grupo sem membros vinculados.');
             }
-            const valorPorMembro = liquidoProporcionalMetodo / trabalho.membros.length;
+            const valorPorMembro = Number((liquidoProporcionalMetodo / trabalho.membros.length).toFixed(2));
             for (const membro of trabalho.membros) {
               await prisma.transacao.create({
                 data: {
                   valor: valorPorMembro,
                   tipo: 'RECEITA',
                   origem: 'TRABALHO',
-                  descricao: `Crédito Rateio (${trabalho.descricao}) - Lote #${lote.id}`,
+                  descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
                   metodo,
                   pessoaId: membro.pessoaId,
                   loteRateioId: lote.id,
@@ -418,7 +418,7 @@ export class TrabalhosService {
             valor: valorDespesasLote,
             tipo: 'DESPESA',
             origem: 'TRABALHO',
-            descricao: `Despesas do trabalho individual (${trabalho.descricao}) - Lote #${lote.id}`,
+            descricao: `Despesas do trabalho individual (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
             contaId: trabalho.evento.contaId,
             loteRateioId: lote.id,
             eventoId: trabalho.eventoId,

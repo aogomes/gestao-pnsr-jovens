@@ -403,8 +403,8 @@ export class RifasService {
 
     const valorArrecadadoTotal = bilhetesVendidos.length * rifa.valorNumero;
     const rateioPessoa = rifa.percentualRateio / 100;
-    const valorParaVendedores = valorArrecadadoTotal * rateioPessoa;
-    const valorParaConta = valorArrecadadoTotal - valorParaVendedores;
+    const valorParaVendedores = Number((valorArrecadadoTotal * rateioPessoa).toFixed(2));
+    const valorParaConta = Number((valorArrecadadoTotal - valorParaVendedores).toFixed(2));
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Registrar transação global para a conta da paróquia (RECEITA)
@@ -440,7 +440,7 @@ export class RifasService {
       for (const [pessoaIdStr, qtd] of Object.entries(vendasPorPessoa)) {
         const pessoaId = Number(pessoaIdStr);
         // Comissão líquida correspondente ao percentual do rateio do vendedor
-        const comissao = qtd * rifa.valorNumero * rateioPessoa;
+        const comissao = Number((qtd * rifa.valorNumero * rateioPessoa).toFixed(2));
 
         if (comissao > 0) {
           await tx.transacao.create({
@@ -529,8 +529,8 @@ export class RifasService {
     });
 
     const arrecadado = geral.vendidos * (rifaCheck?.valorNumero || 0);
-    const rateio = arrecadado * ((rifaCheck?.percentualRateio || 100) / 100);
-    const reserva = arrecadado - rateio;
+    const rateio = Number((arrecadado * ((rifaCheck?.percentualRateio || 100) / 100)).toFixed(2));
+    const reserva = Number((arrecadado - rateio).toFixed(2));
 
     const financeiro = {
       arrecadado,

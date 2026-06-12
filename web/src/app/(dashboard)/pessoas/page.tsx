@@ -29,7 +29,8 @@ import {
   RefreshCw,
   Clock,
   History,
-  Info
+  Info,
+  MoreVertical
 } from 'lucide-react';
 
 export default function PessoasPage() {
@@ -55,12 +56,18 @@ export default function PessoasPage() {
 
   // Estados do Extrato Geral
   const [modalExtratoGeralAberto, setModalExtratoGeralAberto] = useState(false);
-  const [transacoesGerais, setTransacoesGerais] = useState<any[] | null>(null);
 
   // Estados para lançamento de saque rápido
-  const [modalSaqueAberto, setModalSaqueAberto] = useState(false);
-  const [dadosSaque, setDadosSaque] = useState({ valor: '', descricao: '', data: new Date().toISOString().split('T')[0], eventoId: '' });
-  const [enviandoSaque, setEnviandoSaque] = useState(false);
+  const [menuAbertoId, setMenuAbertoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleClickFora = (e: MouseEvent) => {
+      if ((e.target as Element).closest('[data-dropdown]')) return;
+      setMenuAbertoId(null);
+    };
+    document.addEventListener('mousedown', handleClickFora);
+    return () => document.removeEventListener('mousedown', handleClickFora);
+  }, []);
 
   useEffect(() => {
     buscarPessoas();
@@ -183,54 +190,6 @@ export default function PessoasPage() {
     setModalExtratoGeralAberto(true);
   };
 
-  const confirmarEnvioSaque = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const valor = parseFloat(dadosSaque.valor);
-    if (isNaN(valor) || valor <= 0) {
-      alert('Por favor, informe um valor válido maior que zero.');
-      return;
-    }
-
-    setEnviandoSaque(true);
-    try {
-      await api.post('/saques', {
-        valor,
-        descricao: dadosSaque.descricao,
-        data: dadosSaque.data,
-        pessoaId: pessoaSelecionada.id,
-        eventoId: Number(dadosSaque.eventoId)
-      });
-      alert('Saque lançado com sucesso!');
-      setModalSaqueAberto(false);
-      setDadosSaque({ valor: '', descricao: '', data: new Date().toISOString().split('T')[0], eventoId: '' });
-
-      // Recarregar os dados da pessoa
-      const { data } = await api.get(`/pessoas/${pessoaSelecionada.id}`);
-      setPessoaSelecionada(data);
-      buscarPessoas(); // Recarrega lista para atualizar saldo na listagem
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Erro ao lançar saque.';
-      alert(`Erro: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
-    } finally {
-      setEnviandoSaque(false);
-    }
-  };
-
-  const confirmarExclusaoSaque = async (saqueId: number) => {
-    if (!confirm('Tem certeza que deseja estornar/excluir este saque?')) return;
-    try {
-      await api.delete(`/saques/${saqueId}`);
-      alert('Saque estornado com sucesso!');
-
-      // Recarregar os dados da pessoa
-      const { data } = await api.get(`/pessoas/${pessoaSelecionada.id}`);
-      setPessoaSelecionada(data);
-      buscarPessoas(); // Recarrega lista
-    } catch (err) {
-      alert('Erro ao excluir saque.');
-    }
-  };
-
   if (carregando) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -286,8 +245,8 @@ export default function PessoasPage() {
             <thead>
               <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Nome</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Paróquia</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">CPF / Doc</th>
+                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Paróquia</th>
+                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">CPF / Doc</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Saldo Atual</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
               </tr>
@@ -307,7 +266,7 @@ export default function PessoasPage() {
                   <tr key={pessoa.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                        <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
                           {pessoa.id.toString().padStart(3, '0')}
                         </div>
                         <div className="flex flex-col">
@@ -316,7 +275,7 @@ export default function PessoasPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="hidden md:table-cell px-3 py-2">
                       <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg w-fit">
                         <Church className="w-3.5 h-3.5 text-[#1351b4]" />
                         <span className="text-slate-500 font-black text-[9px] uppercase tracking-tighter">
@@ -324,7 +283,7 @@ export default function PessoasPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="hidden md:table-cell px-3 py-2">
                       <div className="flex flex-col">
                         <span className="text-slate-500 font-mono text-[11px] font-bold tracking-widest">{pessoa.documento || '---.---.--- --'}</span>
                         <span className="text-[9px] text-slate-300 font-bold uppercase mt-1">{pessoa.telefone || 'SEM TELEFONE'}</span>
@@ -338,8 +297,9 @@ export default function PessoasPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-3 py-2 relative">
+                      {/* Desktop Actions */}
+                      <div className="hidden md:flex items-center justify-center gap-2">
                         <button
                           onClick={() => abrirModalExtrato(pessoa)}
                           className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-sm border border-slate-200 transition-all shadow-sm"
@@ -361,6 +321,47 @@ export default function PessoasPage() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      </div>
+
+                      {/* Mobile Actions (3 dots) */}
+                      <div className="md:hidden flex items-center justify-center relative" data-dropdown="true">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setMenuAbertoId(menuAbertoId === pessoa.id ? null : pessoa.id);
+                          }}
+                          className="w-7 h-7 flex items-center justify-center text-slate-400 hover:bg-slate-100 rounded-sm transition-colors"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {menuAbertoId === pessoa.id && (
+                          <div
+                            className="absolute right-0 top-8 w-36 bg-white border border-slate-200 rounded-sm shadow-2xl z-50 overflow-hidden flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => { setMenuAbertoId(null); abrirModalExtrato(pessoa); }}
+                              className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] transition-colors text-left"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" /> Extrato
+                            </button>
+                            <button
+                              onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
+                              className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] transition-colors text-left border-t border-slate-100"
+                            >
+                              <Pencil className="w-3.5 h-3.5" /> Editar
+                            </button>
+                            <button
+                              onClick={() => { setMenuAbertoId(null); confirmarExclusao(pessoa.id); }}
+                              className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left border-t border-slate-100"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -738,43 +739,25 @@ export default function PessoasPage() {
 
       {/* MODAL DE EXTRATO (POPOUP) */}
       {modalExtratoAberto && pessoaSelecionada && (() => {
-        const isSaque = (t: any) => t.origem === 'EVENTOS' || t.descricao?.startsWith('[SAQUE');
-
         const totalEntradas = (pessoaSelecionada.transacoes || [])
-          .filter((t: any) => t.tipo === 'RECEITA' && !isSaque(t))
+          .filter((t: any) => t.tipo === 'RECEITA')
           .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
+
         const totalSaidas = (pessoaSelecionada.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && !isSaque(t))
-          .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
-        const totalRetiradas = (pessoaSelecionada.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && isSaque(t))
+          .filter((t: any) => t.tipo === 'DESPESA')
           .reduce((acc: number, t: any) => acc + t.valor, 0) || 0;
 
         const transacoesFormatadas = (pessoaSelecionada.transacoes || [])
-          .filter((t: any) => !isSaque(t))
           .map((t: any) => ({
             id: t.id,
             data: t.data,
             descricao: t.descricao,
             valor: t.valor,
             tipo: t.tipo,
-            isSaque: false,
             nomeEvento: t.evento?.nome || ''
           }));
 
-        const saquesFormatados = (pessoaSelecionada.transacoes || [])
-          .filter((t: any) => t.tipo === 'DESPESA' && isSaque(t))
-          .map((t: any) => ({
-            id: t.id,
-            data: t.data,
-            descricao: t.descricao,
-            valor: t.valor,
-            tipo: 'SAQUE',
-            isSaque: true,
-            nomeEvento: t.evento?.nome || ''
-          }));
-
-        const itensCombinados = [...transacoesFormatadas, ...saquesFormatados].sort(
+        const itensCombinados = [...transacoesFormatadas].sort(
           (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
         );
 
@@ -782,7 +765,7 @@ export default function PessoasPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div className="bg-white w-full max-w-5xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
-              <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-5">
                   <div className="w-12 h-12 rounded-sm bg-[#1351b4] text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
                     <ArrowRightLeft className="w-6 h-6" />
@@ -793,13 +776,6 @@ export default function PessoasPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setModalSaqueAberto(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all shadow-sm group"
-                  >
-                    <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                    Lançar Saque
-                  </button>
                   <button onClick={() => setModalExtratoAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
                     <X className="w-7 h-7" />
                   </button>
@@ -815,47 +791,45 @@ export default function PessoasPage() {
                 <>
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <div className="p-8 pb-0">
-                      {/* Detalhamento de saldos por evento */}
-                      {pessoaSelecionada.saldos && pessoaSelecionada.saldos.length > 0 && (
-                        <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-sm">
-                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Saldos por Evento</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                            {pessoaSelecionada.saldos.map((s: any) => (
-                              <div key={s.eventoId} className="flex justify-between items-center bg-white p-3 border border-slate-100 rounded-sm shadow-sm">
-                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[180px]">{s.nomeEvento}</span>
-                                <span className={`text-[11px] font-black ${s.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                  {formatarMoeda(s.saldo)}
-                                </span>
-                              </div>
-                            ))}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                        {/* Detalhamento de saldos por evento */}
+                        {pessoaSelecionada.saldos && pessoaSelecionada.saldos.length > 0 ? (
+                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-sm">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Saldos por Evento</h4>
+                            <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-2">
+                              {pessoaSelecionada.saldos.map((s: any) => (
+                                <div key={s.eventoId} className="flex justify-between items-center bg-white p-2 border border-slate-100 rounded-sm shadow-sm shrink-0">
+                                  <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[180px]">{s.nomeEvento}</span>
+                                  <span className={`text-[11px] font-black ${s.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {formatarMoeda(s.saldo)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="p-2 bg-slate-50 border border-slate-200 rounded-sm flex items-center justify-center">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nenhum evento vinculado</span>
+                          </div>
+                        )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-sm">
-                          <span className="text-[8px] text-emerald-600 font-black uppercase tracking-widest block mb-1">Total Entradas</span>
-                          <span className="text-xl font-black text-emerald-700">
-                            {formatarMoeda(totalEntradas)}
-                          </span>
-                        </div>
-                        <div className="p-5 bg-rose-50 border border-rose-100 rounded-sm">
-                          <span className="text-[8px] text-rose-500 font-black uppercase tracking-widest block mb-1">Total Saídas (Repasses)</span>
-                          <span className="text-xl font-black text-rose-700">
-                            {formatarMoeda(totalSaidas)}
-                          </span>
-                        </div>
-                        <div className="p-5 bg-amber-50 border border-amber-100 rounded-sm">
-                          <span className="text-[8px] text-amber-600 font-black uppercase tracking-widest block mb-1">Retiradas (Saques)</span>
-                          <span className="text-xl font-black text-amber-700">
-                            {formatarMoeda(totalRetiradas)}
-                          </span>
-                        </div>
-                        <div className="p-5 bg-blue-50 border border-blue-100 rounded-sm">
-                          <span className="text-[8px] text-[#1351b4] font-black uppercase tracking-widest block mb-1">Saldo Atual</span>
-                          <span className="text-xl font-black text-[#1351b4]">
-                            {formatarMoeda(pessoaSelecionada.saldo)}
-                          </span>
+                        {/* Resumo Financeiro */}
+                        <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col">
+                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Resumo Financeiro</h4>
+                          <div className="flex flex-col gap-3 flex-1 justify-center">
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Entradas</span>
+                              <span className="text-xs font-black text-emerald-600">{formatarMoeda(totalEntradas)}</span>
+                            </div>
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Saídas</span>
+                              <span className="text-xs font-black text-rose-500">{formatarMoeda(totalSaidas)}</span>
+                            </div>
+                            <div className="flex justify-between items-end pt-1 mt-auto">
+                              <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Saldo Atual</span>
+                              <span className="text-xl font-black text-[#1351b4] leading-none">{formatarMoeda(pessoaSelecionada.saldo)}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -882,38 +856,29 @@ export default function PessoasPage() {
                           itensCombinados.map((item: any, itemIdx: number) => {
                             const isReceita = item.tipo === 'RECEITA';
                             const isDespesa = item.tipo === 'DESPESA';
-                            const isSaque = item.isSaque;
-                            const valorColor = isReceita ? 'text-emerald-600' : (isDespesa || isSaque) ? 'text-rose-600' : 'text-slate-600';
+                            const valorColor = isReceita ? 'text-emerald-600' : isDespesa ? 'text-rose-600' : 'text-slate-600';
                             const bgIconColor = isReceita
                               ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                               : isDespesa
                                 ? 'bg-rose-50 text-rose-600 border-rose-100'
-                                : isSaque
-                                  ? 'bg-amber-50 text-amber-600 border-amber-100'
-                                  : 'bg-slate-50 text-slate-600 border-slate-100';
-                            const sinal = isReceita ? '+' : (isDespesa || isSaque) ? '-' : '';
-                            const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : isSaque ? ArrowDownCircle : RefreshCw;
+                                : 'bg-slate-50 text-slate-600 border-slate-100';
+                            const sinal = isReceita ? '+' : isDespesa ? '-' : '';
+                            const Icon = isReceita ? ArrowUpCircle : isDespesa ? ArrowDownCircle : RefreshCw;
 
                             return (
-                              <tr key={`${item.isSaque ? 'saque' : 'trans'}-${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
+                              <tr key={`${item.id}-${itemIdx}`} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <div className="flex flex-col">
                                     <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{formatarData(item.data)}</span>
-                                    <span className="text-[9px] text-slate-300 font-bold uppercase mt-1 flex items-center gap-1">
-                                      <Clock className="w-3 h-3" /> Processado
-                                    </span>
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 w-full">
                                   <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
-                                      <Icon className="w-5 h-5" />
+                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
+                                      <Icon className="w-4 h-4" />
                                     </div>
                                     <div className="flex flex-col">
                                       <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{item.descricao}</span>
-                                      <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-black">
-                                        {isSaque ? 'RETIRADA / SAQUE' : item.tipo} {item.nomeEvento && ` • ${item.nomeEvento}`}
-                                      </span>
                                     </div>
                                   </div>
                                 </td>
@@ -923,15 +888,6 @@ export default function PessoasPage() {
                                       <span className="text-xs opacity-50">{sinal}</span>
                                       {formatarMoeda(item.valor)}
                                     </div>
-                                    {isSaque && (
-                                      <button
-                                        onClick={() => confirmarExclusaoSaque(item.id)}
-                                        className="text-slate-400 hover:text-rose-600 transition-colors p-2 bg-slate-50 hover:bg-rose-50 rounded"
-                                        title="Estornar Saque"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
                                   </div>
                                 </td>
                               </tr>
@@ -942,9 +898,9 @@ export default function PessoasPage() {
                     </table>
                   </div>
 
-                  <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-center">
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <AlertCircle className="w-3.5 h-3.5" /> Auditoria GF - Transações Confirmadas
+
                     </p>
                   </div>
                 </>
@@ -953,103 +909,6 @@ export default function PessoasPage() {
           </div>
         );
       })()}
-
-      {/* MODAL LANÇAR SAQUE */}
-      {modalSaqueAberto && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-black text-[#1351b4] uppercase tracking-tight">Lançar Retirada / Saque</h3>
-              <button onClick={() => setModalSaqueAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={confirmarEnvioSaque} className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Colaborador</label>
-                <input
-                  type="text"
-                  disabled
-                  value={pessoaSelecionada?.nome || ''}
-                  className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-sm text-xs font-black text-slate-500 uppercase cursor-not-allowed"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Evento (Saque por Evento)</label>
-                <select
-                  required
-                  value={dadosSaque.eventoId}
-                  onChange={(e) => setDadosSaque({ ...dadosSaque, eventoId: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4] font-bold"
-                >
-                  <option value="">Selecione o Evento...</option>
-                  {pessoaSelecionada?.saldos?.map((s: any) => (
-                    <option key={s.eventoId} value={s.eventoId}>
-                      {s.nomeEvento} (Saldo: {formatarMoeda(s.saldo)})
-                    </option>
-                  )) || []}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor do Saque (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  max={pessoaSelecionada?.saldos?.find((s: any) => s.eventoId === Number(dadosSaque.eventoId))?.saldo || undefined}
-                  value={dadosSaque.valor}
-                  onChange={(e) => setDadosSaque({ ...dadosSaque, valor: e.target.value })}
-                  placeholder="0,00"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
-                <input
-                  type="text"
-                  required
-                  value={dadosSaque.descricao}
-                  onChange={(e) => setDadosSaque({ ...dadosSaque, descricao: e.target.value })}
-                  placeholder="Ex: Retirada quinzenal"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-xs font-black text-slate-700 uppercase outline-none focus:border-[#1351b4]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data</label>
-                <input
-                  type="date"
-                  required
-                  value={dadosSaque.data}
-                  onChange={(e) => setDadosSaque({ ...dadosSaque, data: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4]"
-                />
-              </div>
-
-              <div className="pt-4 flex items-center justify-end gap-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setModalSaqueAberto(false)}
-                  className="px-5 py-2.5 text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-widest transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={enviandoSaque}
-                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
-                >
-                  {enviandoSaque && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Confirmar Saque
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL DE EXTRATO GERAL (POPOUP) */}
       {modalExtratoGeralAberto && (
