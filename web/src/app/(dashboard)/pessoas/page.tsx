@@ -1,7 +1,8 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { uploadFile } from '@/lib/storage';
+import Cookies from 'js-cookie';
 import {
   Plus,
   Users,
@@ -45,9 +46,10 @@ export default function PessoasPage() {
     nome: '', email: '', documento: '', telefone: '', paroquiaId: '',
     dataNascimento: '', sexo: '', rg: '', orgaoEmissor: '', emailResponsavel: '',
     emailResponsavel2: '', comunidade: '', passaporte: '', passaporteEmissaoValidade: '',
-    camiseta: '', vaiComConjuge: false, nomeConjuge: '', necessidadesMedicas: '',
+    fotoPassaporte: '', camiseta: '', vaiComConjuge: false, nomeConjuge: '', necessidadesMedicas: '',
     responsavelLegal: '', perfis: [] as string[]
   });
+  const [arquivoPassaporte, setArquivoPassaporte] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   // Estados do Extrato
@@ -106,6 +108,7 @@ export default function PessoasPage() {
         comunidade: pessoa.comunidade || '',
         passaporte: pessoa.passaporte || '',
         passaporteEmissaoValidade: pessoa.passaporteEmissaoValidade || '',
+        fotoPassaporte: pessoa.fotoPassaporte || '',
         camiseta: pessoa.camiseta || '',
         vaiComConjuge: !!pessoa.vaiComConjuge,
         nomeConjuge: pessoa.nomeConjuge || '',
@@ -113,15 +116,17 @@ export default function PessoasPage() {
         responsavelLegal: pessoa.responsavelLegal || '',
         perfis: pessoa.perfis ? (typeof pessoa.perfis === 'string' ? JSON.parse(pessoa.perfis) : pessoa.perfis) : []
       });
+      setArquivoPassaporte(null);
     } else {
       setPessoaEdicao(null);
       setDadosForm({
         nome: '', email: '', documento: '', telefone: '', paroquiaId: paroquias[0]?.id || '',
         dataNascimento: '', sexo: '', rg: '', orgaoEmissor: '', emailResponsavel: '',
         emailResponsavel2: '', comunidade: '', passaporte: '', passaporteEmissaoValidade: '',
-        camiseta: '', vaiComConjuge: false, nomeConjuge: '', necessidadesMedicas: '',
+        fotoPassaporte: '', camiseta: '', vaiComConjuge: false, nomeConjuge: '', necessidadesMedicas: '',
         responsavelLegal: '', perfis: []
       });
+      setArquivoPassaporte(null);
     }
     setModalAberto(true);
   };
@@ -130,8 +135,16 @@ export default function PessoasPage() {
     e.preventDefault();
     setEnviando(true);
     try {
+      let urlFoto = dadosForm.fotoPassaporte;
+
+      // Fazer upload se houver arquivo selecionado
+      if (arquivoPassaporte) {
+        urlFoto = await uploadFile(arquivoPassaporte, 'passaportes', 'pessoas');
+      }
+
       const payload = {
         ...dadosForm,
+        fotoPassaporte: urlFoto,
         paroquiaId: Number(dadosForm.paroquiaId)
       };
 
@@ -601,6 +614,28 @@ export default function PessoasPage() {
                         value={dadosForm.passaporteEmissaoValidade}
                         onChange={(e) => setDadosForm({ ...dadosForm, passaporteEmissaoValidade: e.target.value })}
                         className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Foto do Passaporte */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Anexo / Foto do Passaporte</label>
+                    <div className="flex flex-col gap-3">
+                      {dadosForm.fotoPassaporte && (
+                        <a href={dadosForm.fotoPassaporte.startsWith('http') ? dadosForm.fotoPassaporte : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(dadosForm.fotoPassaporte)}&token=${Cookies.get('gf_token')}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#1351b4] underline hover:text-[#0047b7]">
+                          Ver foto atual
+                        </a>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            setArquivoPassaporte(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-[#1351b4]/10 file:text-[#1351b4] hover:file:bg-[#1351b4]/20 transition-all cursor-pointer"
                       />
                     </div>
                   </div>

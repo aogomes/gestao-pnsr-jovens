@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { uploadFile } from '@/lib/storage';
 import Cookies from 'js-cookie';
 import {
   Ticket,
@@ -56,6 +57,7 @@ export default function MinhasRifasPage() {
   const [abaAtiva, setAbaAtiva] = useState<number | null>(null);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const [usuario, setUsuario] = useState<any>(null);
+  const [arquivoComprovante, setArquivoComprovante] = useState<File | null>(null);
 
   // Helpers robustos de parsing de datas para evitar quebras por split/format
   const splitDataSeguro = (dataStr: any) => {
@@ -101,7 +103,7 @@ export default function MinhasRifasPage() {
   });
 
   const [dadosLote, setDadosLote] = useState({
-    status: 'RESERVADO',
+    status: 'VENDIDO',
     nomeCliente: '',
     foneCliente: '',
     comprovante: ''
@@ -272,13 +274,22 @@ export default function MinhasRifasPage() {
   const handleSalvarLote = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let urlComprovante = dadosLote.comprovante;
+
+      // Se houver arquivo selecionado, faz o upload para o Storage
+      if (arquivoComprovante) {
+        urlComprovante = await uploadFile(arquivoComprovante, 'comprovantes', `rifa_${rifaSelecionada?.id}`);
+      }
+
       await api.patch('/rifas/bilhetes/bulk', {
         ids: selecionados,
-        ...dadosLote
+        ...dadosLote,
+        comprovante: urlComprovante
       });
       setModalLote(false);
       setForcarEdicaoDados(false);
       setSelecionados([]);
+      setArquivoComprovante(null);
       selecionarRifa(rifaSelecionada, true);
     } catch (error: any) {
       alert(error.response?.data?.message || 'Erro ao atualizar lote');
@@ -906,6 +917,7 @@ export default function MinhasRifasPage() {
             <button
               onClick={() => {
                 setDadosLote({ status: 'RESERVADO', nomeCliente: '', foneCliente: '', comprovante: '' });
+                setArquivoComprovante(null);
                 setModoLote('RESERVA');
                 setModalLote(true);
               }}
@@ -918,6 +930,7 @@ export default function MinhasRifasPage() {
                 const firstId = selecionados[0];
                 const b = bilhetes.find(item => item.id === firstId);
                 setDadosLote({ status: 'VENDIDO', nomeCliente: b?.nomeCliente || '', foneCliente: b?.foneCliente || '', comprovante: '' });
+                setArquivoComprovante(null);
                 setModoLote('VENDA');
                 setModalLote(true);
               }}
@@ -1088,14 +1101,31 @@ export default function MinhasRifasPage() {
               {modoLote === 'VENDA' && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">ID Comprovante PIX</label>
-                  <div className="relative group">
-                    <FileImage className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-[#1351b4]" />
+                  <div className="flex flex-col gap-3">
+                    <div className="relative group">
+                      <FileImage className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-500" />
+                      <input
+                        type="text"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-sm pl-14 pr-6 py-4 outline-none focus:border-emerald-500 transition-all font-black text-slate-700"
+                        placeholder="ID da transação em lote"
+                        value={dadosLote.comprovante}
+                        onChange={(e) => setDadosLote({ ...dadosLote, comprovante: e.target.value })}
+                      />
+                    </div>
+                    {dadosLote.comprovante && (
+                      <a href={dadosLote.comprovante.startsWith('http') ? dadosLote.comprovante : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=comprovantes&path=${encodeURIComponent(dadosLote.comprovante)}&token=${Cookies.get('gf_token')}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-600 underline hover:text-emerald-700">
+                        Ver comprovante atual
+                      </a>
+                    )}
                     <input
-                      type="text" required
-                      className="w-full bg-slate-50 border border-slate-200 rounded-sm pl-14 pr-6 py-4 outline-none focus:border-emerald-500 transition-all font-black text-slate-700"
-                      placeholder="ID da transação em lote"
-                      value={dadosLote.comprovante}
-                      onChange={(e) => setDadosLote({ ...dadosLote, comprovante: e.target.value })}
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          setArquivoComprovante(e.target.files[0]);
+                        }
+                      }}
+                      className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-emerald-500/10 file:text-emerald-600 hover:file:bg-emerald-500/20 transition-all cursor-pointer"
                     />
                   </div>
                 </div>
