@@ -22,7 +22,8 @@ import {
   DollarSign,
   History,
   Wallet,
-  MoreVertical
+  MoreVertical,
+  UserMinus
 } from 'lucide-react';
 
 export default function InscricoesPage() {
@@ -47,6 +48,13 @@ export default function InscricoesPage() {
   const [metodoPagamento, setMetodoPagamento] = useState('SALDO');
   const [salvandoPagamento, setSalvandoPagamento] = useState(false);
 
+  // Modal de Desistência
+  const [modalDesistenciaAberto, setModalDesistenciaAberto] = useState(false);
+  const [inscricaoParaDesistencia, setInscricaoParaDesistencia] = useState<any>(null);
+  const [opcaoDesistencia, setOpcaoDesistencia] = useState('SALDO');
+  const [targetPessoaId, setTargetPessoaId] = useState('');
+  const [salvandoDesistencia, setSalvandoDesistencia] = useState(false);
+
   useEffect(() => {
     buscarDadosIniciais();
   }, []);
@@ -65,10 +73,11 @@ export default function InscricoesPage() {
         api.get('/eventos'),
         api.get('/pessoas')
       ]);
-      setEventos(eventsRes.data);
+      const eventosAtivos = eventsRes.data.filter((e: any) => e.status === 'ATIVO');
+      setEventos(eventosAtivos);
       setPessoas(personsRes.data);
-      if (eventsRes.data.length > 0) {
-        setEventoSelecionadoId(String(eventsRes.data[0].id));
+      if (eventosAtivos.length > 0) {
+        setEventoSelecionadoId(String(eventosAtivos[0].id));
       }
     } catch (err) {
       console.error(err);
@@ -136,6 +145,28 @@ export default function InscricoesPage() {
     setValorPagamento('');
     setMetodoPagamento('SALDO');
     setModalPagamentoAberto(true);
+  };
+
+  const confirmarDesistencia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inscricaoParaDesistencia) return;
+    setSalvandoDesistencia(true);
+    try {
+      await api.post(`/inscricoes/${inscricaoParaDesistencia.id}/desistencia`, {
+        opcao: opcaoDesistencia,
+        targetPessoaId: opcaoDesistencia === 'SALDO' && targetPessoaId ? Number(targetPessoaId) : undefined
+      });
+      setModalDesistenciaAberto(false);
+      setInscricaoParaDesistencia(null);
+      setTargetPessoaId('');
+      setOpcaoDesistencia('SALDO');
+      buscarInscricoes();
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Erro ao registrar desistência.';
+      alert(`Erro: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+    } finally {
+      setSalvandoDesistencia(false);
+    }
   };
 
   const confirmarPagamento = async (e: React.FormEvent) => {
@@ -424,15 +455,15 @@ export default function InscricoesPage() {
                             value={inscricao.status}
                             onChange={(e) => {
                               const novoStatus = e.target.value;
-                              if (novoStatus === 'REJEITADA') {
+                              if (novoStatus === 'CANCELADO') {
                                 const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
                                 if (totalPago > 0) {
-                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao rejeitá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao cancelá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
                                     e.target.value = inscricao.status;
                                     return;
                                   }
                                 } else {
-                                  if (!confirm(`Tem certeza que deseja rejeitar a inscrição de ${inscricao.pessoa.nome}?`)) {
+                                  if (!confirm(`Tem certeza que deseja cancelar a inscrição de ${inscricao.pessoa.nome}?`)) {
                                     e.target.value = inscricao.status;
                                     return;
                                   }
@@ -442,14 +473,14 @@ export default function InscricoesPage() {
                             }}
                             className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest border shadow-sm outline-none cursor-pointer ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                               inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                inscricao.status === 'REJEITADA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                inscricao.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                   'bg-slate-50 text-slate-400 border-slate-200'
                               }`}
                           >
                             <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
                             <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
                             <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
-                            <option value="REJEITADA" className="text-rose-600 bg-white">Rejeitada</option>
+                            <option value="CANCELADO" className="text-rose-600 bg-white">Cancelado</option>
                           </select>
                         </td>
                         <td className="px-3 md:px-4 py-2 border-b border-slate-100/50">
@@ -469,6 +500,19 @@ export default function InscricoesPage() {
                                     >
                                       <DollarSign className="w-4 h-4" /> Pagamentos
                                     </button>
+
+                                    {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
+                                      <button
+                                        onClick={() => {
+                                          setMenuAcaoAbertoId(null);
+                                          setInscricaoParaDesistencia(inscricao);
+                                          setModalDesistenciaAberto(true);
+                                        }}
+                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                      >
+                                        <UserMinus className="w-4 h-4" /> Desistência
+                                      </button>
+                                    )}
 
                                     <button
                                       onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
@@ -492,7 +536,19 @@ export default function InscricoesPage() {
                                 <DollarSign className="w-5 h-5" />
                               </button>
 
-
+                              {/* Botão Desistência */}
+                              {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
+                                <button
+                                  onClick={() => {
+                                    setInscricaoParaDesistencia(inscricao);
+                                    setModalDesistenciaAberto(true);
+                                  }}
+                                  className="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-sm border border-rose-100 transition-all shadow-sm"
+                                  title="Registrar Desistência"
+                                >
+                                  <UserMinus className="w-4 h-4" />
+                                </button>
+                              )}
 
                               <button
                                 onClick={() => confirmarExclusao(inscricao.id)}
@@ -652,7 +708,7 @@ export default function InscricoesPage() {
                           Esta inscrição está com status "{
                             inscricaoParaPagar.status === 'PENDENTE' ? 'Pendente' :
                               inscricaoParaPagar.status === 'EM_ANALISE' ? 'Em Análise' :
-                                inscricaoParaPagar.status === 'REJEITADA' ? 'Rejeitada' :
+                                inscricaoParaPagar.status === 'CANCELADO' ? 'Cancelado' :
                                   inscricaoParaPagar.status
                           }". Para registrar pagamentos, a inscrição deve ser primeiro aprovada e CONFIRMADA pelo administrador do sistema.
                         </p>
@@ -719,6 +775,71 @@ export default function InscricoesPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Desistência */}
+      {modalDesistenciaAberto && inscricaoParaDesistencia && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-rose-600 uppercase tracking-tight">Registrar Desistência</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  {inscricaoParaDesistencia.pessoa.nome} - {inscricaoParaDesistencia.evento.nome}
+                </p>
+              </div>
+              <button onClick={() => setModalDesistenciaAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={confirmarDesistencia} className="p-10 space-y-6">
+              <div className="space-y-4">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Como tratar o valor pago?</label>
+                <div className="flex flex-col gap-3">
+                  <label className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all ${opcaoDesistencia === 'SALDO' ? 'border-[#1351b4] bg-[#1351b4]/5' : 'border-slate-200 hover:bg-slate-50'}`}>
+                    <input type="radio" name="opcaoDesistencia" value="SALDO" checked={opcaoDesistencia === 'SALDO'} onChange={() => setOpcaoDesistencia('SALDO')} className="text-[#1351b4] focus:ring-[#1351b4] w-4 h-4" />
+                    <div>
+                      <div className="text-sm font-black text-slate-700 uppercase tracking-tight">Converter em Saldo (Crédito)</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">O valor ficará disponível no sistema para ser usado no futuro.</div>
+                    </div>
+                  </label>
+                  <label className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all ${opcaoDesistencia === 'CAIXA' ? 'border-rose-600 bg-rose-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                    <input type="radio" name="opcaoDesistencia" value="CAIXA" checked={opcaoDesistencia === 'CAIXA'} onChange={() => setOpcaoDesistencia('CAIXA')} className="text-rose-600 focus:ring-rose-600 w-4 h-4" />
+                    <div>
+                      <div className="text-sm font-black text-slate-700 uppercase tracking-tight">Devolução Física em Dinheiro</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">O valor será retirado do caixa físico e devolvido em mãos.</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {opcaoDesistencia === 'SALDO' && (
+                <div className="space-y-4 animate-in slide-in-from-top-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Para quem vai o crédito?</label>
+                  <select
+                    value={targetPessoaId}
+                    onChange={(e) => setTargetPessoaId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 focus:outline-none focus:border-[#1351b4]"
+                  >
+                    <option value="">Apenas para a própria pessoa ({inscricaoParaDesistencia.pessoa.nome})</option>
+                    {pessoas.filter(p => p.id !== inscricaoParaDesistencia.pessoaId).map(p => (
+                      <option key={p.id} value={p.id}>Transferir para: {p.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
+                <button type="button" onClick={() => setModalDesistenciaAberto(false)} className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-colors rounded-sm">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={salvandoDesistencia} className="flex items-center justify-center gap-2 px-8 py-3 bg-rose-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md disabled:opacity-50">
+                  {salvandoDesistencia ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Confirmar Desistência
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

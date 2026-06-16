@@ -171,6 +171,18 @@ export default function TrabalhosPage() {
 
   const [inscritosEvento, setInscritosEvento] = useState<any[]>([]);
 
+  const [membrosDespesas, setMembrosDespesas] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (eventoSelecionadoId) {
+      api.get(`/eventos/${eventoSelecionadoId}/membros-despesas`)
+        .then(res => setMembrosDespesas(res.data))
+        .catch(err => console.error('Erro ao buscar despesas do evento:', err));
+    } else {
+      setMembrosDespesas([]);
+    }
+  }, [eventoSelecionadoId]);
+
   useEffect(() => {
     if (dadosForm.eventoId) {
       api.get(`/eventos/${dadosForm.eventoId}`)
@@ -188,15 +200,21 @@ export default function TrabalhosPage() {
 
   const buscarDados = async () => {
     try {
-      const [trabRes, pessoasRes, eventosRes, prodRes] = await Promise.all([
+      const [trabRes, eventosRes, prodRes] = await Promise.all([
         api.get('/trabalhos'),
-        api.get('/pessoas'), // Assegura que tras as transacoes também da pessoa
         api.get('/eventos'),
         api.get('/produtos-venda')
       ]);
       setTrabalhos(trabRes.data);
-      setPessoas(pessoasRes.data);
-      setEventos(eventosRes.data);
+      setPessoas([]);
+      const eventosAtivos = eventosRes.data.filter((e: any) => e.status === 'ATIVO');
+      setEventos(eventosAtivos);
+      setEventoSelecionadoId(prev => {
+        if (!prev && eventosAtivos.length > 0) {
+          return String(eventosAtivos[0].id);
+        }
+        return prev;
+      });
       setProdutos(prodRes.data);
     } catch (err) {
       console.error(err);
@@ -333,6 +351,20 @@ export default function TrabalhosPage() {
       status: 'PAGO',
       pessoaId: ''
     });
+
+    if (trabalho.eventoId) {
+      api.get(`/eventos/${trabalho.eventoId}`)
+        .then(res => {
+          setInscritosEvento(res.data.inscricoes?.map((i: any) => i.pessoa) || []);
+        })
+        .catch(err => {
+          console.error('Erro ao carregar participantes do evento:', err);
+          setInscritosEvento([]);
+        });
+    } else {
+      setInscritosEvento([]);
+    }
+
     setModalRecebimentosAberto(true);
     setTabModal('RECEBIMENTOS');
   };
@@ -814,10 +846,7 @@ export default function TrabalhosPage() {
           if (membro.pessoa) {
             const pid = membro.pessoa.id;
             if (!mapaPessoas[pid]) {
-              const pessoaObj = pessoas.find(p => p.id === pid);
-              const despesasPessoa = (pessoaObj?.transacoes || []).filter((t: any) =>
-                t.tipo === 'DESPESA' && t.eventoId === Number(eventoSelecionadoId)
-              );
+              const despesasPessoa = membrosDespesas.filter((d: any) => d.pessoaId === pid);
               mapaPessoas[pid] = {
                 id: pid,
                 nome: membro.pessoa.nome,
@@ -853,10 +882,7 @@ export default function TrabalhosPage() {
         for (const [pidStr, info] of Object.entries(cotasPorPessoaNoTrabalho)) {
           const pid = Number(pidStr);
           if (!mapaPessoas[pid]) {
-            const pessoaObj = pessoas.find(p => p.id === pid);
-            const despesasPessoa = (pessoaObj?.transacoes || []).filter((t: any) =>
-              t.tipo === 'DESPESA' && t.eventoId === Number(eventoSelecionadoId)
-            );
+            const despesasPessoa = membrosDespesas.filter((d: any) => d.pessoaId === pid);
             mapaPessoas[pid] = {
               id: pid,
               nome: info.pessoa.nome,
@@ -1360,10 +1386,7 @@ export default function TrabalhosPage() {
               if (membro.pessoa) {
                 const pid = membro.pessoa.id;
                 if (!mapaPessoasLocal[pid]) {
-                  const pessoaObj = pessoas.find(p => p.id === pid);
-                  const despesasPessoa = (pessoaObj?.transacoes || []).filter((t: any) =>
-                    t.tipo === 'DESPESA' && t.eventoId === Number(eventoSelecionadoId)
-                  );
+                  const despesasPessoa = membrosDespesas.filter((d: any) => d.pessoaId === pid);
                   mapaPessoasLocal[pid] = {
                     id: pid,
                     nome: membro.pessoa.nome,
@@ -1398,10 +1421,7 @@ export default function TrabalhosPage() {
             for (const [pidStr, info] of Object.entries(cotasPorPessoaNoTrabalho)) {
               const pid = Number(pidStr);
               if (!mapaPessoasLocal[pid]) {
-                const pessoaObj = pessoas.find(p => p.id === pid);
-                const despesasPessoa = (pessoaObj?.transacoes || []).filter((t: any) =>
-                  t.tipo === 'DESPESA' && t.eventoId === Number(eventoSelecionadoId)
-                );
+                const despesasPessoa = membrosDespesas.filter((d: any) => d.pessoaId === pid);
                 mapaPessoasLocal[pid] = {
                   id: pid,
                   nome: info.pessoa.nome,
@@ -2231,9 +2251,9 @@ export default function TrabalhosPage() {
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-[11px] font-black text-slate-700 outline-none focus:border-[#1351b4] uppercase"
                       >
                         <option value="">Selecione a pessoa...</option>
-                        {trabalhoSelecionado?.evento?.inscricoes?.map((i: any) => (
-                          <option key={i.pessoaId} value={i.pessoaId}>{i.pessoa?.nome}</option>
-                        )) || []}
+                        {inscritosEvento.map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.nome}</option>
+                        ))}
                       </select>
                     </div>
                   )}

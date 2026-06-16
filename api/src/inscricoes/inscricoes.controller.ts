@@ -38,4 +38,9 @@ export class InscricoesController {
   atualizarStatus(@Param('id', ParseIntPipe) id: number, @Body() updateDto: UpdateStatusInscricaoDto) {
     return this.inscricoesService.atualizarStatus(id, updateDto.status);
   }
+
+  @Post(':id/desistencia')
+  registrarDesistencia(@Param('id', ParseIntPipe) id: number, @Body() payload: { opcao: string, targetPessoaId?: number }) {
+    return this.inscricoesService.registrarDesistencia(id, payload.opcao, payload.targetPessoaId);
+  }
 }

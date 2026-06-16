@@ -73,7 +73,7 @@ export class TrabalhosService {
         },
         despesas: true,
         evento: {
-          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
+          include: { paroquia: true, conta: true }
         },
         lotesRateio: {
           include: { transacoes: true, recebimentos: true }

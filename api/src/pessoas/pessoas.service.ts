@@ -82,20 +82,68 @@ export class PessoasService {
     const pessoas = await this.prisma.pessoa.findMany({
       where,
       include: { 
-        paroquia: true, 
-        transacoes: { include: { evento: true } }
+        paroquia: true
       },
       orderBy: { nome: 'asc' }
     });
+
+    if (pessoas.length === 0) return [];
+    
+    const pessoaIds = pessoas.map(p => p.id);
+    
+    const saldosGerais = await this.prisma.transacao.groupBy({
+      by: ['pessoaId', 'tipo'],
+      where: { pessoaId: { in: pessoaIds } },
+      _sum: { valor: true }
+    });
+
+    const saldosMap: Record<number, number> = {};
+    pessoaIds.forEach(id => { saldosMap[id] = 0; });
+
+    saldosGerais.forEach(t => {
+      if (t.pessoaId !== null) {
+        if (t.tipo === 'RECEITA') saldosMap[t.pessoaId] += (t._sum.valor || 0);
+        if (t.tipo === 'DESPESA') saldosMap[t.pessoaId] -= (t._sum.valor || 0);
+      }
+    });
+
+    const saldosEventos = await this.prisma.transacao.groupBy({
+      by: ['pessoaId', 'eventoId', 'tipo'],
+      where: { pessoaId: { in: pessoaIds }, eventoId: { not: null } },
+      _sum: { valor: true }
+    });
+
+    const eventosInfo = await this.prisma.evento.findMany({ select: { id: true, nome: true } });
+    const nomeEventosMap = eventosInfo.reduce((acc, ev) => ({ ...acc, [ev.id]: ev.nome }), {} as Record<number, string>);
+
+    const saldosDetalhadosMap: Record<number, any[]> = {};
+    pessoaIds.forEach(id => { saldosDetalhadosMap[id] = []; });
+
+    const agregacaoPorEvento: Record<string, { receitas: number, despesas: number }> = {};
+    saldosEventos.forEach(t => {
+      if (t.pessoaId !== null && t.eventoId !== null) {
+        const key = `${t.pessoaId}-${t.eventoId}`;
+        if (!agregacaoPorEvento[key]) agregacaoPorEvento[key] = { receitas: 0, despesas: 0 };
+        if (t.tipo === 'RECEITA') agregacaoPorEvento[key].receitas += (t._sum.valor || 0);
+        if (t.tipo === 'DESPESA') agregacaoPorEvento[key].despesas += (t._sum.valor || 0);
+      }
+    });
+
+    Object.keys(agregacaoPorEvento).forEach(key => {
+      const [pessoaIdStr, eventoIdStr] = key.split('-');
+      const pId = Number(pessoaIdStr);
+      const evId = Number(eventoIdStr);
+      const data = agregacaoPorEvento[key];
+      saldosDetalhadosMap[pId].push({
+        eventoId: evId,
+        nomeEvento: nomeEventosMap[evId] || `Evento #${evId}`,
+        saldo: Number(Number(data.receitas - data.despesas).toFixed(2)) || 0
+      });
+    });
+
     return pessoas.map((p: any) => {
-      const totalTransacoes = p.transacoes.reduce((acc: number, t: any) => {
-        if (t.tipo === 'RECEITA') return acc + t.valor;
-        if (t.tipo === 'DESPESA') return acc - t.valor;
-        return acc;
-      }, 0);
-      const saldoCalculado = Number(Number(totalTransacoes).toFixed(2)) || 0;
-      const saldosDetalhados = this.obterSaldosPorEvento(p.transacoes);
-      return { ...p, saldo: saldoCalculado, saldos: saldosDetalhados };
+      const saldoCalculado = Number(Number(saldosMap[p.id]).toFixed(2)) || 0;
+      return { ...p, saldo: saldoCalculado, saldos: saldosDetalhadosMap[p.id] };
     });
   }
 

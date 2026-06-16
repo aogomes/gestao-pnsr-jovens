@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
+import { api } from '@/lib/api';
 import {
   LayoutDashboard,
   Users,
@@ -31,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [sidebarAberta, setSidebarAberta] = useState(true);
   const [usuario, setUsuario] = useState<any>(null);
+  const [temRifas, setTemRifas] = useState(true);
 
   useEffect(() => {
     // 1. Verificação de Autenticação e Segurança
@@ -42,6 +44,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const user = JSON.parse(dadosUsuario);
     setUsuario(user);
+
+    // 1.5. Verificar se existem rifas ativas para exibir o menu
+    api.get('/rifas').then(res => {
+      const rifasData = Array.isArray(res.data) ? res.data : [];
+      let disponiveis = rifasData.filter((r: any) => ['ATIVA', 'PAUSADA'].includes(r.status));
+      disponiveis = disponiveis.filter((r: any) =>
+        r.alocacoes?.some((a: any) => a.pessoaId === user.pessoaId)
+      );
+      setTemRifas(disponiveis.length > 0);
+    }).catch(err => {
+      console.error('Erro ao verificar rifas:', err);
+      setTemRifas(false);
+    });
 
     // Regra de Segurança: Validar acesso à rota atual
     const itemAtual = itensNav.find(item => item.href === pathname);
@@ -84,6 +99,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Usuários', href: '/usuarios', icon: Shield, papeis: ['ADMIN'] },
   ];
 
+  let itensMenu = [...itensNav];
+  if (!temRifas) {
+    itensMenu = itensMenu.filter(item => item.name !== 'Minhas Rifas');
+  }
 
   if (!usuario) return null;
 
@@ -155,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
 
           <nav className="flex-1 py-4 lg:py-6 overflow-y-auto custom-scrollbar">
-            {itensNav.filter(item => item.papeis.includes(usuario?.papel)).map((item) => {
+            {itensMenu.filter(item => item.papeis.includes(usuario?.papel)).map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (

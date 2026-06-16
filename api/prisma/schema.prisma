@@ -383,7 +383,7 @@ model Conta {
 enum StatusInscricao {
   PENDENTE
   CONFIRMADO
-  REJEITADA
+  CANCELADO
   EM_ANALISE
   AGUARDANDO_VAGA
 }
