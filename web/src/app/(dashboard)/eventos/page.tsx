@@ -6,20 +6,15 @@ import {
   Plus,
   CalendarDays,
   Banknote,
-  Search,
   Pencil,
   Trash2,
-  X,
   Loader2,
-  MapPin,
   Church,
   DollarSign,
   Calendar,
   Clock,
   AlertCircle,
-  ArrowRight,
-  TrendingUp,
-  Info
+  ArrowRight
 } from 'lucide-react';
 
 export default function EventosPage() {
@@ -183,25 +178,6 @@ export default function EventosPage() {
         </div>
       </div>
 
-      {/* SEÇÃO DE BUSCA E FILTROS */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="relative w-full max-w-2xl group">
-          <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-          <input
-            type="text"
-            placeholder="Buscar evento por nome..."
-            value={termoBusca}
-            onChange={(e) => setTermoBusca(e.target.value)}
-            className="w-full pl-14 pr-6 py-5 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-bold text-slate-700 placeholder:text-slate-300"
-          />
-        </div>
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="px-6 py-3 bg-[#1351b4]/10 text-[#1351b4] rounded-sm text-[10px] font-black border border-[#1351b4]/10">
-            {eventosFiltrados.length} EVENTOS CATALOGADOS
-          </div>
-        </div>
-      </div>
-
       {/* CONTAINER PRINCIPAL DA TABELA */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
@@ -217,17 +193,17 @@ export default function EventosPage() {
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Evento / Atividade</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Comunidade</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Conta Vinculada</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Período</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Investimento</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+              <tr className="bg-[#1351b4]">
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Evento / Atividade</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Comunidade</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Conta Vinculada</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Período</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Investimento</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-center">Status</th>
+                <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#1351b4]">
               {eventosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-8 py-32 text-center text-slate-300">
@@ -240,7 +216,7 @@ export default function EventosPage() {
               ) : (
                 eventosFiltrados.map((evento) => (
                   <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all shadow-sm">
                           <CalendarDays className="w-5 h-5" />
@@ -251,7 +227,7 @@ export default function EventosPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg w-fit">
                         <Church className="w-3.5 h-3.5 text-[#1351b4]" />
                         <span className="text-slate-500 font-black text-[9px] uppercase tracking-tighter">
@@ -259,7 +235,7 @@ export default function EventosPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg w-fit">
                         <Banknote className="w-3.5 h-3.5 text-[#1351b4]" />
                         <span className="text-slate-500 font-black text-[9px] uppercase tracking-tighter">
@@ -267,13 +243,13 @@ export default function EventosPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex flex-col">
                         <span className="text-slate-600 font-black text-[11px] uppercase">{formatarData(evento.dataInicio)}</span>
                         <span className="text-[9px] text-slate-300 font-bold uppercase">até {formatarData(evento.dataFim)}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex flex-col text-slate-700">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
@@ -282,25 +258,25 @@ export default function EventosPage() {
                         <span className="text-[9px] text-slate-300 font-bold uppercase mt-1">Valor Unitário</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex justify-center">
                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm ${obterCorStatus(evento.status)}`}>
                           {traduzirStatus(evento.status)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2 border-b border-slate-100 text-sm font-bold text-slate-600">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => abrirModal(evento)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-[#1351b4] hover:bg-blue-50 rounded-sm border border-slate-200 transition-all shadow-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-[#1351b4] hover:bg-blue-50 transition-all"
                           title="Editar Evento"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => confirmarExclusao(evento.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all shadow-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                           title="Excluir Evento"
                         >
                           <Trash2 className="w-4 h-4" />

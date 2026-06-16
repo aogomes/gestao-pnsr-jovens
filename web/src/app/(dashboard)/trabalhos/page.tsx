@@ -12,23 +12,18 @@ import {
   User as UserIcon,
   Users,
   Activity,
-  ArrowRight,
   Briefcase,
   CheckCircle2,
   List,
-  ChevronDownIcon,
   ChevronDown,
   Trophy,
   CalendarDays,
   Banknote,
   Percent,
   Search,
-  Filter,
   FileText,
   Pencil, Save,
   Package,
-  ToggleLeft,
-  ToggleRight,
   ArrowDownCircle,
   MoreVertical,
   Eye,
@@ -152,6 +147,7 @@ export default function TrabalhosPage() {
   const [dadosDespesa, setDadosDespesa] = useState({ valor: '', descricao: '' });
   const [enviandoDespesa, setEnviandoDespesa] = useState(false);
   const [importandoExtrato, setImportandoExtrato] = useState(false);
+  const [mostrarCardsMobile, setMostrarCardsMobile] = useState(false);
 
   const [termoBusca, setTermoBusca] = useState('');
   const [termoBuscaPessoas, setTermoBuscaPessoas] = useState('');
@@ -1048,7 +1044,7 @@ export default function TrabalhosPage() {
   return (
     <div className="h-full flex flex-col space-y-6">
       {/* HEADER DA PÁGINA */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">
             {abaAtiva === 'TRABALHOS' ? 'Gestão de Trabalhos' : 'Relatórios de Gestão'}
@@ -1057,25 +1053,19 @@ export default function TrabalhosPage() {
             {abaAtiva === 'TRABALHOS' ? 'Serviços, Equipes e Rateios Financeiros' : 'Gestão Financeira dos Trabalhos'}
           </p>
         </div>
-      </div>
-
-      {/* SEÇÃO: SELETOR DE EVENTO */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 relative overflow-hidden mb-6">
-        {/* Seletor */}
-        <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <CalendarDays className="w-4 h-4" /> Selecionar Evento
-          </h3>
+        <div className="lg:w-1/3 space-y-4">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" /> Evento
+          </h4>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:text-[#1351b4] transition-colors">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-sm bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:text-[#1351b4] transition-colors">
               <Trophy className="w-4 h-4" />
             </div>
             <select
               value={eventoSelecionadoId}
               onChange={(e) => setEventoSelecionadoId(e.target.value)}
-              className="w-full pl-16 pr-10 py-5 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
+              className="w-full pl-12 pr-10 py-2 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
             >
-              <option value="">Selecione o evento...</option>
               {eventos.map(e => (
                 <option key={e.id} value={e.id}>{e.nome}</option>
               ))}
@@ -1091,8 +1081,8 @@ export default function TrabalhosPage() {
           <button
             key="trabalhos"
             onClick={() => setAbaAtiva('TRABALHOS')}
-            className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'TRABALHOS'
-              ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'TRABALHOS'
+              ? 'bg-[#1351b4] text-white shadow-sm shadow-blue-900/20'
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
           >
@@ -1102,8 +1092,8 @@ export default function TrabalhosPage() {
           <button
             key="relatorios"
             onClick={() => setAbaAtiva('RELATORIOS')}
-            className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'RELATORIOS'
-              ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'RELATORIOS'
+              ? 'bg-[#1351b4] text-white shadow-sm shadow-blue-900/20'
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
           >
@@ -1192,13 +1182,13 @@ export default function TrabalhosPage() {
                 <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
                   <table className="w-full text-sm text-left border-separate border-spacing-0">
                     <thead>
-                      <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden lg:table-cell">Trabalho</th>
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Participante(s)</th>
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 w-24 text-center hidden sm:table-cell">Status</th>
-                        <th className="px-4 md:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
+                      <tr className="bg-[#1351b4]">
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] hidden lg:table-cell">Trabalho</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Data</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Participante(s)</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Valor</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] w-24 text-center hidden sm:table-cell">Status</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="">
@@ -1213,10 +1203,10 @@ export default function TrabalhosPage() {
                         return (
                           <tr key={trabalho.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-4 md:px-6 py-2 hidden lg:table-cell border-b border-slate-100">
-                              <p className="font-black text-[11px] text-slate-600 uppercase tracking-tight">{trabalho.descricao}</p>
+                              <p className="font-bold text-[#1b2b41] text-sm leading-tight uppercase">{trabalho.descricao}</p>
                             </td>
                             <td className="px-4 md:px-6 py-2 border-b border-slate-100">
-                              <div className="flex items-center gap-1.5 text-slate-500">
+                              <div className="flex items-center gap-1.5 text-slate-500" title={trabalho.descricao}>
                                 <Calendar className="w-3.5 h-3.5" />
                                 <span className="text-[11px] font-bold uppercase tracking-widest">
                                   {new Date(trabalho.dataTrabalho).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
@@ -1235,10 +1225,10 @@ export default function TrabalhosPage() {
                                     )}
 
                                     {/* Custom Premium Hover Tooltip inside the icon container */}
-                                    <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/icon:opacity-100 transition-all duration-200 transform translate-x-2 group-hover/icon:translate-x-0 z-50 flex flex-col bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-bold p-3.5 rounded-lg shadow-xl min-w-[180px] max-w-[280px] gap-1.5 border border-slate-700/50">
+                                    <div className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/icon:opacity-100 transition-all duration-200 transform translate-x-2 group-hover/icon:translate-x-0 z-50 flex flex-col bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-bold p-3.5 rounded-sm shadow-xl min-w-[180px] max-w-[280px] gap-1.5 border border-slate-700/50">
                                       <div className="font-extrabold uppercase tracking-widest text-[#a5c6ff] border-b border-slate-700/60 pb-1.5 mb-1 flex items-center gap-1.5">
                                         {trabalho.tipo === 'INDIVIDUAL' ? <UserIcon className="w-3.5 h-3.5 text-[#a5c6ff]" /> : <Users className="w-3.5 h-3.5 text-[#a5c6ff]" />}
-                                        {trabalho.tipo === 'INDIVIDUAL' ? 'Trabalhador' : 'Membros da Equipe'}
+                                        {trabalho.tipo === 'INDIVIDUAL' ? 'Trabalhador' : 'Equipe'}
                                       </div>
                                       <div className="flex flex-col gap-1 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                                         {trabalho.tipo === 'GRUPO' ? (
@@ -1250,12 +1240,12 @@ export default function TrabalhosPage() {
                                               </div>
                                             ))
                                           ) : (
-                                            <span className="text-slate-400 italic">Nenhum membro</span>
+                                            <span className="text-slate-400 italic">Nenhuma pessoa cadastrada</span>
                                           )
                                         ) : (
                                           <div className="uppercase tracking-tight text-slate-200 truncate flex items-center gap-1">
                                             <span className="w-1 h-1 rounded-full bg-[#a5c6ff] shrink-0" />
-                                            {trabalho.pessoa?.nome || 'Não Vinculado'}
+                                            {trabalho.pessoa?.nome || 'Não Vinculada'}
                                           </div>
                                         )}
                                       </div>
@@ -1536,7 +1526,7 @@ export default function TrabalhosPage() {
               <div className="flex justify-center gap-2 sm:gap-8 px-2 sm:px-0 w-full min-w-full sm:min-w-0">
                 <button
                   onClick={() => setSubTabRelatorios('GERAL')}
-                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'GERAL'
+                  className={`px-4 sm:px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'GERAL'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
@@ -1547,7 +1537,7 @@ export default function TrabalhosPage() {
                 </button>
                 <button
                   onClick={() => setSubTabRelatorios('PESSOAS')}
-                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PESSOAS'
+                  className={`px-4 sm:px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PESSOAS'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
@@ -1558,7 +1548,7 @@ export default function TrabalhosPage() {
                 </button>
                 <button
                   onClick={() => setSubTabRelatorios('PENDENCIAS')}
-                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PENDENCIAS'
+                  className={`px-4 sm:px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex flex-1 sm:flex-none items-center justify-center gap-2 ${subTabRelatorios === 'PENDENCIAS'
                     ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                     : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                     }`}
@@ -1590,14 +1580,14 @@ export default function TrabalhosPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-separate border-spacing-0">
                     <thead>
-                      <tr className="bg-slate-50/50 sticky top-0 z-10">
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Trabalho</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Equipe / Proporção</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Participantes</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Financeiro Geral</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Cota p/ Membro</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Status</th>
+                      <tr className="bg-[#1351b4]">
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Trabalho</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Data</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Equipe</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Participantes</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-right">Financeiro</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-right">Cotas</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1761,14 +1751,14 @@ export default function TrabalhosPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-separate border-spacing-0">
                     <thead>
-                      <tr className="bg-slate-50/50 sticky top-0 z-10">
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Nome</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center w-36">Trabalhos</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Histórico de Atividades</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right w-44">Total Créditos</th>
+                      <tr className="bg-[#1351b4]">
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Nome</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] hidden sm:block text-center w-36">Trabalhos</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Histórico</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-right w-44">Créditos</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="bg-white">
                       {novoProdutoInline && (
                         <tr className="bg-blue-50/30">
                           <td className="px-6 py-4">
@@ -1856,7 +1846,7 @@ export default function TrabalhosPage() {
                           return (
                             <tr key={idx} className="hover:bg-slate-50/30 transition-colors align-top">
                               <td className="px-6 py-4 font-black text-slate-700 uppercase tracking-tight">{p.nome}</td>
-                              <td className="px-6 py-4 text-center text-slate-500 font-black">{p.trabalhos.length}</td>
+                              <td className="px-6 py-4 text-center text-slate-500 font-black hidden sm:block">{p.trabalhos.length}</td>
                               <td className="px-6 py-4">
                                 <ul className="space-y-1.5 py-1">
                                   {p.trabalhos.map((trab: any, tIdx: number) => (
@@ -1910,11 +1900,11 @@ export default function TrabalhosPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-separate border-spacing-0">
                     <thead>
-                      <tr className="bg-slate-50/50 sticky top-0 z-10">
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Trabalho</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Lançamentos Pendentes</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor Total Pendente</th>
+                      <tr className="bg-[#1351b4]">
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Trabalho</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Data</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4]">Lançamentos Pendentes</th>
+                        <th className="px-4 py-3 text-xs font-bold text-white border-b border-[#1351b4] text-right">Valor Total Pendente</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -2388,8 +2378,7 @@ export default function TrabalhosPage() {
                   <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">
                     {tabModal === 'RECEBIMENTOS' ? 'Extrato do Trabalho' : tabModal === 'DESPESAS' ? 'Despesas do Trabalho' : 'Histórico de Lotes'}
                   </h3>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase flex items-center gap-2">
-                    {trabalhoSelecionado.descricao}
+                  <p className="text-[10px] text-slate-400 mt-1 uppercase flex items-center gap-2 hidden lg:block">
                     <span className="text-[9px] font-bold text-[#1351b4] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">{trabalhoSelecionado.recebimentos.length} Lançamentos</span>
                     {(trabalhoSelecionado.despesas?.length || 0) > 0 && (
                       <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">{trabalhoSelecionado.despesas.length} Despesas</span>
@@ -2410,78 +2399,89 @@ export default function TrabalhosPage() {
                       ) : (
                         <Banknote className="w-3.5 h-3.5" />
                       )}
-                      Importar
+                      <span className="hidden sm:block">Importar</span>
                     </button>
                   )}
-                  <button onClick={gerarPDFExtrato} className="flex-1 sm:flex-initial px-4 py-2 bg-slate-100 text-slate-600 rounded-sm text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 flex items-center justify-center gap-2 border border-slate-200">
+                  <button onClick={gerarPDFExtrato} className="flex-1 sm:flex-initial px-4 py-2 bg-slate-100 text-slate-600 rounded-sm text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 flex items-center justify-center gap-2 border border-slate-200" title='Relatório'>
                     <FileText className="w-3.5 h-3.5" />
-                    PDF
+                    <span className="hidden sm:block">Relatório</span>
                   </button>
-                  <button onClick={() => processarRateio()} disabled={trabalhoSelecionado.status === 'CONCLUIDO' || enviandoRateio} className="flex-1 sm:flex-initial px-6 py-2 bg-[#1351b4] text-white rounded-sm text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  <button onClick={() => processarRateio()} disabled={trabalhoSelecionado.status === 'CONCLUIDO' || enviandoRateio} className="flex-1 sm:flex-initial px-6 py-2 bg-[#1351b4] text-white rounded-sm text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2" title='Rateio'>
                     {enviandoRateio ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
-                    Rateio
+                    <span className="hidden sm:block">Rateio</span>
                   </button>
-                  <button onClick={() => setModalRecebimentosAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-sm flex items-center justify-center">
-                    <X className="w-4 h-4" />
+                  <button onClick={() => setModalRecebimentosAberto(false)} className="flex-1 sm:flex-initial p-2 text-slate-400 hover:text-slate-900 border border-slate-200 rounded-sm flex items-center justify-center">
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
               {/* Resumo Financeiro de Recebimentos - Panorama Completo */}
               {tabModal === 'RECEBIMENTOS' && (
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Total Recebimentos */}
-                  <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Recebimentos</p>
-                      <p className="text-sm font-black text-[#1351b4] mt-1">
-                        {formatarMoeda(trabalhoSelecionado.recebimentos.reduce((acc: number, r: any) => acc + r.valor, 0))}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-blue-50 rounded-full border border-blue-100 text-[#1351b4]">
-                      <List className="w-4 h-4" />
-                    </div>
+                <div className="flex flex-col">
+                  <div className="sm:hidden px-6 pt-4 pb-2 flex justify-end">
+                    <button
+                      onClick={() => setMostrarCardsMobile(!mostrarCardsMobile)}
+                      className="text-[10px] font-black uppercase tracking-widest text-[#1351b4] flex items-center gap-1.5 bg-[#1351b4]/5 hover:bg-[#1351b4]/10 px-4 py-2 rounded-sm border border-[#1351b4]/10 transition-colors"
+                    >
+                      {mostrarCardsMobile ? 'Resumo Financeiro' : 'Resumo Financeiro'}
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${mostrarCardsMobile ? 'rotate-180' : ''}`} />
+                    </button>
                   </div>
+                  <div className={`px-6 pb-4 pt-2 sm:py-4 ${mostrarCardsMobile ? 'grid' : 'hidden'} sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4`}>
+                    {/* Total Recebimentos */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Recebimentos</p>
+                        <p className="text-sm font-black text-[#1351b4] mt-1">
+                          {formatarMoeda(trabalhoSelecionado.recebimentos.reduce((acc: number, r: any) => acc + r.valor, 0))}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-blue-50 rounded-full border border-blue-100 text-[#1351b4]">
+                        <List className="w-4 h-4" />
+                      </div>
+                    </div>
 
-                  {/* Despesas */}
-                  <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Despesas</p>
-                      <p className="text-sm font-black text-rose-600 mt-1">
-                        {formatarMoeda(trabalhoSelecionado.despesas?.reduce((acc: number, d: any) => acc + d.valor, 0) || 0)}
-                      </p>
+                    {/* Despesas */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Despesas</p>
+                        <p className="text-sm font-black text-rose-600 mt-1">
+                          {formatarMoeda(trabalhoSelecionado.despesas?.reduce((acc: number, d: any) => acc + d.valor, 0) || 0)}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-rose-50 rounded-full border border-rose-100 text-rose-600">
+                        <Trash2 className="w-4 h-4" />
+                      </div>
                     </div>
-                    <div className="p-2 bg-rose-50 rounded-full border border-rose-100 text-rose-600">
-                      <Trash2 className="w-4 h-4" />
-                    </div>
-                  </div>
 
-                  {/* Valor Pendente */}
-                  <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Valor Pendente</p>
-                      <p className="text-sm font-black text-amber-600 mt-1">
-                        {formatarMoeda(trabalhoSelecionado.recebimentos.filter((r: any) => r.status === 'PENDENTE').reduce((acc: number, r: any) => acc + r.valor, 0))}
-                      </p>
+                    {/* Valor Pendente */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Valor Pendente</p>
+                        <p className="text-sm font-black text-amber-600 mt-1">
+                          {formatarMoeda(trabalhoSelecionado.recebimentos.filter((r: any) => r.status === 'PENDENTE').reduce((acc: number, r: any) => acc + r.valor, 0))}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-amber-50 rounded-full border border-amber-100 text-amber-600">
+                        <DollarSign className="w-4 h-4 text-amber-500 animate-pulse" />
+                      </div>
                     </div>
-                    <div className="p-2 bg-amber-50 rounded-full border border-amber-100 text-amber-600">
-                      <DollarSign className="w-4 h-4 text-amber-500 animate-pulse" />
-                    </div>
-                  </div>
 
-                  {/* Valor Líquido */}
-                  <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
-                    <div>
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Valor Líquido</p>
-                      <p className="text-sm font-black text-emerald-600 mt-1">
-                        {formatarMoeda(
-                          trabalhoSelecionado.recebimentos.filter((r: any) => r.status === 'PAGO').reduce((acc: number, r: any) => acc + r.valor, 0) -
-                          (trabalhoSelecionado.despesas?.reduce((acc: number, d: any) => acc + d.valor, 0) || 0)
-                        )}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-emerald-50 rounded-full border border-emerald-100 text-emerald-600">
-                      <CheckCircle2 className="w-4 h-4" />
+                    {/* Valor Líquido */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex items-center justify-between">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Valor Líquido</p>
+                        <p className="text-sm font-black text-emerald-600 mt-1">
+                          {formatarMoeda(
+                            trabalhoSelecionado.recebimentos.filter((r: any) => r.status === 'PAGO').reduce((acc: number, r: any) => acc + r.valor, 0) -
+                            (trabalhoSelecionado.despesas?.reduce((acc: number, d: any) => acc + d.valor, 0) || 0)
+                          )}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-emerald-50 rounded-full border border-emerald-100 text-emerald-600">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2560,7 +2560,7 @@ export default function TrabalhosPage() {
                                     {rateado ? (
                                       <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-sm border border-emerald-100">Rateado</span>
                                     ) : (
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex flex-col sm:flex-row items-end gap-2">
                                         <select
                                           disabled={trabalhoSelecionado.status === 'CONCLUIDO'}
                                           value={r.status}
@@ -2686,10 +2686,10 @@ export default function TrabalhosPage() {
 
       {modalGerenciarProdutosAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-sm shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#1351b4]/10 flex items-center justify-center text-[#1351b4]">
+                <div className="w-10 h-10 rounded-sm bg-[#1351b4]/10 flex items-center justify-center text-[#1351b4]">
                   <Package className="w-5 h-5" />
                 </div>
                 <div>

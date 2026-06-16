@@ -347,13 +347,13 @@ export default function TransacoesPage() {
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center w-24">Tipo</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Descrição Analítica</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Vínculo</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor Líquido</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+              <tr className="bg-[#1351b4]">
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-center w-24">Tipo</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Descrição Analítica</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Vínculo</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Data</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-right">Valor Líquido</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -369,17 +369,17 @@ export default function TransacoesPage() {
               ) : (
                 transacoesFiltradas.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-4 py-1.5">
+                    <td className="px-2 py-1 border-b border-slate-100">
                       <div className="flex justify-center">
                         <div className={`w-8 h-8 rounded-sm flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${obterCorTransacao(tx.tipo)}`}>
                           {obterIconeTransacao(tx.tipo)}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-1.5">
+                    <td className="px-2 py-1 border-b border-slate-100">
                       <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{tx.descricao}</span>
                     </td>
-                    <td className="px-4 py-1.5">
+                    <td className="px-2 py-1 border-b border-slate-100">
                       {tx.pessoa?.nome ? (
                         <div className="flex items-center gap-3 px-3 py-1 bg-slate-50 border border-slate-200 rounded-sm w-fit group-hover:bg-white transition-colors">
                           <UserIcon className="w-4 h-4 text-[#1351b4]" />
@@ -396,20 +396,20 @@ export default function TransacoesPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-1.5">
+                    <td className="px-2 py-1 border-b border-slate-100">
                       <span className="text-slate-500 font-black text-[11px] uppercase">{new Date(tx.data).toLocaleDateString('pt-BR')}</span>
                     </td>
-                    <td className={`px-4 py-1.5 text-right font-black text-sm ${tx.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <td className={`px-2 py-1 border-b border-slate-100 text-right font-black text-sm ${tx.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       <div className="flex items-center justify-end gap-1">
                         <TrendingUp className={`w-4 h-4 ${tx.tipo === 'DESPESA' ? 'rotate-180' : ''}`} />
                         {formatarMoeda(tx.valor)}
                       </div>
                     </td>
-                    <td className="px-4 py-1.5">
+                    <td className="px-2 py-3 border-b border-slate-100">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => confirmarExclusao(tx.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all shadow-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                           title="Excluir Lançamento"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -421,35 +421,35 @@ export default function TransacoesPage() {
               )}
             </tbody>
           </table>
-          </div>
-
-          {/* CONTROLES DE PAGINAÇÃO */}
-          {totalPaginas > 1 && (
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Página {pagina} de {totalPaginas}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPagina(prev => Math.max(1, prev - 1))}
-                  disabled={pagina === 1}
-                  className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setPagina(prev => Math.min(totalPaginas, prev + 1))}
-                  disabled={pagina === totalPaginas}
-                  className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Próxima
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* MODAL DE LANÇAMENTO */}
+        {/* CONTROLES DE PAGINAÇÃO */}
+        {totalPaginas > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Página {pagina} de {totalPaginas}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPagina(prev => Math.max(1, prev - 1))}
+                disabled={pagina === 1}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setPagina(prev => Math.min(totalPaginas, prev + 1))}
+                disabled={pagina === totalPaginas}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL DE LANÇAMENTO */}
       {modalAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -580,8 +580,8 @@ export default function TransacoesPage() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tipo de Vínculo</label>
                 <div className="flex gap-4 p-1 bg-slate-100 rounded-sm">
                   <label className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-sm cursor-pointer transition-all font-black text-[10px] uppercase border ${dadosForm.vinculoTipo === 'PESSOA'
-                      ? 'bg-white text-[#1351b4] border-slate-200 shadow-sm'
-                      : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
+                    ? 'bg-white text-[#1351b4] border-slate-200 shadow-sm'
+                    : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
                     }`}>
                     <input
                       type="radio"
@@ -594,8 +594,8 @@ export default function TransacoesPage() {
                     Pessoa
                   </label>
                   <label className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-sm cursor-pointer transition-all font-black text-[10px] uppercase border ${dadosForm.vinculoTipo === 'CONTA'
-                      ? 'bg-white text-[#1351b4] border-slate-200 shadow-sm'
-                      : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
+                    ? 'bg-white text-[#1351b4] border-slate-200 shadow-sm'
+                    : 'bg-transparent text-slate-400 border-transparent hover:text-slate-600'
                     }`}>
                     <input
                       type="radio"
