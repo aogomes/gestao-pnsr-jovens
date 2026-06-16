@@ -459,23 +459,6 @@ export default function MeuPainelPage() {
 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="p-4 sm:p-8 pb-0">
-                  {/* Detalhamento de saldos por evento */}
-                  {perfil.saldos && perfil.saldos.length > 0 && (
-                    <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-sm">
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Saldos por Evento</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                        {perfil.saldos.map((s: any) => (
-                          <div key={s.eventoId} className="flex justify-between items-center bg-white p-3 border border-slate-100 rounded-sm shadow-sm">
-                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[180px]">{s.nomeEvento}</span>
-                            <span className={`text-[11px] font-black ${s.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                              {formatarMoeda(s.saldo)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
                     {/* Resumo Financeiro */}
                     <div className="p-5 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col">
@@ -495,6 +478,23 @@ export default function MeuPainelPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Detalhamento de saldos por evento */}
+                    {perfil.saldos && perfil.saldos.length > 0 && (
+                      <div className="p-5 bg-slate-50 border border-slate-200 rounded-sm flex flex-col">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Saldos por Evento</h4>
+                        <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-[140px]">
+                          {perfil.saldos.map((s: any) => (
+                            <div key={s.eventoId} className="flex justify-between items-center bg-white p-3 border border-slate-100 rounded-sm shadow-sm">
+                              <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate max-w-[180px]">{s.nomeEvento}</span>
+                              <span className={`text-[11px] font-black ${s.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {formatarMoeda(s.saldo)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -611,12 +611,6 @@ export default function MeuPainelPage() {
                     })
                   )}
                 </div>
-              </div>
-
-              <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-center">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <AlertCircle className="w-3.5 h-3.5" /> Auditoria GF - Transações Confirmadas
-                </p>
               </div>
             </div>
           </div>

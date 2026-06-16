@@ -1043,12 +1043,6 @@ export default function PessoasPage() {
                 </tbody>
               </table>
             </div>
-
-            <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5" /> Auditoria GF - Saldos Consolidados
-              </p>
-            </div>
           </div>
         </div>
       )}
