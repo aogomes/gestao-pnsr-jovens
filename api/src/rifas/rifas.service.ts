@@ -77,18 +77,29 @@ export class RifasService {
       orderBy: { criadoEm: 'desc' }
     });
 
-    // Adicionar contagens por status manualmente (Prisma não suporta counts filtrados dentro do findMany include nativo facilmente)
-    return Promise.all(rifas.map(async (rifa) => {
-      const [livres, reservados, vendidos] = await Promise.all([
-        this.prisma.bilhete.count({ where: { rifaId: rifa.id, status: 'LIVRE' } }),
-        this.prisma.bilhete.count({ where: { rifaId: rifa.id, status: 'RESERVADO' } }),
-        this.prisma.bilhete.count({ where: { rifaId: rifa.id, status: 'VENDIDO' } }),
-      ]);
+    if (rifas.length === 0) return [];
 
-      return {
-        ...rifa,
-        stats: { livres, reservados, vendidos }
-      };
+    const rifaIds = rifas.map(r => r.id);
+    const contagens = await this.prisma.bilhete.groupBy({
+      by: ['rifaId', 'status'],
+      where: { rifaId: { in: rifaIds } },
+      _count: { _all: true }
+    });
+
+    const statsMap: Record<number, { livres: number, reservados: number, vendidos: number }> = {};
+    rifaIds.forEach(id => {
+      statsMap[id] = { livres: 0, reservados: 0, vendidos: 0 };
+    });
+
+    contagens.forEach(c => {
+      if (c.status === 'LIVRE') statsMap[c.rifaId].livres = c._count._all;
+      if (c.status === 'RESERVADO') statsMap[c.rifaId].reservados = c._count._all;
+      if (c.status === 'VENDIDO') statsMap[c.rifaId].vendidos = c._count._all;
+    });
+
+    return rifas.map(rifa => ({
+      ...rifa,
+      stats: statsMap[rifa.id]
     }));
   }
 
