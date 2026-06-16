@@ -37,6 +37,11 @@ export default function TransacoesPage() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
+  // Estados de Paginação
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalTransacoes, setTotalTransacoes] = useState(0);
+
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -53,24 +58,54 @@ export default function TransacoesPage() {
   });
 
   useEffect(() => {
-    buscarDados();
+    buscarFiltros();
   }, []);
 
-  const buscarDados = async () => {
+  useEffect(() => {
+    buscarTransacoes();
+  }, [pagina, filtroTipo, filtroVinculo, filtroPessoaId, filtroContaId, dataInicio, dataFim]);
+
+  const buscarFiltros = async () => {
     try {
-      const [txRes, pessoasRes, contasRes] = await Promise.all([
-        api.get('/transacoes'),
+      const [pessoasRes, contasRes] = await Promise.all([
         api.get('/pessoas'),
         api.get('/contas')
       ]);
-      setTransacoes(txRes.data);
       setPessoas(pessoasRes.data);
       setContas(contasRes.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const buscarTransacoes = async () => {
+    setCarregando(true);
+    try {
+      const params = new URLSearchParams({
+        page: pagina.toString(),
+        limit: '50'
+      });
+      if (filtroTipo !== 'Todos') params.append('tipo', filtroTipo);
+      if (filtroVinculo !== 'TODOS') params.append('vinculo', filtroVinculo);
+      if (filtroPessoaId) params.append('pessoaId', filtroPessoaId);
+      if (filtroContaId) params.append('contaId', filtroContaId);
+      if (dataInicio) params.append('dataInicio', dataInicio);
+      if (dataFim) params.append('dataFim', dataFim);
+
+      const res = await api.get(`/transacoes/paginada?${params.toString()}`);
+      setTransacoes(res.data.data);
+      setTotalPaginas(res.data.totalPages || 1);
+      setTotalTransacoes(res.data.total || 0);
     } catch (err) {
       console.error(err);
     } finally {
       setCarregando(false);
     }
+  };
+
+  const buscarDados = () => {
+    buscarFiltros();
+    buscarTransacoes();
   };
 
   const confirmarEnvio = async (e: React.FormEvent) => {
@@ -125,7 +160,7 @@ export default function TransacoesPage() {
     if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
     try {
       await api.delete(`/transacoes/${id}`);
-      buscarDados();
+      buscarTransacoes();
     } catch (err) {
       alert('Erro ao excluir transação.');
     }
@@ -134,26 +169,7 @@ export default function TransacoesPage() {
   const formatarMoeda = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const transacoesFiltradas = transacoes.filter(tx => {
-    if (filtroTipo === 'Receitas' && tx.tipo !== 'RECEITA') return false;
-    if (filtroTipo === 'Despesas' && tx.tipo !== 'DESPESA') return false;
-
-    if (filtroVinculo === 'PESSOA') {
-      if (!tx.pessoaId) return false;
-      if (filtroPessoaId && tx.pessoaId !== Number(filtroPessoaId)) return false;
-    } else if (filtroVinculo === 'CONTA') {
-      if (!tx.contaId) return false;
-      if (filtroContaId && tx.contaId !== Number(filtroContaId)) return false;
-    } else if (filtroVinculo === 'GERAL' && (tx.pessoaId || tx.contaId)) {
-      return false;
-    }
-
-    const dataTx = tx.data.split('T')[0];
-    if (dataInicio && dataTx < dataInicio) return false;
-    if (dataFim && dataTx > dataFim) return false;
-
-    return true;
-  }).sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  const transacoesFiltradas = transacoes;
 
   const obterIconeTransacao = (tipo: string) => {
     if (tipo === 'RECEITA') return <ArrowUpRight className="w-4 h-4" />;
@@ -193,7 +209,7 @@ export default function TransacoesPage() {
             {['Todos', 'Receitas', 'Despesas'].map(f => (
               <button
                 key={f}
-                onClick={() => setFiltroTipo(f)}
+                onClick={() => { setFiltroTipo(f); setPagina(1); }}
                 className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-sm border whitespace-nowrap ${filtroTipo === f
                   ? 'bg-[#1351b4] text-white border-[#1351b4] shadow-md'
                   : 'bg-white text-slate-400 border-slate-200 hover:border-[#1351b4] hover:text-[#1351b4]'
@@ -209,7 +225,7 @@ export default function TransacoesPage() {
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auditoria Ativa</span>
             </div>
             <div className="flex-1 lg:flex-none flex items-center justify-center px-6 py-2.5 bg-emerald-50 text-emerald-600 rounded-sm text-[10px] font-black border border-emerald-100">
-              {transacoesFiltradas.length} MOVIMENTAÇÕES
+              {totalTransacoes} MOVIMENTAÇÕES
             </div>
           </div>
         </div>
@@ -226,6 +242,7 @@ export default function TransacoesPage() {
                     setFiltroVinculo(e.target.value);
                     setFiltroPessoaId('');
                     setFiltroContaId('');
+                    setPagina(1);
                   }}
                   className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-[#1351b4] text-slate-700 appearance-none cursor-pointer"
                 >
@@ -242,7 +259,7 @@ export default function TransacoesPage() {
                 <div className="relative animate-in slide-in-from-top-2 duration-200">
                   <select
                     value={filtroPessoaId}
-                    onChange={(e) => setFiltroPessoaId(e.target.value)}
+                    onChange={(e) => { setFiltroPessoaId(e.target.value); setPagina(1); }}
                     className="w-full pl-4 pr-10 py-3 bg-white border border-[#1351b4]/30 rounded-sm text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-[#1351b4] text-[#1351b4] appearance-none cursor-pointer shadow-sm font-semibold"
                   >
                     <option value="">Todas as Pessoas</option>
@@ -259,7 +276,7 @@ export default function TransacoesPage() {
                 <div className="relative animate-in slide-in-from-top-2 duration-200">
                   <select
                     value={filtroContaId}
-                    onChange={(e) => setFiltroContaId(e.target.value)}
+                    onChange={(e) => { setFiltroContaId(e.target.value); setPagina(1); }}
                     className="w-full pl-4 pr-10 py-3 bg-white border border-[#1351b4]/30 rounded-sm text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-[#1351b4] text-[#1351b4] appearance-none cursor-pointer shadow-sm font-semibold"
                   >
                     <option value="">Todas as Contas</option>
@@ -279,7 +296,7 @@ export default function TransacoesPage() {
             <input
               type="date"
               value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
+              onChange={(e) => { setDataInicio(e.target.value); setPagina(1); }}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-black focus:outline-none focus:border-[#1351b4] text-slate-700"
             />
           </div>
@@ -291,7 +308,7 @@ export default function TransacoesPage() {
               <input
                 type="date"
                 value={dataFim}
-                onChange={(e) => setDataFim(e.target.value)}
+                onChange={(e) => { setDataFim(e.target.value); setPagina(1); }}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-black focus:outline-none focus:border-[#1351b4] text-slate-700"
               />
               {(filtroVinculo !== 'TODOS' || filtroPessoaId || filtroContaId || dataInicio || dataFim) && (
@@ -302,6 +319,7 @@ export default function TransacoesPage() {
                     setFiltroContaId('');
                     setDataInicio('');
                     setDataFim('');
+                    setPagina(1);
                   }}
                   className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-sm transition-colors text-[9px] font-black uppercase tracking-widest flex items-center justify-center shrink-0 border border-slate-200 animate-in fade-in"
                   title="Limpar Filtros"
@@ -317,7 +335,7 @@ export default function TransacoesPage() {
       {/* CONTAINER PRINCIPAL DA TABELA */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{transacoesFiltradas.length} movimentação{transacoesFiltradas.length !== 1 ? 'ões' : ''}</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{totalTransacoes} movimentação{totalTransacoes !== 1 ? 'ões' : ''}</span>
           <button
             onClick={() => setModalAberto(true)}
             className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
@@ -403,10 +421,35 @@ export default function TransacoesPage() {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
+          </div>
 
-      {/* MODAL DE LANÇAMENTO */}
+          {/* CONTROLES DE PAGINAÇÃO */}
+          {totalPaginas > 1 && (
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Página {pagina} de {totalPaginas}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPagina(prev => Math.max(1, prev - 1))}
+                  disabled={pagina === 1}
+                  className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => setPagina(prev => Math.min(totalPaginas, prev + 1))}
+                  disabled={pagina === totalPaginas}
+                  className="px-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* MODAL DE LANÇAMENTO */}
       {modalAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">

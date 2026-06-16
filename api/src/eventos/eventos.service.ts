@@ -50,5 +50,16 @@ export class EventosService {
   remover(id: number) {
     return this.prisma.evento.delete({ where: { id } });
   }
+
+  async buscarDespesasMembros(eventoId: number) {
+    return this.prisma.transacao.findMany({
+      where: {
+        eventoId,
+        tipo: 'DESPESA',
+        pessoaId: { not: null }
+      },
+      orderBy: { data: 'desc' }
+    });
+  }
 }
 

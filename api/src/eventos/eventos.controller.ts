@@ -31,5 +31,10 @@ export class EventosController {
   remover(@Param('id', ParseIntPipe) id: number) {
     return this.eventosService.remover(id);
   }
+
+  @Get(':id/membros-despesas')
+  buscarDespesasMembros(@Param('id', ParseIntPipe) id: number) {
+    return this.eventosService.buscarDespesasMembros(id);
+  }
 }
 

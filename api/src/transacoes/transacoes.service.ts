@@ -47,6 +47,55 @@ export class TransacoesService {
     });
   }
 
+  async buscarPaginada(query: any) {
+    const { page = '1', limit = '50', tipo, vinculo, pessoaId, contaId, dataInicio, dataFim } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const take = Number(limit);
+
+    const where: any = {};
+
+    if (tipo === 'Receitas') where.tipo = 'RECEITA';
+    if (tipo === 'Despesas') where.tipo = 'DESPESA';
+
+    if (vinculo === 'PESSOA') {
+      where.pessoaId = pessoaId ? Number(pessoaId) : { not: null };
+    } else if (vinculo === 'CONTA') {
+      where.contaId = contaId ? Number(contaId) : { not: null };
+    } else if (vinculo === 'GERAL') {
+      where.pessoaId = null;
+      where.contaId = null;
+    }
+
+    if (dataInicio && dataFim) {
+      const dStart = new Date(dataInicio);
+      dStart.setUTCHours(0, 0, 0, 0);
+      const dEnd = new Date(dataFim);
+      dEnd.setUTCHours(23, 59, 59, 999);
+      where.data = {
+        gte: dStart,
+        lte: dEnd
+      };
+    }
+
+    const [total, data] = await Promise.all([
+      this.prisma.transacao.count({ where }),
+      this.prisma.transacao.findMany({
+        where,
+        skip,
+        take,
+        include: { pessoa: true, conta: true },
+        orderBy: { data: 'desc' }
+      })
+    ]);
+
+    return {
+      data,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / take)
+    };
+  }
+
   async buscarUma(id: number) {
     const transacao = await this.prisma.transacao.findUnique({
       where: { id },

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { TransacoesService } from './transacoes.service';
 import { CreateTransacaoDto } from './dto/create-transacao.dto';
 import { UpdateTransacaoDto } from './dto/update-transacao.dto';
@@ -17,6 +17,11 @@ export class TransacoesController {
   @Get()
   buscarTodas() {
     return this.transacoesService.buscarTodas();
+  }
+
+  @Get('paginada')
+  buscarPaginada(@Query() query: any) {
+    return this.transacoesService.buscarPaginada(query);
   }
 
   @Get(':id')

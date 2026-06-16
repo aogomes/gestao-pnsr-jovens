@@ -99,7 +99,7 @@ export default function PessoasPage() {
         documento: pessoa.documento || '',
         telefone: pessoa.telefone || '',
         paroquiaId: pessoa.paroquiaId || '',
-        dataNascimento: pessoa.dataNascimento || '',
+        dataNascimento: pessoa.dataNascimento ? pessoa.dataNascimento.split('T')[0] : '',
         sexo: pessoa.sexo || '',
         rg: pessoa.rg || '',
         orgaoEmissor: pessoa.orgaoEmissor || '',
@@ -393,7 +393,7 @@ export default function PessoasPage() {
             <div className="px-10 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">
-                  {pessoaEdicao ? 'Atualizar Membro' : 'Novo Membro'}
+                  {pessoaEdicao ? 'Atualizar Dados' : 'Novo Cadastro'}
                 </h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Gestão de Identidade e Saldos</p>
               </div>
