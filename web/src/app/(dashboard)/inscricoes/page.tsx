@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import {
   Plus,
-  UserCheck,
   Search,
   Trash2,
   X,
@@ -23,7 +22,8 @@ import {
   History,
   Wallet,
   MoreVertical,
-  UserMinus
+  UserMinus,
+  Eye
 } from 'lucide-react';
 
 export default function InscricoesPage() {
@@ -54,6 +54,10 @@ export default function InscricoesPage() {
   const [opcaoDesistencia, setOpcaoDesistencia] = useState('SALDO');
   const [targetPessoaId, setTargetPessoaId] = useState('');
   const [salvandoDesistencia, setSalvandoDesistencia] = useState(false);
+
+  // Modal de Visualização
+  const [modalVisualizacaoAberto, setModalVisualizacaoAberto] = useState(false);
+  const [inscricaoParaVisualizar, setInscricaoParaVisualizar] = useState<any>(null);
 
   useEffect(() => {
     buscarDadosIniciais();
@@ -147,6 +151,11 @@ export default function InscricoesPage() {
     setModalPagamentoAberto(true);
   };
 
+  const abrirModalVisualizacao = (inscricao: any) => {
+    setInscricaoParaVisualizar(inscricao);
+    setModalVisualizacaoAberto(true);
+  };
+
   const confirmarDesistencia = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inscricaoParaDesistencia) return;
@@ -224,6 +233,17 @@ export default function InscricoesPage() {
 
   const saldoEvento = totalReceitas - totalDespesas;
 
+  // Stats Inscrições
+  const totalInscritos = inscricoes.length;
+  const inscritosConfirmados = inscricoes.filter(i => i.status === 'CONFIRMADO').length;
+  // const inscritosPendentes = inscricoes.filter(i => i.status === 'PENDENTE').length;
+  const somaPagosConfirmados = inscricoes
+    .filter(i => i.status === 'CONFIRMADO')
+    .reduce((acc, insc) => {
+      const pago = insc.pagamentos?.reduce((sum: number, p: any) => sum + p.valor, 0) || 0;
+      return acc + pago;
+    }, 0);
+
   if (carregando) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -241,102 +261,52 @@ export default function InscricoesPage() {
           <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">Gestão de Inscrições</h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Controle de participantes por evento</p>
         </div>
-      </div>
-
-      {/* SEÇÃO 1: SELETOR E RESUMO DO EVENTO (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 relative overflow-hidden">
-
-
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-8">
-
-          {/* Seletor */}
-          <div className="lg:w-1/3 space-y-4">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <CalendarDays className="w-4 h-4" /> Selecionar Evento Ativo
-            </h3>
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:text-[#1351b4] transition-colors">
-                <Trophy className="w-4 h-4" />
-              </div>
-              <select
-                value={eventoSelecionadoId}
-                onChange={(e) => setEventoSelecionadoId(e.target.value)}
-                className="w-full pl-12 pr-10 py-2 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
-              >
-                {eventos.map(e => (
-                  <option key={e.id} value={e.id}>{e.nome}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <div className="lg:w-1/3 space-y-4">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" /> Evento
+          </h4>
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:text-[#1351b4] transition-colors">
+              <Trophy className="w-4 h-4" />
             </div>
+            <select
+              value={eventoSelecionadoId}
+              onChange={(e) => setEventoSelecionadoId(e.target.value)}
+              className="w-full pl-12 pr-10 py-2 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer uppercase tracking-tight"
+            >
+              {eventos.map(e => (
+                <option key={e.id} value={e.id}>{e.nome}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
-
-          {/* Divisor Vertical */}
-          <div className="hidden lg:block w-px h-16 bg-slate-100" />
-
-          {/* Cards de Info Rápida */}
-          <div className="hidden md:grid flex-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-50/50 p-6 rounded-sm border border-slate-100 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-sm bg-white border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
-                <Users className="w-7 h-7" />
-              </div>
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Total de Inscritos</span>
-                <span className="text-2xl font-black text-slate-700">{inscricoes.length}</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-50/50 p-6 rounded-sm border border-slate-100 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-sm bg-white border border-slate-200 flex items-center justify-center text-amber-500 shadow-sm">
-                <Clock className="w-7 h-7" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Prazo e Disponibilidade</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-black text-slate-700 uppercase tracking-tight">
-                    {formatarData(eventoSelecionado?.limiteInscricao)}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${eventoAbertoInscricao ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
-                    }`}>
-                    {eventoAbertoInscricao ? 'Aberto' : 'Fechado'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-50/50 p-6 rounded-sm border border-slate-100 flex items-center gap-6">
-              <div className={`w-14 h-14 rounded-sm bg-white border border-slate-200 flex items-center justify-center shadow-sm ${saldoEvento > 0 ? 'text-emerald-500' : saldoEvento < 0 ? 'text-rose-500' : 'text-slate-400'
-                }`}>
-                <Wallet className="w-7 h-7" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Saldo das Inscrições</span>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-xl font-black ${saldoEvento > 0 ? 'text-emerald-600' : saldoEvento < 0 ? 'text-rose-600' : 'text-slate-700'
-                    }`}>
-                    {formatarMoeda(saldoEvento)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
 
       {/* SEÇÃO 2: LISTA DE INSCRITOS (HORIZONTAL / FULL WIDTH) */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col">
-        <div className="px-4 md:px-6 py-3 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-slate-50/30 gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-sm bg-white border border-slate-200 flex flex-shrink-0 items-center justify-center text-[#1351b4] shadow-sm">
-              <UserCheck className="w-5 h-5" />
+        <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between bg-slate-50/30 gap-4">
+          {/* Stats Badges */}
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="flex flex-col items-center justify-center px-3 py-1 bg-blue-50 border border-blue-100 rounded-sm" title="Total de Inscritos">
+              <span className="text-[10px] font-black text-blue-600 tracking-widest">Inscritos</span>
+              <span className="text-xs font-black text-blue-800">{totalInscritos}</span>
             </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">Lista de Participantes</h2>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{inscricoes.length} inscrito{inscricoes.length !== 1 ? 's' : ''}</p>
+            <div className="flex flex-col items-center justify-center px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-sm" title="Inscrições Confirmadas">
+              <span className="text-[10px] font-black text-emerald-600 tracking-widest">Confirmados</span>
+              <span className="text-xs font-black text-emerald-800">{inscritosConfirmados}</span>
+            </div>
+            {/* <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-sm" title="Inscrições Pendentes">
+              <span className="text-[9px] font-black text-amber-600 tracking-widest">Pendente: </span>
+              <span className="text-xs font-black text-amber-800">{inscritosPendentes}</span>
+            </div> */}
+            <div className="flex flex-col items-center justify-center px-3 py-1 bg-amber-50 border border-amber-100 rounded-sm" title="Soma dos valores pagos pelas inscrições confirmadas">
+              <span className="text-[10px] font-black text-[#1351b4] tracking-widest mb-0.5">Pagamentos</span>
+              <span className="text-sm font-black text-[#1351b4] leading-none">{formatarMoeda(somaPagosConfirmados)}</span>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -344,16 +314,17 @@ export default function InscricoesPage() {
                 placeholder="Buscar por nome..."
                 value={termoBusca}
                 onChange={(e) => setTermoBusca(e.target.value)}
-                className="pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full md:w-64 shadow-sm"
+                className="pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full md:w-70 shadow-sm"
               />
             </div>
             <button
               disabled={!eventoAbertoInscricao}
               onClick={abrirModal}
+              title='Nova Inscrição'
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Nova Inscrição
+              Inscrição
             </button>
           </div>
         </div>
@@ -361,13 +332,14 @@ export default function InscricoesPage() {
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[400px]">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Pessoa</th>
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 hidden md:table-cell">Documento de Identidade</th>
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Créditos</th>
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor Pago</th>
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center hidden sm:table-cell">Status</th>
-                <th className="px-2 md:px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
+              <tr className="bg-[#1351b4]">
+                <th className="px-4 py-4 text-xs font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Código</th>
+                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4]">Nome Completo</th>
+                {/* <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] hidden md:table-cell text-center">Grupo</th> */}
+                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
+                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
+                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-white border-b border-[#1351b4] text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="bg-white">
@@ -412,45 +384,38 @@ export default function InscricoesPage() {
                     const saldo = inscricao.pessoa.saldo || 0;
                     const totalPagoCru = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
                     const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
-                    const valorEvento = eventoSelecionado?.valor || 0;
 
                     return (
-                      <tr key={inscricao.id} className="hover:bg-[#1351b4]/[0.02] transition-all duration-500 ease-in-out group">
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                              {inscricao.pessoa.id.toString().padStart(3, '0')}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{inscricao.pessoa.nome}</span>
-                              <span className="text-[9px] text-slate-400 font-bold">{inscricao.pessoa.email || 'SEM E-MAIL CADASTRADO'}</span>
-                            </div>
+                      <tr key={inscricao.id} className="hover:bg-slate-50 transition-all duration-200 bg-white group">
+                        <td className="px-2 py-1 border-b border-slate-100">
+                          <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
+                            {inscricao.pessoa.id.toString().padStart(3, '0')}
                           </div>
                         </td>
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 hidden md:table-cell">
-                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black tracking-widest border border-slate-200">
-                            {inscricao.pessoa.documento || 'NÃO INFORMADO'}
+                        <td className="px-4 py-2 border-b border-slate-100">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#1b2b41] text-sm leading-tight">{inscricao.pessoa.nome}</span>
+                            <span className="text-xs text-slate-400 mt-0.5">{inscricao.pessoa.email || 'sem-email@informado.com'}</span>
+                          </div>
+                        </td>
+                        {/* <td className="px-4 py-2 border-b border-slate-100 hidden md:table-cell text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500 text-white shadow-sm">
+                            {inscricao.pessoa.comunidade || 'Grupo 20 - N.Sra. Rosário'}
+                          </span>
+                        </td> */}
+
+                        <td className="px-4 py-2 border-b border-slate-100 text-right hidden sm:table-cell">
+                          <span className={`text-sm font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                            {formatarMoeda(saldo)}
                           </span>
                         </td>
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-right">
-                          <div className="flex flex-col items-end">
-
-                            <span className={`text-[11px] font-black ${saldo > 0 ? 'text-[#1351b4]' : 'text-rose-500'}`}>
-                              {formatarMoeda(saldo)}
-                            </span>
-
-                          </div>
+                        <td className="px-4 py-2 border-b border-slate-100 text-right">
+                          <span className={`text-sm font-bold ${totalPago > 0 ? 'text-emerald-600' : totalPago < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                            {formatarMoeda(totalPago)}
+                          </span>
                         </td>
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-right">
-                          <div className="flex flex-col items-end">
-                            {totalPago !== 0 && (
-                              <span className={`text-[11px] font-black ${totalPago >= valorEvento ? 'text-emerald-600' : 'text-slate-700'}`}>
-                                {formatarMoeda(totalPago)}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50 text-center hidden sm:table-cell">
+
+                        <td className="px-4 py-2 border-b border-slate-100 text-center hidden sm:table-cell">
                           <select
                             value={inscricao.status}
                             onChange={(e) => {
@@ -471,10 +436,10 @@ export default function InscricoesPage() {
                               }
                               atualizarStatus(inscricao.id, novoStatus);
                             }}
-                            className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest border shadow-sm outline-none cursor-pointer ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                              inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                inscricao.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                  'bg-slate-50 text-slate-400 border-slate-200'
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                              inscricao.status === 'EM_ANALISE' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                inscricao.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                  'bg-white text-slate-600 border-slate-200'
                               }`}
                           >
                             <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
@@ -483,8 +448,9 @@ export default function InscricoesPage() {
                             <option value="CANCELADO" className="text-rose-600 bg-white">Cancelado</option>
                           </select>
                         </td>
-                        <td className="px-3 md:px-4 py-2 border-b border-slate-100/50">
-                          <div className="relative flex items-center justify-center">
+
+                        <td className="px-4 py-4 border-b border-slate-100">
+                          <div className="relative flex items-center justify-end">
                             {/* Mobile 3-dots */}
                             <div className="sm:hidden">
                               <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
@@ -526,15 +492,7 @@ export default function InscricoesPage() {
                             </div>
 
                             {/* Desktop buttons */}
-                            <div className="hidden sm:flex items-center justify-center gap-2">
-                              {/* Botão Pagamentos */}
-                              <button
-                                onClick={() => abrirModalPagamento(inscricao)}
-                                className="w-7 h-7 flex items-center justify-center bg-blue-50 text-[#1351b4] hover:bg-blue-100 rounded-sm border border-blue-100 transition-all shadow-sm"
-                                title="Gestão de Pagamentos"
-                              >
-                                <DollarSign className="w-5 h-5" />
-                              </button>
+                            <div className="hidden sm:flex items-center justify-center gap-0.5">
 
                               {/* Botão Desistência */}
                               {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
@@ -543,16 +501,35 @@ export default function InscricoesPage() {
                                     setInscricaoParaDesistencia(inscricao);
                                     setModalDesistenciaAberto(true);
                                   }}
-                                  className="w-7 h-7 flex items-center justify-center bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-sm border border-rose-100 transition-all shadow-sm"
+                                  className="w-7 h-7 flex items-center justify-center bg-white text-amber-500 hover:bg-amber-50 transition-all"
                                   title="Registrar Desistência"
                                 >
                                   <UserMinus className="w-4 h-4" />
                                 </button>
                               )}
 
+                              {/* Botão Visualizar */}
+                              <button
+                                onClick={() => abrirModalVisualizacao(inscricao)}
+                                className="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-[#1b2b41] transition-all"
+                                title="Visualizar Detalhes"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+
+                              {/* Botão Pagamentos */}
+                              <button
+                                onClick={() => abrirModalPagamento(inscricao)}
+                                className="w-7 h-7 flex items-center justify-center bg-white text-emerald-600 hover:bg-emerald-50 transition-all"
+                                title="Gestão de Pagamentos"
+                              >
+                                <DollarSign className="w-4 h-4" />
+                              </button>
+
+                              {/* Botão Remover */}
                               <button
                                 onClick={() => confirmarExclusao(inscricao.id)}
-                                className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all"
+                                className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                                 title="Remover Registro"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -637,7 +614,7 @@ export default function InscricoesPage() {
       {modalPagamentoAberto && inscricaoParaPagar && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-sm bg-[#1351b4] text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
                   <DollarSign className="w-6 h-6" />
@@ -652,8 +629,8 @@ export default function InscricoesPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
-              <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+              <div className="space-y-2">
                 <div>
                   <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <History className="w-4 h-4 text-[#1351b4]" /> Histórico de Pagamentos
@@ -721,47 +698,35 @@ export default function InscricoesPage() {
                     <div className="flex flex-col gap-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="relative group">
-                          <Filter className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-                          <select
-                            value={metodoPagamento}
-                            onChange={(e) => setMetodoPagamento(e.target.value)}
-                            className="w-full pl-14 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
-                          >
-                            <option value="SALDO">USAR CRÉDITOS / SALDO</option>
-                          </select>
-                          <ChevronDown className="w-4 h-4 absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          <div className="p-4 bg-blue-50 border border-blue-100 rounded-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Wallet className="w-5 h-5 text-[#1351b4]" />
+                              <div>
+                                <span className="text-[9px] text-[#1351b4] font-black uppercase tracking-widest block">Saldo em Conta</span>
+                                <span className="text-sm font-black text-[#1351b4]">{formatarMoeda(inscricaoParaPagar.pessoa.saldo)}</span>
+                              </div>
+                            </div>
+                            {Math.round(Number(valorPagamento.replace(',', '.')) * 100) > Math.round(inscricaoParaPagar.pessoa.saldo * 100) && (
+                              <div className="flex items-center gap-2 text-rose-500">
+                                <AlertCircle className="w-5 h-5" />
+                                <span className="text-[10px] font-black uppercase">Saldo Insuficiente</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-
                         <div className="relative group">
-                          <DollarSign className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-                          <input
-                            type="text"
-                            placeholder="0,00"
-                            value={valorPagamento}
-                            onChange={(e) => setValorPagamento(e.target.value)}
-                            className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
-                          />
+                          <div className="p-2 bg-blue-50 border border-blue-100 rounded-sm flex items-center justify-between">
+                            <DollarSign className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                            <input
+                              type="text"
+                              placeholder="0,00"
+                              value={valorPagamento}
+                              onChange={(e) => setValorPagamento(e.target.value)}
+                              className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                            />
+                          </div>
                         </div>
                       </div>
-
-                      {metodoPagamento === 'SALDO' && (
-                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-sm flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Wallet className="w-5 h-5 text-[#1351b4]" />
-                            <div>
-                              <span className="text-[9px] text-[#1351b4] font-black uppercase tracking-widest block">Saldo em Conta</span>
-                              <span className="text-sm font-black text-[#1351b4]">{formatarMoeda(inscricaoParaPagar.pessoa.saldo)}</span>
-                            </div>
-                          </div>
-                          {Math.round(Number(valorPagamento.replace(',', '.')) * 100) > Math.round(inscricaoParaPagar.pessoa.saldo * 100) && (
-                            <div className="flex items-center gap-2 text-rose-500">
-                              <AlertCircle className="w-4 h-4" />
-                              <span className="text-[10px] font-black uppercase">Saldo Insuficiente</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
                       <button
                         type="submit"
                         disabled={salvandoPagamento || (metodoPagamento === 'SALDO' && Math.round(Number(valorPagamento.replace(',', '.')) * 100) > Math.round(inscricaoParaPagar.pessoa.saldo * 100))}
@@ -840,6 +805,153 @@ export default function InscricoesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Visualização */}
+      {modalVisualizacaoAberto && inscricaoParaVisualizar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-2xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-lg font-black text-[#1b2b41] uppercase tracking-tight">Visualizar Dados Cadastrais</h2>
+                {/* <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Código: {inscricaoParaVisualizar.pessoa.id.toString().padStart(3, '0')}
+                </p> */}
+              </div>
+              <button onClick={() => setModalVisualizacaoAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              {/* Header Profile */}
+              <div className="flex items-center gap-4 border-b border-slate-100 pb-6">
+                <div className="w-16 h-16 rounded bg-slate-100 flex items-center justify-center text-[#1351b4] text-xl font-black shrink-0">
+                  {inscricaoParaVisualizar.pessoa.id.toString().padStart(3, '0')}
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg leading-tight">{inscricaoParaVisualizar.pessoa.nome}</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">{inscricaoParaVisualizar.pessoa.email || 'Sem e-mail'}</p>
+                </div>
+              </div>
+
+              {/* Seção: Dados Pessoais */}
+              <div>
+                <h4 className="text-[11px] font-black text-[#1351b4] uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4" /> Dados Pessoais
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-4 rounded border border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Documento (CPF)</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.documento || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">RG / Órgão Emissor</span>
+                    <span className="text-sm font-bold text-slate-700">
+                      {inscricaoParaVisualizar.pessoa.rg || 'Não informado'} {inscricaoParaVisualizar.pessoa.orgaoEmissor ? `/ ${inscricaoParaVisualizar.pessoa.orgaoEmissor}` : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Data de Nascimento</span>
+                    <span className="text-sm font-bold text-slate-700">
+                      {inscricaoParaVisualizar.pessoa.dataNascimento ? formatarData(inscricaoParaVisualizar.pessoa.dataNascimento) : 'Não informada'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Sexo</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.sexo || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Telefone</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.telefone || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Grupo / Comunidade</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.comunidade || 'Sem Grupo Vinculado'}</span>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Perfis de Atuação</span>
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {inscricaoParaVisualizar.pessoa.perfis && inscricaoParaVisualizar.pessoa.perfis.length > 0 ? (
+                        inscricaoParaVisualizar.pessoa.perfis.map((perfil: string) => (
+                          <span key={perfil} className="px-2.5 py-1 bg-[#1351b4]/5 text-[#1351b4] rounded-sm text-[9px] font-black uppercase tracking-widest border border-[#1351b4]/10">
+                            {perfil}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm font-bold text-slate-500 italic">Nenhum perfil vinculado</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção: Logística e Viagem */}
+              <div>
+                <h4 className="text-[11px] font-black text-[#1351b4] uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4" /> Informações de Viagem e Logística
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-4 rounded border border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Passaporte</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.passaporte || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Emissão / Validade Passaporte</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.passaporteEmissaoValidade || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vai com Cônjuge?</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.vaiComConjuge ? 'Sim' : 'Não'}</span>
+                  </div>
+                  {inscricaoParaVisualizar.pessoa.vaiComConjuge && (
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nome do Cônjuge</span>
+                      <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.nomeConjuge || 'Não informado'}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tamanho da Camiseta</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.camiseta || 'Não informado'}</span>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Necessidades Médicas / Alergias</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.necessidadesMedicas || 'Nenhuma informada'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção: Responsáveis (Apenas se preenchido) */}
+              {(inscricaoParaVisualizar.pessoa.responsavelLegal || inscricaoParaVisualizar.pessoa.emailResponsavel || inscricaoParaVisualizar.pessoa.emailResponsavel2) && (
+                <div>
+                  <h4 className="text-[11px] font-black text-[#1351b4] uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4" /> Dados de Responsáveis
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-4 rounded border border-slate-100">
+                    <div className="col-span-1 sm:col-span-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Responsável Legal</span>
+                      <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.responsavelLegal || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">E-mail do Responsável</span>
+                      <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.emailResponsavel || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">E-mail do Responsável (Opcional)</span>
+                      <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.emailResponsavel2 || 'Não informado'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+            <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button onClick={() => setModalVisualizacaoAberto(false)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-sm text-xs font-bold hover:bg-slate-50 transition-colors">
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

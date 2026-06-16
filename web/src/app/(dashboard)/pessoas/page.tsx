@@ -256,12 +256,13 @@ export default function PessoasPage() {
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Nome</th>
-                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Paróquia</th>
-                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">CPF / Doc</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Saldo Atual</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+              <tr className="bg-[#1351b4]">
+                <th className="px-2 py-1 text-xs font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Código</th>
+                <th className="px-6 py-4 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Nome</th>
+                {/* <th className="hidden md:table-cell px-6 py-4 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Paróquia</th> */}
+                <th className="hidden md:table-cell px-6 py-4 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Documento</th>
+                <th className="px-6 py-4 text-xs font-black tracking-widest text-white border-b border-[#1351b4] text-right">Saldo</th>
+                <th className="px-6 py-4 text-xs font-black tracking-widest text-white border-b border-[#1351b4] text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -277,59 +278,66 @@ export default function PessoasPage() {
               ) : (
                 pessoasFiltradas.map((pessoa) => (
                   <tr key={pessoa.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-1 border-b border-slate-100">
+                      <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
+                        {pessoa.id.toString().padStart(3, '0')}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 border-b border-slate-100">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                        {/* <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
                           {pessoa.id.toString().padStart(3, '0')}
-                        </div>
+                        </div> */}
                         <div className="flex flex-col">
                           <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{pessoa.nome}</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{pessoa.email || 'SEM E-MAIL CADASTRADO'}</span>
+                          <span className="text-[12px] text-slate-400 font-bold">{pessoa.email || 'E-mail não cadastrado'}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="hidden md:table-cell px-3 py-2">
+                    {/* <td className="border-b border-slate-100 hidden md:table-cell px-3 py-2">
                       <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg w-fit">
                         <Church className="w-3.5 h-3.5 text-[#1351b4]" />
-                        <span className="text-slate-500 font-black text-[9px] uppercase tracking-tighter">
+                        <span className="text-slate-500 font-black text-[9px] tracking-tighter">
                           {pessoa.paroquia?.nome || '-'}
                         </span>
                       </div>
-                    </td>
-                    <td className="hidden md:table-cell px-3 py-2">
+                    </td> */}
+                    <td className="border-b border-slate-100 hidden md:table-cell px-3 py-2">
                       <div className="flex flex-col">
                         <span className="text-slate-500 font-mono text-[11px] font-bold tracking-widest">{pessoa.documento || '---.---.--- --'}</span>
-                        <span className="text-[9px] text-slate-300 font-bold uppercase mt-1">{pessoa.telefone || 'SEM TELEFONE'}</span>
+                        <span className="text-[12px] text-slate-600 font-bold mt-1">{pessoa.telefone || 'Telefone não cadastrado'}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 border-b border-slate-100">
                       <div className={`flex flex-col ${pessoa.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className={`w-3.5 h-3.5 ${pessoa.saldo < 0 ? 'rotate-180' : ''}`} />
-                          <span className="font-black text-xs">{formatarMoeda(pessoa.saldo)}</span>
+                        <div className="flex items-center justify-end gap-1">
+                          {/* <TrendingUp className={`w-3.5 h-3.5 ${pessoa.saldo < 0 ? 'rotate-180' : ''}`} /> */}
+                          <span className={`text-xs font-bold ${pessoa.saldo > 0 ? 'text-emerald-600' : pessoa.saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                            {formatarMoeda(pessoa.saldo)}
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 relative">
+                    <td className="border-b border-slate-100 px-3 py-2 relative">
                       {/* Desktop Actions */}
-                      <div className="hidden md:flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => abrirModalExtrato(pessoa)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-sm border border-slate-200 transition-all shadow-sm"
-                          title="Visualizar Extrato Detalhado"
-                        >
-                          <ArrowRightLeft className="w-4 h-4" />
-                        </button>
+                      <div className="hidden md:flex items-center justify-end gap-2">
                         <button
                           onClick={() => abrirModal(pessoa)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-[#1351b4] hover:bg-blue-50 rounded-sm border border-slate-200 transition-all shadow-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-white text-amber-500 hover:bg-amber-50 transition-all"
                           title="Editar Registro"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => abrirModalExtrato(pessoa)}
+                          className="w-7 h-7 flex items-center justify-center bg-white text-emerald-600 hover:bg-emerald-50 transition-all"
+                          title="Visualizar Extrato Detalhado"
+                        >
+                          <ArrowRightLeft className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => confirmarExclusao(pessoa.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all shadow-sm"
+                          className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                           title="Excluir Registro"
                         >
                           <Trash2 className="w-4 h-4" />
