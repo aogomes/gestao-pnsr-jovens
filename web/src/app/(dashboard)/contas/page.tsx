@@ -19,7 +19,8 @@ import {
   ArrowRightLeft,
   ArrowUpCircle,
   ArrowDownCircle,
-  RefreshCw
+  RefreshCw,
+  MoreVertical
 } from 'lucide-react';
 
 const loadPdfJs = (): Promise<any> => {
@@ -67,6 +68,7 @@ export default function ContasPage() {
     historico: -1,
   });
   const [termoBusca, setTermoBusca] = useState('');
+  const [menuAbertoId, setMenuAbertoId] = useState<string | null>(null);
 
   // Estados Paróquias
   const [paroquias, setParoquias] = useState<any[]>([]);
@@ -713,43 +715,41 @@ export default function ContasPage() {
         </div>
       </div>
 
-      {/* Barra de Busca */}
-      {abaAtiva !== 'importar' && (
-        <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 flex flex-col md:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-            <input
-              type="text"
-              placeholder={`Localizar por ${abaAtiva === 'contas' ? 'nome da conta ou paróquia' : 'nome ou cidade'}...`}
-              value={termoBusca}
-              onChange={(e) => setTermoBusca(e.target.value)}
-              className="w-full pl-12 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all text-slate-700 placeholder:text-slate-300"
-            />
-          </div>
-        </div>
-      )}
+
 
       {/* Conteúdo - Tabela de Contas */}
       {abaAtiva === 'contas' && (
-        <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{contasFiltradas.length} conta{contasFiltradas.length !== 1 ? 's' : ''} encontrada{contasFiltradas.length !== 1 ? 's' : ''}</span>
-            <button
-              onClick={() => abrirModalConta()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Nova Conta
-            </button>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar conta ou paróquia..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                />
+              </div>
+              <button
+                onClick={() => abrirModalConta()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                Nova Conta
+              </button>
+            </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
             <table className="w-full text-sm text-left">
               <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Identificação</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Paróquia Vinculada</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Saldo Atual</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Ações</th>
+                <tr className="bg-[#1351b4]">
+                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Identificação</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia Vinculada</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Saldo Atual</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -760,36 +760,59 @@ export default function ContasPage() {
                 ) : (
                   contasFiltradas.map((conta) => (
                     <tr key={conta.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="px-3 py-2">
+                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                            <Building2 className="w-5 h-5" />
+                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                            <Building2 className="w-4 h-4" />
                           </div>
-                          <span className="font-black text-slate-700 text-xs uppercase">{conta.nome}</span>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{conta.nome}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2 text-slate-500 font-bold text-[11px]">
+                      <td className="px-2 py-1 border-b border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
                           <Church className="w-3.5 h-3.5" />
                           {conta.paroquia?.nome || '-'}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <span className="font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg text-xs">
+                      <td className="px-2 py-1 border-b border-slate-100">
+                        <span className="font-bold text-[12px] text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.saldo)}
                         </span>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => abrirModalExtrato(conta)} title="Ver Movimentações" className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-600 rounded-sm transition-all shadow-sm">
-                            <ArrowRightLeft className="w-4 h-4" />
+                      <td className="px-2 py-1 border-b border-slate-100 text-center relative">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => setMenuAbertoId(menuAbertoId === `conta_${conta.id}` ? null : `conta_${conta.id}`)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5" />
                           </button>
-                          <button onClick={() => abrirModalConta(conta)} title="Editar" className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-[#1351b4] hover:border-[#1351b4] rounded-sm transition-all shadow-sm">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => excluirConta(conta.id)} title="Excluir" className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-500 rounded-sm transition-all shadow-sm">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          {menuAbertoId === `conta_${conta.id}` && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-48">
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModalExtrato(conta); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-sm text-left transition-colors"
+                                >
+                                  <ArrowRightLeft className="w-3.5 h-3.5" /> Ver Movimentações
+                                </button>
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModalConta(conta); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" /> Editar
+                                </button>
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); excluirConta(conta.id); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -803,25 +826,37 @@ export default function ContasPage() {
 
       {/* Conteúdo - Tabela de Paróquias */}
       {abaAtiva === 'paroquias' && (
-        <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{paroquiasFiltradas.length} paróquia{paroquiasFiltradas.length !== 1 ? 's' : ''} encontrada{paroquiasFiltradas.length !== 1 ? 's' : ''}</span>
-            <button
-              onClick={() => abrirModalParoquia()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Nova Paróquia
-            </button>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou cidade..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                />
+              </div>
+              <button
+                onClick={() => abrirModalParoquia()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                Nova Paróquia
+              </button>
+            </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
             <table className="w-full text-sm text-left">
               <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Paróquia</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Responsável</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Localização</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
+                <tr className="bg-[#1351b4]">
+                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Responsável</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Localização</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -832,34 +867,54 @@ export default function ContasPage() {
                 ) : (
                   paroquiasFiltradas.map((paroquia) => (
                     <tr key={paroquia.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-3 py-2">
+                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                            <Church className="w-5 h-5" />
+                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                            <Church className="w-4 h-4" />
                           </div>
-                          <span className="font-black text-slate-700 text-xs uppercase">{paroquia.nome}</span>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{paroquia.nome}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-slate-500 font-bold text-[11px]">
+                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
                         <div className="flex items-center gap-2 uppercase">
                           <UserIcon className="w-3.5 h-3.5" />
                           {paroquia.paroco}
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-slate-500 font-bold text-[11px]">
+                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
                         <div className="flex items-center gap-2 uppercase">
                           <MapPin className="w-3.5 h-3.5" />
                           {paroquia.cidade}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => abrirModalParoquia(paroquia)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-[#1351b4] hover:border-[#1351b4] rounded-sm transition-all shadow-sm">
-                            <Pencil className="w-4 h-4" />
+                      <td className="px-2 py-1 border-b border-slate-100 text-center relative">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => setMenuAbertoId(menuAbertoId === `paroquia_${paroquia.id}` ? null : `paroquia_${paroquia.id}`)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5" />
                           </button>
-                          <button onClick={() => excluirParoquia(paroquia.id)} className="w-7 h-7 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-500 rounded-sm transition-all shadow-sm">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          {menuAbertoId === `paroquia_${paroquia.id}` && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModalParoquia(paroquia); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" /> Editar
+                                </button>
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); excluirParoquia(paroquia.id); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

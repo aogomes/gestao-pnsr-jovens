@@ -17,13 +17,15 @@ import {
   LayoutDashboard,
   ArrowRight,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  MoreVertical
 } from 'lucide-react';
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [termoBusca, setTermoBusca] = useState('');
+  const [menuAbertoId, setMenuAbertoId] = useState<number | null>(null);
 
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
@@ -114,43 +116,40 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* SEÇÃO DE BUSCA */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="relative w-full max-w-2xl group">
-          <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-          <input
-            type="text"
-            placeholder="Buscar por nome ou login..."
-            value={termoBusca}
-            onChange={(e) => setTermoBusca(e.target.value)}
-            className="w-full pl-14 pr-6 py-5 bg-slate-50/50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-bold text-slate-700 placeholder:text-slate-300"
-          />
-        </div>
-        <div className="px-6 py-3 bg-[#1351b4]/10 text-[#1351b4] rounded-sm text-[10px] font-black border border-[#1351b4]/10 uppercase">
-          {usuariosFiltrados.length} CONTAS ATIVAS
-        </div>
-      </div>
+
 
       {/* CONTAINER PRINCIPAL DA TABELA */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{usuariosFiltrados.length} usuário{usuariosFiltrados.length !== 1 ? 's' : ''} encontrado{usuariosFiltrados.length !== 1 ? 's' : ''}</span>
-          <button
-            onClick={() => abrirModal()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-          >
-            <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-            Novo Usuário
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por nome ou login..."
+                value={termoBusca}
+                onChange={(e) => setTermoBusca(e.target.value)}
+                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+              />
+            </div>
+            <button
+              onClick={() => abrirModal()}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+              Novo Usuário
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Identificação</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Nível de Acesso</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Cadastro em</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Gestão</th>
+              <tr className="bg-[#1351b4] sticky top-0 z-10 backdrop-blur-md">
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Identificação</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nível de Acesso</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Cadastro em</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -166,18 +165,18 @@ export default function UsuariosPage() {
               ) : (
                 usuariosFiltrados.map((usuario) => (
                   <tr key={usuario.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-3 py-2">
+                    <td className="pl-6 pr-2 py-2 border-b border-slate-100">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-sm font-black border border-slate-200 group-hover:scale-110 transition-transform">
-                          {usuario.nome.substring(0, 2).toUpperCase()}
-                        </div>
+                        {/* <div className="w-10 h-8 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-sm font-bold border border-slate-200 group-hover:scale-110 transition-transform">
+                          {usuario.pessoa.id.toString().padStart(3, '0')}
+                        </div> */}
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{usuario.nome}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase mt-1">{usuario.login}</span>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{usuario.nome}</span>
+                          <span className="text-xs text-slate-400 mt-0.5">{usuario.login}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-2 py-2 border-b border-slate-100">
                       <div className={`flex items-center gap-2 px-3 py-1 rounded-full w-fit border shadow-sm ${usuario.papel === 'ADMIN'
                         ? 'bg-blue-50 text-[#1351b4] border-[#1351b4]/20'
                         : 'bg-slate-50 text-slate-500 border-slate-200'
@@ -186,25 +185,37 @@ export default function UsuariosPage() {
                         <span className="text-[9px] font-black uppercase tracking-widest">{usuario.papel}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className="text-slate-500 font-black text-[11px] uppercase">{new Date(usuario.criadoEm).toLocaleDateString('pt-BR')}</span>
+                    <td className="px-2 py-2 border-b border-slate-100">
+                      <span className="text-slate-500 font-bold text-xs uppercase">{new Date(usuario.criadoEm).toLocaleDateString('pt-BR')}</span>
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-2 py-2 border-b border-slate-100 text-center relative">
+                      <div className="flex justify-center">
                         <button
-                          onClick={() => abrirModal(usuario)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-[#1351b4] hover:bg-blue-50 rounded-sm border border-slate-200 transition-all shadow-sm"
-                          title="Editar Usuário"
+                          onClick={() => setMenuAbertoId(menuAbertoId === usuario.id ? null : usuario.id)}
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <MoreVertical className="w-5 h-5" />
                         </button>
-                        <button
-                          onClick={() => confirmarExclusao(usuario.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-sm border border-slate-200 transition-all shadow-sm"
-                          title="Excluir Usuário"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+
+                        {menuAbertoId === usuario.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                            <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                              <button
+                                onClick={() => { setMenuAbertoId(null); abrirModal(usuario); }}
+                                className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                              >
+                                <Pencil className="w-3.5 h-3.5" /> Editar
+                              </button>
+                              <button
+                                onClick={() => { setMenuAbertoId(null); confirmarExclusao(usuario.id); }}
+                                className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Excluir
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

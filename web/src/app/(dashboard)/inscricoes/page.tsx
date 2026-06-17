@@ -324,7 +324,7 @@ export default function InscricoesPage() {
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Inscrição
+              Nova Inscrição
             </button>
           </div>
         </div>
@@ -333,13 +333,13 @@ export default function InscricoesPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-[#1351b4]">
-                <th className="px-4 py-4 text-xs font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Código</th>
-                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4]">Nome Completo</th>
-                {/* <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] hidden md:table-cell text-center">Grupo</th> */}
-                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
-                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
-                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-white border-b border-[#1351b4] text-right">Ações</th>
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome Completo</th>
+                {/* <th className="px-2 py-1 text-xs font-bold text-white border-b border-[#1351b4] hidden md:table-cell text-center">Grupo</th> */}
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="bg-white">
@@ -387,14 +387,14 @@ export default function InscricoesPage() {
 
                     return (
                       <tr key={inscricao.id} className="hover:bg-slate-50 transition-all duration-200 bg-white group">
-                        <td className="px-2 py-1 border-b border-slate-100">
+                        <td className="pl-6 pr-2 py-1 border-b border-slate-100 w-[1%] whitespace-nowrap">
                           <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
                             {inscricao.pessoa.id.toString().padStart(3, '0')}
                           </div>
                         </td>
-                        <td className="px-4 py-2 border-b border-slate-100">
+                        <td className="px-1 py-1 border-b border-slate-100">
                           <div className="flex flex-col">
-                            <span className="font-bold text-[#1b2b41] text-sm leading-tight">{inscricao.pessoa.nome}</span>
+                            <span className="font-bold text-[12px] uppercase text-sm leading-tight">{inscricao.pessoa.nome}</span>
                             <span className="text-xs text-slate-400 mt-0.5">{inscricao.pessoa.email || 'sem-email@informado.com'}</span>
                           </div>
                         </td>
@@ -404,18 +404,18 @@ export default function InscricoesPage() {
                           </span>
                         </td> */}
 
-                        <td className="px-4 py-2 border-b border-slate-100 text-right hidden sm:table-cell">
-                          <span className={`text-sm font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                        <td className="px-2 py-1 border-b border-slate-100 text-right hidden sm:table-cell">
+                          <span className={`text-[12px] font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
                             {formatarMoeda(saldo)}
                           </span>
                         </td>
-                        <td className="px-4 py-2 border-b border-slate-100 text-right">
-                          <span className={`text-sm font-bold ${totalPago > 0 ? 'text-emerald-600' : totalPago < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                        <td className="px-2 py-1 border-b border-slate-100 text-right">
+                          <span className={`text-[12px] font-bold ${totalPago > 0 ? 'text-emerald-600' : totalPago < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
                             {formatarMoeda(totalPago)}
                           </span>
                         </td>
 
-                        <td className="px-4 py-2 border-b border-slate-100 text-center hidden sm:table-cell">
+                        <td className="px-2 py-1 border-b border-slate-100 text-center hidden sm:table-cell">
                           <select
                             value={inscricao.status}
                             onChange={(e) => {
@@ -436,7 +436,7 @@ export default function InscricoesPage() {
                               }
                               atualizarStatus(inscricao.id, novoStatus);
                             }}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
                               inscricao.status === 'EM_ANALISE' ? 'bg-amber-50 text-amber-600 border-amber-200' :
                                 inscricao.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-200' :
                                   'bg-white text-slate-600 border-slate-200'
@@ -449,11 +449,11 @@ export default function InscricoesPage() {
                           </select>
                         </td>
 
-                        <td className="px-4 py-4 border-b border-slate-100">
-                          <div className="relative flex items-center justify-end">
-                            {/* Mobile 3-dots */}
-                            <div className="sm:hidden">
-                              <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4]">
+                        <td className="px-2 py-1 border-b border-slate-100">
+                          <div className="relative flex items-center justify-center">
+                            {/* 3-dots Menu */}
+                            <div>
+                              <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4] rounded-sm transition-colors">
                                 <MoreVertical className="w-5 h-5" />
                               </button>
                               {menuAcaoAbertoId === inscricao.id && (
@@ -461,8 +461,15 @@ export default function InscricoesPage() {
                                   <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
                                   <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
                                     <button
-                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalVisualizacao(inscricao); }}
                                       className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                                    >
+                                      <Eye className="w-4 h-4" /> Dados pessoais
+                                    </button>
+
+                                    <button
+                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 rounded-sm text-left"
                                     >
                                       <DollarSign className="w-4 h-4" /> Pagamentos
                                     </button>
@@ -474,7 +481,7 @@ export default function InscricoesPage() {
                                           setInscricaoParaDesistencia(inscricao);
                                           setModalDesistenciaAberto(true);
                                         }}
-                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
                                       >
                                         <UserMinus className="w-4 h-4" /> Desistência
                                       </button>
@@ -484,56 +491,11 @@ export default function InscricoesPage() {
                                       onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
                                       className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
                                     >
-                                      <Trash2 className="w-4 h-4" /> Remover
+                                      <Trash2 className="w-4 h-4" /> Excluir Inscrição
                                     </button>
                                   </div>
                                 </>
                               )}
-                            </div>
-
-                            {/* Desktop buttons */}
-                            <div className="hidden sm:flex items-center justify-center gap-0.5">
-
-                              {/* Botão Desistência */}
-                              {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
-                                <button
-                                  onClick={() => {
-                                    setInscricaoParaDesistencia(inscricao);
-                                    setModalDesistenciaAberto(true);
-                                  }}
-                                  className="w-7 h-7 flex items-center justify-center bg-white text-amber-500 hover:bg-amber-50 transition-all"
-                                  title="Registrar Desistência"
-                                >
-                                  <UserMinus className="w-4 h-4" />
-                                </button>
-                              )}
-
-                              {/* Botão Visualizar */}
-                              <button
-                                onClick={() => abrirModalVisualizacao(inscricao)}
-                                className="w-7 h-7 flex items-center justify-center bg-white text-slate-400 hover:text-[#1b2b41] transition-all"
-                                title="Visualizar Detalhes"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-
-                              {/* Botão Pagamentos */}
-                              <button
-                                onClick={() => abrirModalPagamento(inscricao)}
-                                className="w-7 h-7 flex items-center justify-center bg-white text-emerald-600 hover:bg-emerald-50 transition-all"
-                                title="Gestão de Pagamentos"
-                              >
-                                <DollarSign className="w-4 h-4" />
-                              </button>
-
-                              {/* Botão Remover */}
-                              <button
-                                onClick={() => confirmarExclusao(inscricao.id)}
-                                className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                                title="Remover Registro"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </div>
                           </div>
                         </td>
@@ -639,34 +601,34 @@ export default function InscricoesPage() {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Data</th>
-                          <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest">Evento</th>
-                          <th className="px-6 py-4 font-black text-slate-400 uppercase tracking-widest text-right">Valor</th>
+                          <th className="px-4 py-2 font-black text-slate-400 uppercase tracking-widest">Data</th>
+                          <th className="px-4 py-2 font-black text-slate-400 uppercase tracking-widest">Evento</th>
+                          <th className="px-4 py-2 font-black text-slate-400 uppercase tracking-widest text-right">Valor</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {!inscricaoParaPagar.pagamentos || inscricaoParaPagar.pagamentos.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="px-6 py-10 text-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">Nenhum pagamento registrado</td>
+                            <td colSpan={4} className="px-4 py-6 text-center text-slate-300 font-bold uppercase tracking-widest text-[10px]">Nenhum pagamento registrado</td>
                           </tr>
                         ) : (
                           inscricaoParaPagar.pagamentos.map((p: any) => (
                             <tr key={p.id}>
-                              <td className="px-3 py-2 text-slate-600 font-bold">{formatarData(p.data)}</td>
-                              <td className="px-3 py-2 text-slate-600 font-bold uppercase text-[10px]">{inscricaoParaPagar.evento?.nome}</td>
-                              <td className="px-3 py-2 text-right text-red-500 font-bold">{formatarMoeda(p.valor)}</td>
+                              <td className="px-2 py-1 text-slate-600 font-bold">{formatarData(p.data)}</td>
+                              <td className="px-2 py-1 text-slate-600 font-bold uppercase text-[10px]">{inscricaoParaPagar.evento?.nome}</td>
+                              <td className="px-2 py-1 text-right text-red-500 font-bold">{formatarMoeda(p.valor)}</td>
                             </tr>
                           ))
                         )}
                       </tbody>
                       <tfoot className="bg-slate-50">
                         <tr>
-                          <td colSpan={2} className="px-6 py-3 text-right font-black text-slate-500 uppercase tracking-widest text-[10px] border-t border-slate-100">Valor do Evento</td>
-                          <td className="px-6 py-3 text-right font-black text-slate-700 border-t border-slate-100">{formatarMoeda(eventoSelecionado?.valor || 0)}</td>
+                          <td colSpan={2} className="px-2 py-1 text-right font-black text-slate-500 uppercase tracking-widest text-[10px] border-t border-slate-100">Valor do Evento</td>
+                          <td className="px-2 py-1 text-right font-black text-slate-700 border-t border-slate-100">{formatarMoeda(eventoSelecionado?.valor || 0)}</td>
                         </tr>
                         <tr>
-                          <td colSpan={2} className="px-6 py-3 text-right font-black text-emerald-600 uppercase tracking-widest text-[10px] border-t border-slate-100">Valor Pago</td>
-                          <td className="px-6 py-3 text-right font-black text-emerald-600 border-t border-slate-100">
+                          <td colSpan={2} className="px-2 py-1 text-right font-black text-emerald-600 uppercase tracking-widest text-[10px] border-t border-slate-100">Valor Pago</td>
+                          <td className="px-2 py-1 text-right font-black text-emerald-600 border-t border-slate-100">
                             {formatarMoeda(inscricaoParaPagar.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0)}
                           </td>
                         </tr>

@@ -168,7 +168,7 @@ export default function MinhasRifasPage() {
         console.error('Falha ao carregar meus-bilhetes:', err);
         return { data: { bilhetes: [], alocacoes: [] } };
       });
-      
+
       const bilhetesData = Array.isArray(res.data?.bilhetes) ? res.data.bilhetes : [];
       const alocacoesData = Array.isArray(res.data?.alocacoes) ? res.data.alocacoes : [];
 
@@ -646,7 +646,7 @@ export default function MinhasRifasPage() {
               <button
                 key={rifa.id}
                 onClick={() => selecionarRifa(rifa)}
-                className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${isActive
+                className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${isActive
                   ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
                   : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                   }`}
@@ -666,7 +666,7 @@ export default function MinhasRifasPage() {
       ) : (
         <>
           {/* SEÇÃO 1: RESUMO DA RIFA (HORIZONTAL) */}
-          <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-8 relative">
+          <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 relative">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-10">
 
               {/* Info da Campanha com Tooltip de Prêmios */}
@@ -696,7 +696,7 @@ export default function MinhasRifasPage() {
                       {rifaSelecionada.premios?.length > 0 ? (
                         (rifaSelecionada.premios ? [...rifaSelecionada.premios].sort((a: any, b: any) => a.posicao - b.posicao) : []).map((p: any) => (
                           <div key={p.id} className="flex items-start gap-3">
-                            <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border border-amber-500/20">{p.posicao}º</span>
+                            <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 w-6 h-6 rounded-sm flex items-center justify-center shrink-0 border border-amber-500/20">{p.posicao}º</span>
                             <span className="text-[11px] font-bold text-slate-300 uppercase leading-relaxed">{p.descricao}</span>
                           </div>
                         ))
@@ -715,34 +715,34 @@ export default function MinhasRifasPage() {
 
               {/* Estatísticas - Cards Individuais */}
               <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-slate-100 p-4 rounded-sm shadow-sm flex flex-col justify-between hover:border-[#1351b4]/20 transition-all group/card">
+                <div className="bg-white border border-slate-100 p-3 rounded-sm shadow-sm flex flex-col justify-between hover:border-[#1351b4]/20 transition-all group/card">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</span>
                   <div className="flex items-end justify-between mt-2">
-                    <span className="text-xl font-black text-slate-800 tracking-tighter">{estatisticas.total}</span>
+                    <span className="text-lg font-black text-slate-800 tracking-tighter">{estatisticas.total}</span>
                     <Ticket className="w-4 h-4 text-slate-200 group-hover/card:text-[#1351b4] transition-colors" />
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 p-4 rounded-sm shadow-sm flex flex-col justify-between hover:border-emerald-200 transition-all group/card">
+                <div className="bg-white border border-slate-100 p-3 rounded-sm shadow-sm flex flex-col justify-between hover:border-emerald-200 transition-all group/card">
                   <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Pagos</span>
                   <div className="flex items-end justify-between mt-2">
-                    <span className="text-xl font-black text-emerald-600 tracking-tighter">{estatisticas.vendidos}</span>
+                    <span className="text-lg font-black text-emerald-600 tracking-tighter">{estatisticas.vendidos}</span>
                     <CheckCircle2 className="w-4 h-4 text-emerald-100 group-hover/card:text-emerald-500 transition-colors" />
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 p-4 rounded-sm shadow-sm flex flex-col justify-between hover:border-amber-200 transition-all group/card">
+                <div className="bg-white border border-slate-100 p-3 rounded-sm shadow-sm flex flex-col justify-between hover:border-amber-200 transition-all group/card">
                   <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Reservados</span>
                   <div className="flex items-end justify-between mt-2">
-                    <span className="text-xl font-black text-amber-600 tracking-tighter">{estatisticas.reservados}</span>
+                    <span className="text-lg font-black text-amber-600 tracking-tighter">{estatisticas.reservados}</span>
                     <Clock className="w-4 h-4 text-amber-100 group-hover/card:text-amber-500 transition-colors" />
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-100 p-4 rounded-sm shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all group/card">
+                <div className="bg-white border border-slate-100 p-3 rounded-sm shadow-sm flex flex-col justify-between hover:border-slate-200 transition-all group/card">
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Livres</span>
                   <div className="flex items-end justify-between mt-2">
-                    <span className="text-xl font-black text-slate-400 tracking-tighter">{estatisticas.livres}</span>
+                    <span className="text-lg font-black text-slate-400 tracking-tighter">{estatisticas.livres}</span>
                     <LayoutGrid className="w-4 h-4 text-slate-100 group-hover/card:text-slate-400 transition-colors" />
                   </div>
                 </div>
@@ -752,10 +752,10 @@ export default function MinhasRifasPage() {
           </div>
 
           {/* SEÇÃO 2: TABS DE CARTELAS (HORIZONTAL) */}
-          <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-8 flex flex-col space-y-6">
+          <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 flex flex-col space-y-4">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
+                <div className="w-10 h-10 rounded-sm bg-slate-50 border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
                   <LayoutGrid className="w-5 h-5" />
                 </div>
                 <div>
@@ -765,14 +765,14 @@ export default function MinhasRifasPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto custom-scrollbar">
+                <div className="flex bg-slate-100 p-1 rounded-sm w-full lg:w-auto overflow-x-auto custom-scrollbar">
                   {[...alocacoes].reverse().map((aloc) => {
                     const originalIdx = alocacoes.indexOf(aloc);
                     return (
                       <button
                         key={aloc.id}
                         onClick={() => setAbaAtiva(aloc.id)}
-                        className={`flex-1 lg:flex-none px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${abaAtiva === aloc.id
+                        className={`flex-1 lg:flex-none px-6 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${abaAtiva === aloc.id
                           ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/10'
                           : 'text-slate-400 hover:text-slate-600'
                           }`}
@@ -783,7 +783,7 @@ export default function MinhasRifasPage() {
                   })}
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-sm border border-slate-200">
                   {['TODOS', 'LIVRE', 'RESERVADO', 'VENDIDO'].map((status) => (
                     <button
                       key={status}
@@ -810,10 +810,10 @@ export default function MinhasRifasPage() {
 
                 return (
                   <div key={aloc.id} className="animate-in fade-in duration-300">
-                    <div className="mb-8 p-6 bg-slate-50 rounded-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+                    <div className="mb-6 p-4 bg-slate-50 rounded-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                       <div className="flex flex-col items-center sm:items-start">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faixa de Números</span>
-                        <span className="text-sm font-black text-slate-700">{aloc.inicioRange} ao {aloc.fimRange}</span>
+                        <span className="text-xs font-black text-slate-700">{aloc.inicioRange} ao {aloc.fimRange}</span>
                       </div>
                       <div className="flex-1 w-full max-w-md">
                         <div className="flex justify-between items-end mb-2">
@@ -835,7 +835,7 @@ export default function MinhasRifasPage() {
                               onClick={() => toggleSelecao(bilhete)}
                               onDoubleClick={() => abrirModalBilhete(bilhete)}
                               className={`
-                                  w-full aspect-[4/5] rounded-lg flex flex-col items-center justify-between p-2 border-2 transition-all active:scale-90
+                                  w-full aspect-[4/5] rounded-md flex flex-col items-center justify-between p-1.5 border-2 transition-all active:scale-90
                                   ${isSelecionado ? 'border-[#1351b4] bg-[#1351b4] text-white shadow-lg -translate-y-1 z-10' : ''}
                                   ${bilhete.status === 'LIVRE' && !isSelecionado ? 'bg-white border-slate-100 text-slate-500 hover:border-slate-300' : ''}
                                   ${bilhete.status === 'RESERVADO' && !isSelecionado ? 'bg-amber-50 border-amber-200 text-amber-700' : ''}
@@ -843,7 +843,7 @@ export default function MinhasRifasPage() {
                                 `}
                             >
                               <span className="text-[8px] font-black uppercase opacity-30">Nº</span>
-                              <span className="text-sm font-black tracking-tighter">{bilhete.numero}</span>
+                              <span className="text-xs font-black tracking-tighter">{bilhete.numero}</span>
                               <div className="w-full h-1 bg-current opacity-10 rounded-full" />
                             </button>
 
