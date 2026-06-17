@@ -324,7 +324,7 @@ export default function InscricoesPage() {
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Inscrição
+              Nova Inscrição
             </button>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function InscricoesPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-[#1351b4]">
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Código</th>
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome Completo</th>
                 {/* <th className="px-2 py-1 text-xs font-bold text-white border-b border-[#1351b4] hidden md:table-cell text-center">Grupo</th> */}
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
@@ -387,7 +387,7 @@ export default function InscricoesPage() {
 
                     return (
                       <tr key={inscricao.id} className="hover:bg-slate-50 transition-all duration-200 bg-white group">
-                        <td className="px-2 py-1 border-b border-slate-100">
+                        <td className="pl-6 pr-2 py-1 border-b border-slate-100 w-[1%] whitespace-nowrap">
                           <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
                             {inscricao.pessoa.id.toString().padStart(3, '0')}
                           </div>

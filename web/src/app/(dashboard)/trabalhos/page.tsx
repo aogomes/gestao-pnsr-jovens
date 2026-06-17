@@ -1185,7 +1185,7 @@ export default function TrabalhosPage() {
                   <table className="w-full text-sm text-left border-separate border-spacing-0">
                     <thead>
                       <tr className="bg-[#1351b4]">
-                        <th className="px-3 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden lg:table-cell">Trabalho</th>
+                        <th className="pl-6 pr-3 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden lg:table-cell">Trabalho</th>
                         <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Data</th>
                         <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Participantes</th>
                         <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Valor</th>
@@ -1204,13 +1204,13 @@ export default function TrabalhosPage() {
 
                         return (
                           <tr key={trabalho.id} className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="px-3 py-1 hidden lg:table-cell border-b border-slate-100">
-                              <p className="font-bold text-[#1b2b41] text-[12px] leading-tight uppercase">{trabalho.descricao}</p>
+                            <td className="pl-6 pr-2 py-1 hidden lg:table-cell border-b border-slate-100">
+                              <p className="font-bold text-[12px] text-slate-700 leading-tight uppercase">{trabalho.descricao}</p>
                             </td>
                             <td className="px-2 py-1 border-b border-slate-100">
                               <div className="flex items-center gap-1.5 text-slate-500" title={trabalho.descricao}>
                                 <Calendar className="w-3.5 h-3.5" />
-                                <span className="text-[11px] font-bold uppercase tracking-widest">
+                                <span className="text-[12px] font-bold uppercase tracking-widest text-slate-700">
                                   {new Date(trabalho.dataTrabalho).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                                 </span>
                               </div>
@@ -1869,9 +1869,9 @@ export default function TrabalhosPage() {
                           return (
                             <React.Fragment key={idx}>
                               <tr className="hover:bg-slate-50/30 transition-colors align-top">
-                                <td className={`px-6 py-4 font-black text-slate-700 uppercase tracking-tight ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>{p.nome}</td>
-                                <td className={`px-6 py-4 text-center text-slate-500 font-black hidden sm:table-cell ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>{p.trabalhos.length}</td>
-                                <td className={`px-6 py-4 ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>
+                                <td className={`px-2 py-1 font-bold text-[12px] text-slate-700 uppercase leading-tight ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>{p.nome}</td>
+                                <td className={`px-2 py-1 text-center text-[12px] text-slate-500 font-bold hidden sm:table-cell ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>{p.trabalhos.length}</td>
+                                <td className={`px-2 py-1 ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>
                                   {/* Desktop: Exibe direto */}
                                   <div className="hidden sm:block text-[10px]">
                                     {ListaHistorico}
@@ -1886,7 +1886,7 @@ export default function TrabalhosPage() {
                                     </button>
                                   </div>
                                 </td>
-                                <td className={`px-6 py-4 text-right ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>
+                                <td className={`px-2 py-1 text-right ${historicoPessoaAbertoId === idx ? '' : 'border-b border-slate-100'}`}>
                                   <div className="flex flex-col font-bold space-y-0.5">
                                     <span className="text-slate-400 text-[9px]">Créditos: {formatarMoeda(totalCotaPessoa)}</span>
                                     {totalSaquesPessoa > 0 && (
@@ -1988,7 +1988,7 @@ export default function TrabalhosPage() {
       {modalAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-sm shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
               <div>
                 <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">
                   {dadosForm.id ? 'Editar Trabalho' : 'Novo Trabalho'}
@@ -1999,7 +1999,7 @@ export default function TrabalhosPage() {
               </button>
             </div>
 
-            <form onSubmit={confirmarEnvio} className="p-8">
+            <form onSubmit={confirmarEnvio} className="p-6">
               {dadosForm.status === 'CONCLUIDO' && (
                 <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-sm flex items-center gap-3 text-emerald-700">
                   <CheckCircle2 className="w-5 h-5" />
@@ -2007,7 +2007,7 @@ export default function TrabalhosPage() {
                 </div>
               )}
 
-              <fieldset disabled={dadosForm.status === 'CONCLUIDO'} className="space-y-6">
+              <fieldset disabled={dadosForm.status === 'CONCLUIDO'} className="space-y-4">
                 <div className="flex gap-2 bg-slate-100 p-2 rounded-sm">
                   {[
                     { id: 'INDIVIDUAL', label: 'Individual', icon: UserIcon },
@@ -2017,7 +2017,7 @@ export default function TrabalhosPage() {
                       key={t.id}
                       type="button"
                       onClick={() => setDadosForm({ ...dadosForm, tipo: t.id })}
-                      className={`flex-1 py-4 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${dadosForm.tipo === t.id ? 'bg-[#1351b4] text-white shadow-md' : 'text-slate-400 hover:text-[#1351b4]'
+                      className={`flex-1 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${dadosForm.tipo === t.id ? 'bg-[#1351b4] text-white shadow-md' : 'text-slate-400 hover:text-[#1351b4]'
                         }`}
                     >
                       <t.icon className="w-4 h-4" />
@@ -2035,13 +2035,13 @@ export default function TrabalhosPage() {
                       required
                       value={dadosForm.descricao}
                       onChange={(e) => setDadosForm({ ...dadosForm, descricao: e.target.value })}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 uppercase focus:border-[#1351b4] outline-none"
+                      className="w-full pl-12 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-xs font-black text-slate-700 uppercase focus:border-[#1351b4] outline-none"
                       placeholder="Ex: Mutirão de Limpeza"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Data</label>
                     <div className="relative">
@@ -2051,7 +2051,7 @@ export default function TrabalhosPage() {
                         required
                         value={dadosForm.dataTrabalho}
                         onChange={(e) => setDadosForm({ ...dadosForm, dataTrabalho: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4]"
+                        className="w-full pl-12 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4]"
                       />
                     </div>
                   </div>
@@ -2069,7 +2069,7 @@ export default function TrabalhosPage() {
                         disabled={dadosForm.tipo === 'GRUPO' || dadosForm.status === 'CONCLUIDO'}
                         value={dadosForm.tipo === 'GRUPO' ? 100 : dadosForm.proporcao}
                         onChange={(e) => setDadosForm({ ...dadosForm, proporcao: e.target.value })}
-                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4] disabled:opacity-50"
+                        className="w-full pl-12 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4] disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -2083,7 +2083,7 @@ export default function TrabalhosPage() {
                       value={dadosForm.eventoId}
                       onChange={(e) => setDadosForm({ ...dadosForm, eventoId: e.target.value })}
                       required
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4] appearance-none font-bold"
+                      className="w-full pl-12 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4] appearance-none font-bold"
                     >
                       <option value="">Selecione o evento...</option>
                       {eventos.map(ev => <option key={ev.id} value={ev.id}>{ev.nome} (Conta: {ev.conta?.nome})</option>)}
@@ -2100,7 +2100,7 @@ export default function TrabalhosPage() {
                       <div className="relative">
                         <UserIcon className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                         <select
-                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-black text-slate-700 outline-none focus:border-[#1351b4] appearance-none"
+                          className="w-full pl-12 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-xs font-black text-slate-700 outline-none focus:border-[#1351b4] appearance-none"
                           onChange={(e) => {
                             const id = e.target.value;
                             if (id && !dadosForm.membrosIds.includes(id)) {
@@ -2122,18 +2122,20 @@ export default function TrabalhosPage() {
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Trabalhadores Selecionados ({dadosForm.membrosIds.length})</label>
                         <div className="border border-slate-200 rounded-sm max-h-48 overflow-y-auto bg-slate-50 p-2 space-y-1">
                           {dadosForm.membrosIds.map(membroId => {
-                            const pessoa = pessoas.find(p => p.id.toString() === membroId);
+                            const pessoa = inscritosEvento.find(p => p.id.toString() === membroId);
                             if (!pessoa) return null;
                             return (
                               <div key={pessoa.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-sm shadow-sm">
                                 <span className="text-xs font-black uppercase tracking-tighter text-slate-600">{pessoa.nome}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleMembro(membroId)}
-                                  className="text-slate-400 hover:text-rose-600 transition-colors p-1 bg-slate-50 rounded-sm hover:bg-rose-50"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
+                                {dadosForm.status !== 'CONCLUIDO' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleMembro(membroId)}
+                                    className="text-slate-400 hover:text-rose-600 transition-colors p-1 bg-slate-50 rounded-sm hover:bg-rose-50"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             );
                           })}

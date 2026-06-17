@@ -382,14 +382,14 @@ export default function RifasPage() {
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
-              <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Campanha</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Prêmios</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Sorteio</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Progresso de Vendas</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Alocações & Rateio</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center">Ações</th>
+              <tr className="bg-[#1351b4] sticky top-0 z-10 backdrop-blur-md">
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Campanha</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Prêmios</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Sorteio</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Progresso de Vendas</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Alocações & Rateio</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Status</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -410,19 +410,19 @@ export default function RifasPage() {
                   return (
                     <tr key={rifa.id} className="hover:bg-slate-50/50 transition-colors group">
                       {/* CAMPANHA */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
                         <div className="flex flex-col space-y-1 max-w-[280px]">
-                          <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{rifa.nome}</span>
-                          <span className="text-[10px] text-slate-400 font-bold line-clamp-2 uppercase">{rifa.descricao}</span>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{rifa.nome}</span>
+                          <span className="text-xs text-slate-400 mt-0.5 line-clamp-2 uppercase">{rifa.descricao}</span>
                         </div>
                       </td>
 
                       {/* PRÊMIOS */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="px-2 py-1 border-b border-slate-100">
                         <div className="flex flex-col space-y-1.5 min-w-[150px]">
                           {(rifa.premios ? [...rifa.premios].sort((a: any, b: any) => a.posicao - b.posicao) : []).map((p: any) => (
                             <div key={p.id} className="flex items-center gap-2 text-[8px] text-slate-500 uppercase tracking-tight">
-                              <span className="text-[#1351b4] font-black">{p.posicao}º</span>
+                              <span className="text-[#1351b4] font-bold">{p.posicao}º</span>
                               <span className="truncate max-w-[120px]">{p.descricao}</span>
                             </div>
                           ))}
@@ -430,14 +430,14 @@ export default function RifasPage() {
                       </td>
 
                       {/* DATA DO SORTEIO */}
-                      <td className="px-6 py-4 border-b border-slate-100">
-                        <span className="text-slate-500 font-black text-[11px] uppercase whitespace-nowrap">
+                      <td className="px-2 py-1 border-b border-slate-100">
+                        <span className="text-slate-500 font-bold text-xs uppercase whitespace-nowrap">
                           {formatarDataSegura(rifa.dataSorteio)}
                         </span>
                       </td>
 
                       {/* PROGRESSO DE VENDAS */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="px-2 py-1 border-b border-slate-100">
                         <div className="flex flex-col space-y-2 min-w-[160px]">
                           <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
                             <span>Progresso</span>
@@ -484,7 +484,7 @@ export default function RifasPage() {
                       </td>
 
                       {/* ALOCAÇÕES E RATEIO */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="px-2 py-1 border-b border-slate-100">
                         <div className="flex flex-col space-y-2 min-w-[160px]">
                           <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
                             <Ticket className="w-3.5 h-3.5 text-[#1351b4]" />
@@ -531,7 +531,7 @@ export default function RifasPage() {
                                 }}
                                 className="bg-emerald-600 text-white px-2.5 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100"
                               >
-                                Ratear
+                                Executar Rateio
                               </button>
                             )}
                           </div>
@@ -539,7 +539,7 @@ export default function RifasPage() {
                       </td>
 
                       {/* STATUS BADGE */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="px-2 py-1 border-b border-slate-100">
                         <span className={`px-2.5 py-1 text-[9px] font-black rounded-full uppercase tracking-widest shadow-sm border ${(isExpirada && (rifa.status === 'ATIVA' || rifa.status === 'PAUSADA')) ? 'bg-rose-50 text-rose-700 border-rose-200' :
                           rifa.status === 'ATIVA' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                             rifa.status === 'PAUSADA' ? 'bg-amber-50 text-amber-700 border-amber-200' :
@@ -551,7 +551,7 @@ export default function RifasPage() {
                       </td>
 
                       {/* AÇÕES */}
-                      <td className="px-6 py-4 border-b border-slate-100">
+                      <td className="px-2 py-1 border-b border-slate-100">
                         <div className="flex items-center justify-center gap-2">
                           {/* Estatísticas */}
                           <button
@@ -608,7 +608,7 @@ export default function RifasPage() {
       {modalAberta && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-sm w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#1351b4] text-white rounded-sm flex items-center justify-center shadow-lg shadow-blue-900/20">
                   <Plus className="w-6 h-6" />
@@ -627,14 +627,14 @@ export default function RifasPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCriarRifa} className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleCriarRifa} className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-full">
                   <label className="text-xs font-bold text-slate-500 uppercase ml-1">Nome da Campanha</label>
                   <textarea
                     rows={1}
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="Ex: Rifa Beneficente 2024"
                     value={novaRifa.nome}
                     onChange={(e) => setNovaRifa({ ...novaRifa, nome: e.target.value })}
@@ -646,7 +646,7 @@ export default function RifasPage() {
                   <select
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all appearance-none font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all appearance-none font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.eventoId || ''}
                     onChange={(e) => setNovaRifa({ ...novaRifa, eventoId: e.target.value })}
                   >
@@ -663,7 +663,7 @@ export default function RifasPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase ml-1">Título da Campanha (Chamativo)</label>
                   <input
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="Ex: Grande Sorteio da Paróquia - Concorra a um Carro!"
                     value={novaRifa.titulo || ''}
                     onChange={(e) => setNovaRifa({ ...novaRifa, titulo: e.target.value })}
@@ -675,7 +675,7 @@ export default function RifasPage() {
                   <textarea
                     rows={2}
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.descricao || ''}
                     onChange={(e) => setNovaRifa({ ...novaRifa, descricao: e.target.value })}
                   />
@@ -687,7 +687,7 @@ export default function RifasPage() {
                     type="date"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.dataInicio}
                     onChange={(e) => setNovaRifa({ ...novaRifa, dataInicio: e.target.value })}
                   />
@@ -699,7 +699,7 @@ export default function RifasPage() {
                     type="date"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.dataFim}
                     onChange={(e) => setNovaRifa({ ...novaRifa, dataFim: e.target.value })}
                   />
@@ -711,7 +711,7 @@ export default function RifasPage() {
                     type="date"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.dataSorteio}
                     onChange={(e) => setNovaRifa({ ...novaRifa, dataSorteio: e.target.value })}
                   />
@@ -723,7 +723,7 @@ export default function RifasPage() {
                     type="number"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.valorNumero}
                     onChange={(e) => setNovaRifa({ ...novaRifa, valorNumero: Number(e.target.value) })}
                   />
@@ -735,7 +735,7 @@ export default function RifasPage() {
                     type="number"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.totalNumeros}
                     onChange={(e) => setNovaRifa({ ...novaRifa, totalNumeros: Number(e.target.value) })}
                   />
@@ -747,7 +747,7 @@ export default function RifasPage() {
                     type="number"
                     required
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.numerosPorCartela}
                     onChange={(e) => setNovaRifa({ ...novaRifa, numerosPorCartela: Number(e.target.value) })}
                   />
@@ -761,19 +761,19 @@ export default function RifasPage() {
                     min="0"
                     max="100"
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     value={novaRifa.percentualRateio}
                     onChange={(e) => setNovaRifa({ ...novaRifa, percentualRateio: Number(e.target.value) })}
                   />
                 </div>
 
                 <div className="space-y-2 col-span-full">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-1">
                       <label className="text-xs font-bold text-slate-500 uppercase ml-1">Tipo da Chave</label>
                       <select
                         disabled={isRifaReadOnly}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
                         value={novaRifa.tipoChavePix || 'EMAIL'}
                         onChange={(e) => setNovaRifa({ ...novaRifa, tipoChavePix: e.target.value })}
                       >
@@ -788,7 +788,7 @@ export default function RifasPage() {
                       <label className="text-xs font-bold text-slate-500 uppercase ml-1">Chave PIX</label>
                       <input
                         disabled={isRifaReadOnly}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all font-bold text-slate-700 disabled:opacity-75 disabled:cursor-not-allowed"
                         placeholder="Insira a chave aqui..."
                         value={novaRifa.chavePix || ''}
                         onChange={(e) => setNovaRifa({ ...novaRifa, chavePix: e.target.value })}
@@ -803,7 +803,7 @@ export default function RifasPage() {
                   <input
                     type="text"
                     disabled={isRifaReadOnly}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] transition-all disabled:opacity-75 disabled:cursor-not-allowed"
                     placeholder="Ex: R$ 100,00 ou um brinde"
                     value={novaRifa.premioVendedor || ''}
                     onChange={(e) => setNovaRifa({ ...novaRifa, premioVendedor: e.target.value })}
@@ -835,7 +835,7 @@ export default function RifasPage() {
                           required
                           disabled={isRifaReadOnly}
                           placeholder={`Descrição do ${idx + 1}º prêmio`}
-                          className="flex-1 bg-white border border-slate-200 rounded-sm px-4 py-2 outline-none focus:border-[#1351b4] transition-all text-sm disabled:opacity-75 disabled:cursor-not-allowed"
+                          className="flex-1 bg-white border border-slate-200 rounded-sm px-4 py-2 text-xs outline-none focus:border-[#1351b4] transition-all text-xs disabled:opacity-75 disabled:cursor-not-allowed"
                           value={premio.descricao}
                           onChange={(e) => atualizarPremio(idx, e.target.value)}
                         />
@@ -884,7 +884,7 @@ export default function RifasPage() {
       {modalAlocarAberta && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-sm w-full max-w-md shadow-2xl">
-            <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Alocar Números</h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Distribua cartelas para um vendedor</p>
@@ -904,7 +904,7 @@ export default function RifasPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Vendedor (Apenas Inscritos no Evento)</label>
                   <select
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4] font-bold text-slate-700"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4] font-bold text-slate-700"
                     value={alocacao.pessoaId}
                     onChange={(e) => setAlocacao({ ...alocacao, pessoaId: e.target.value })}
                   >
@@ -922,7 +922,7 @@ export default function RifasPage() {
                   <input
                     type="number"
                     required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 outline-none focus:border-[#1351b4]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-sm px-3 py-2 text-xs outline-none focus:border-[#1351b4]"
                     value={alocacao.quantidade}
                     onChange={(e) => setAlocacao({ ...alocacao, quantidade: Number(e.target.value) })}
                   />

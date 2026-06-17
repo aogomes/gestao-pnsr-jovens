@@ -348,12 +348,12 @@ export default function TransacoesPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-[#1351b4]">
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-center w-24">Tipo</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Descrição Analítica</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Vínculo</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4]">Data</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-right">Valor Líquido</th>
-                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white border-b border-[#1351b4] text-center">Ações</th>
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center w-24">Tipo</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Descrição Analítica</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Vínculo</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Data</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Valor Líquido</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -369,7 +369,7 @@ export default function TransacoesPage() {
               ) : (
                 transacoesFiltradas.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-2 py-1 border-b border-slate-100">
+                    <td className="pl-6 pr-2 py-1 border-b border-slate-100">
                       <div className="flex justify-center">
                         <div className={`w-8 h-8 rounded-sm flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${obterCorTransacao(tx.tipo)}`}>
                           {obterIconeTransacao(tx.tipo)}
@@ -377,7 +377,7 @@ export default function TransacoesPage() {
                       </div>
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
-                      <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{tx.descricao}</span>
+                      <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{tx.descricao}</span>
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
                       {tx.pessoa?.nome ? (
@@ -397,15 +397,15 @@ export default function TransacoesPage() {
                       )}
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
-                      <span className="text-slate-500 font-black text-[11px] uppercase">{new Date(tx.data).toLocaleDateString('pt-BR')}</span>
+                      <span className="text-slate-500 font-bold text-xs uppercase">{new Date(tx.data).toLocaleDateString('pt-BR')}</span>
                     </td>
-                    <td className={`px-2 py-1 border-b border-slate-100 text-right font-black text-sm ${tx.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <td className={`px-2 py-1 border-b border-slate-100 text-right font-bold text-[12px] ${tx.tipo === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       <div className="flex items-center justify-end gap-1">
                         <TrendingUp className={`w-4 h-4 ${tx.tipo === 'DESPESA' ? 'rotate-180' : ''}`} />
                         {formatarMoeda(tx.valor)}
                       </div>
                     </td>
-                    <td className="px-2 py-3 border-b border-slate-100">
+                    <td className="px-2 py-1 border-b border-slate-100">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => confirmarExclusao(tx.id)}

@@ -248,8 +248,8 @@ export default function PessoasPage() {
               onClick={() => abrirModal()}
               className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
             >
-              <UserPlus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-              Cadastrar Novo
+              <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+              Nova Pessoa
             </button>
           </div>
         </div>
@@ -257,12 +257,12 @@ export default function PessoasPage() {
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-[#1351b4]">
-                <th className="px-2 py-2 text-xs font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Código</th>
-                <th className="px-2 py-2 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Nome</th>
-                {/* <th className="hidden md:table-cell px-2 py-2 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Paróquia</th> */}
-                <th className="hidden md:table-cell px-2 py-2 text-xs font-black tracking-widest text-white border-b border-[#1351b4]">Documento</th>
-                <th className="px-2 py-2 text-xs font-black tracking-widest text-white border-b border-[#1351b4] text-right">Saldo</th>
-                <th className="px-2 py-2 text-xs font-black tracking-widest text-white border-b border-[#1351b4] text-center">Ações</th>
+                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome</th>
+                {/* <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th> */}
+                <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Documento</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Saldo</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -278,7 +278,7 @@ export default function PessoasPage() {
               ) : (
                 pessoasFiltradas.map((pessoa) => (
                   <tr key={pessoa.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-2 py-1 border-b border-slate-100">
+                    <td className="pl-6 pr-2 py-1 border-b border-slate-100 w-[1%] whitespace-nowrap">
                       <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
                         {pessoa.id.toString().padStart(3, '0')}
                       </div>
@@ -289,8 +289,8 @@ export default function PessoasPage() {
                           {pessoa.id.toString().padStart(3, '0')}
                         </div> */}
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-700 text-xs uppercase tracking-tight">{pessoa.nome}</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{pessoa.email || 'E-mail não cadastrado'}</span>
+                          <span className="font-bold text-[12px] uppercase text-slate-700 leading-tight">{pessoa.nome}</span>
+                          <span className="text-xs text-slate-400 mt-0.5">{pessoa.email || 'E-mail não cadastrado'}</span>
                         </div>
                       </div>
                     </td>
@@ -304,15 +304,15 @@ export default function PessoasPage() {
                     </td> */}
                     <td className="border-b border-slate-100 hidden md:table-cell px-2 py-1">
                       <div className="flex flex-col">
-                        <span className="text-slate-500 font-mono text-[10px] font-bold tracking-widest">{pessoa.documento || '---.---.--- --'}</span>
-                        <span className="text-[10px] text-slate-600 font-bold mt-1">{pessoa.telefone || 'Telefone não cadastrado'}</span>
+                        <span className="font-bold text-[12px] text-slate-500 tracking-widest leading-tight">{pessoa.documento || '---.---.--- --'}</span>
+                        <span className="text-xs text-slate-400 mt-0.5">{pessoa.telefone || 'Telefone não cadastrado'}</span>
                       </div>
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
                       <div className={`flex flex-col ${pessoa.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         <div className="flex items-center justify-end gap-1">
                           {/* <TrendingUp className={`w-3.5 h-3.5 ${pessoa.saldo < 0 ? 'rotate-180' : ''}`} /> */}
-                          <span className={`text-xs font-bold ${pessoa.saldo > 0 ? 'text-emerald-600' : pessoa.saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                          <span className={`text-[12px] font-bold ${pessoa.saldo > 0 ? 'text-emerald-600' : pessoa.saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
                             {formatarMoeda(pessoa.saldo)}
                           </span>
                         </div>
