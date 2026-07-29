@@ -47,7 +47,7 @@ export class AutenticacaoService {
   }
 
   async registrar(dados: RegistrarDto) {
-    const { nome, login, senha, confirmarSenha } = dados;
+    const { nome, login, senha, confirmarSenha, paroquiaId, comunidade } = dados;
 
     if (senha !== confirmarSenha) {
       throw new BadRequestException('As senhas não conferem');
@@ -57,13 +57,13 @@ export class AutenticacaoService {
       where: { login },
     });
 
+    if (usuarioExistente) {
+      throw new ConflictException('Este e-mail já possui cadastro completo no sistema.');
+    }
+
     const pessoaExistente = await this.prisma.pessoa.findUnique({
       where: { email: login },
     });
-
-    if (usuarioExistente || pessoaExistente) {
-      throw new ConflictException('Este e-mail já está em uso no sistema');
-    }
 
     const salt = await bcrypt.genSalt();
     const senhaCriptografada = await bcrypt.hash(senha, salt);
@@ -71,19 +71,37 @@ export class AutenticacaoService {
     console.log('Iniciando transação de registro para:', login);
     try {
       await this.prisma.$transaction(async (tx) => {
-        const pessoa = await tx.pessoa.create({
-          data: {
-            nome,
-            email: login,
-          },
-        });
+        let pessoaId: number;
+
+        if (pessoaExistente) {
+          pessoaId = pessoaExistente.id;
+          if (paroquiaId || comunidade) {
+            await tx.pessoa.update({
+              where: { id: pessoaId },
+              data: {
+                ...(paroquiaId && { paroquiaId }),
+                ...(comunidade && { comunidade }),
+              },
+            });
+          }
+        } else {
+          const pessoa = await tx.pessoa.create({
+            data: {
+              nome,
+              email: login,
+              ...(paroquiaId && { paroquiaId }),
+              ...(comunidade && { comunidade }),
+            },
+          });
+          pessoaId = pessoa.id;
+        }
 
         await tx.usuario.create({
           data: {
             login,
             senha: senhaCriptografada,
             papel: 'USUARIO',
-            pessoaId: pessoa.id,
+            pessoaId,
           },
         });
       });

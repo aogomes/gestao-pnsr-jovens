@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { uploadFile } from '@/lib/storage';
 import Cookies from 'js-cookie';
+import { hasPermission } from '@/lib/permissions.config';
 import {
   Plus,
   Users,
@@ -38,6 +39,7 @@ export default function PessoasPage() {
   const [pessoas, setPessoas] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [termoBusca, setTermoBusca] = useState('');
+  const [usuario, setUsuario] = useState<any>(null);
 
   const [paroquias, setParoquias] = useState<any[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
@@ -72,8 +74,12 @@ export default function PessoasPage() {
   }, []);
 
   useEffect(() => {
+    const userCookie = Cookies.get('gf_user');
+    if (userCookie) setUsuario(JSON.parse(userCookie));
     buscarPessoas();
   }, []);
+
+  const podeEditar = usuario ? hasPermission(usuario.papel, 'pessoas', 'escrever') : false;
 
   const buscarPessoas = async () => {
     try {
@@ -114,7 +120,17 @@ export default function PessoasPage() {
         nomeConjuge: pessoa.nomeConjuge || '',
         necessidadesMedicas: pessoa.necessidadesMedicas || '',
         responsavelLegal: pessoa.responsavelLegal || '',
-        perfis: pessoa.perfis ? (typeof pessoa.perfis === 'string' ? JSON.parse(pessoa.perfis) : pessoa.perfis) : []
+        perfis: Array.from(new Set(
+          (Array.isArray(pessoa.perfis) ? pessoa.perfis : (typeof pessoa.perfis === 'string' ? JSON.parse(pessoa.perfis) : []))
+            .flatMap((p: any) => {
+              try {
+                return typeof p === 'string' && p.startsWith('[') ? JSON.parse(p) : p;
+              } catch {
+                return p;
+              }
+            })
+            .filter(Boolean)
+        )) as string[]
       });
       setArquivoPassaporte(null);
     } else {
@@ -244,13 +260,15 @@ export default function PessoasPage() {
               <ArrowRightLeft className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
               Extrato Geral
             </button>
-            <button
-              onClick={() => abrirModal()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-              Nova Pessoa
-            </button>
+            {podeEditar && (
+              <button
+                onClick={() => abrirModal()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
+              >
+                <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                Nova Pessoa
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -343,18 +361,22 @@ export default function PessoasPage() {
                                 >
                                   <ArrowRightLeft className="w-4 h-4" /> Extrato
                                 </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
-                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
-                                >
-                                  <Pencil className="w-4 h-4" /> Editar
-                                </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); confirmarExclusao(pessoa.id); }}
-                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
-                                >
-                                  <Trash2 className="w-4 h-4" /> Excluir
-                                </button>
+                                {podeEditar && (
+                                  <>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                                    >
+                                      <Pencil className="w-4 h-4" /> Editar
+                                    </button>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); confirmarExclusao(pessoa.id); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                    >
+                                      <Trash2 className="w-4 h-4" /> Excluir
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </>
                           )}
@@ -607,9 +629,34 @@ export default function PessoasPage() {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Anexo / Foto do Passaporte</label>
                     <div className="flex flex-col gap-3">
                       {dadosForm.fotoPassaporte && (
-                        <a href={dadosForm.fotoPassaporte.startsWith('http') ? dadosForm.fotoPassaporte : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(dadosForm.fotoPassaporte)}&token=${Cookies.get('gf_token')}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#1351b4] underline hover:text-[#0047b7]">
-                          Ver foto atual
-                        </a>
+                        <div className="flex flex-col items-start gap-2 p-4 bg-slate-50 border border-slate-200 rounded-sm w-fit">
+                          {(() => {
+                            const isBase64 = dadosForm.fotoPassaporte.startsWith('data:image');
+                            const extMatch = dadosForm.fotoPassaporte.match(/\.(jpeg|jpg|gif|png|webp|pdf)($|\?)/i);
+                            const isImg = isBase64 || (extMatch && extMatch[1].toLowerCase() !== 'pdf');
+
+                            const fileUrl = dadosForm.fotoPassaporte.startsWith('http') || dadosForm.fotoPassaporte.startsWith('data:')
+                              ? dadosForm.fotoPassaporte
+                              : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(dadosForm.fotoPassaporte)}&token=${Cookies.get('gf_token')}`;
+
+                            return (
+                              <>
+                                {isImg ? (
+                                  <a href={fileUrl} target="_blank" rel="noreferrer">
+                                    <img src={fileUrl} alt="Passaporte" className="max-h-40 rounded-md object-contain border border-slate-200 shadow-sm hover:opacity-90 transition-opacity" />
+                                  </a>
+                                ) : (
+                                  <div className="px-4 py-2 bg-[#1351b4]/5 text-[#1351b4] rounded-md border border-[#1351b4]/20 flex items-center justify-center">
+                                    <span className="text-sm font-bold">Documento Anexado</span>
+                                  </div>
+                                )}
+                                <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black text-[#1351b4] uppercase tracking-widest underline hover:text-[#0047b7]">
+                                  Visualizar em nova aba
+                                </a>
+                              </>
+                            );
+                          })()}
+                        </div>
                       )}
                       <input
                         type="file"
@@ -712,14 +759,14 @@ export default function PessoasPage() {
                           <input
                             type="checkbox"
                             id={`perf-${perf}`}
-                            checked={dadosForm.perfis.includes(perf)}
+                            checked={dadosForm.perfis?.some(p => p && p.toLowerCase() === perf.toLowerCase()) || false}
                             onChange={(e) => {
                               const checked = e.target.checked;
                               setDadosForm((prev) => ({
                                 ...prev,
                                 perfis: checked
-                                  ? [...prev.perfis, perf]
-                                  : prev.perfis.filter((p) => p !== perf)
+                                  ? [...(prev.perfis || []), perf]
+                                  : (prev.perfis || []).filter((p) => p && p.toLowerCase() !== perf.toLowerCase())
                               }));
                             }}
                             className="w-4 h-4 text-[#1351b4] focus:ring-[#1351b4]/5 border-slate-200 rounded"
@@ -833,7 +880,7 @@ export default function PessoasPage() {
                         )}
 
                         {/* Resumo Financeiro */}
-                        <div className="p-3 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col">
+                        <div className="p-1 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col">
                           <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Resumo Financeiro</h4>
                           <div className="flex flex-col gap-3 flex-1 justify-center">
                             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
@@ -856,9 +903,9 @@ export default function PessoasPage() {
                     <table className="w-full text-sm text-left border-separate border-spacing-0">
                       <thead>
                         <tr className="bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
-                          <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
-                          <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Descrição</th>
-                          <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
+                          <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Data</th>
+                          <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Descrição</th>
+                          <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Valor</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -891,9 +938,9 @@ export default function PessoasPage() {
                                     <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{formatarData(item.data)}</span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-2 w-full">
+                                <td className="px-2 py-2 w-full">
                                   <div className="flex items-center gap-4">
-                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
+                                    <div className={`w-4 h-4 rounded-lg flex items-center justify-center border shadow-sm group-hover:scale-110 transition-transform ${bgIconColor}`}>
                                       <Icon className="w-4 h-4" />
                                     </div>
                                     <div className="flex flex-col">

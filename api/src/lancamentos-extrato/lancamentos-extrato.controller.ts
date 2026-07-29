@@ -2,8 +2,9 @@ import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@ne
 import { LancamentosExtratoService } from './lancamentos-extrato.service';
 import { CreateLancamentoExtratoDto } from './dto/create-lancamento-extrato.dto';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
+import { PermissionsGuard } from '../autenticacao/permissions.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('lancamentos-extrato')
 export class LancamentosExtratoController {
   constructor(private readonly service: LancamentosExtratoService) {}

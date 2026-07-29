@@ -103,6 +103,28 @@ export class RifasService {
     }));
   }
 
+  async listarAtivas(user: any) {
+    let where: any = {
+      status: { in: ['ATIVA', 'PAUSADA'] }
+    };
+    
+    if (user.papel !== 'ADMIN') {
+      if (user.paroquiaId) {
+        where.evento = { paroquiaId: user.paroquiaId };
+      } else {
+        return [];
+      }
+    }
+
+    return this.prisma.rifa.findMany({
+      where,
+      include: {
+        alocacoes: true
+      },
+      orderBy: { criadoEm: 'desc' }
+    });
+  }
+
   async buscarUma(id: number, user: any) {
     const rifa = await this.prisma.rifa.findUnique({
       where: { id },

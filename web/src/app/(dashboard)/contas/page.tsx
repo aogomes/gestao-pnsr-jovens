@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { hasPermission, PapelUsuario } from '@/lib/permissions.config';
+import Cookies from 'js-cookie';
 import {
   Plus,
   Church,
@@ -68,6 +70,7 @@ export default function ContasPage() {
     historico: -1,
   });
   const [termoBusca, setTermoBusca] = useState('');
+  const [podeEditar, setPodeEditar] = useState(false);
   const [menuAbertoId, setMenuAbertoId] = useState<string | null>(null);
 
   // Estados Paróquias
@@ -91,6 +94,14 @@ export default function ContasPage() {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
+    const userStr = Cookies.get('gf_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setPodeEditar(hasPermission(user.papel as PapelUsuario, 'contas', 'escrever'));
+      } catch (e) { }
+    }
+
     const tabParam = searchParams.get('tab');
     if (tabParam === 'paroquias' || tabParam === 'contas' || tabParam === 'importar') {
       setAbaAtiva(tabParam as any);
@@ -682,7 +693,7 @@ export default function ContasPage() {
           <button
             key="contas"
             onClick={() => setAbaAtiva('contas')}
-            className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'contas'
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'contas'
               ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
@@ -693,7 +704,7 @@ export default function ContasPage() {
           <button
             key="paroquias"
             onClick={() => setAbaAtiva('paroquias')}
-            className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'paroquias'
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'paroquias'
               ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
@@ -704,7 +715,7 @@ export default function ContasPage() {
           <button
             key="importar"
             onClick={() => setAbaAtiva('importar')}
-            className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'importar'
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'importar'
               ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
               }`}
@@ -733,13 +744,15 @@ export default function ContasPage() {
                   className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
                 />
               </div>
-              <button
-                onClick={() => abrirModalConta()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-                Nova Conta
-              </button>
+              {podeEditar && (
+                <button
+                  onClick={() => abrirModalConta()}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                  Nova Conta
+                </button>
+              )}
             </div>
           </div>
           <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -775,7 +788,7 @@ export default function ContasPage() {
                         </div>
                       </td>
                       <td className="px-2 py-1 border-b border-slate-100">
-                        <span className="font-bold text-[12px] text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                        <span className="font-bold text-[12px] text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-sm">
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.saldo)}
                         </span>
                       </td>
@@ -798,18 +811,22 @@ export default function ContasPage() {
                                 >
                                   <ArrowRightLeft className="w-3.5 h-3.5" /> Ver Movimentações
                                 </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); abrirModalConta(conta); }}
-                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" /> Editar
-                                </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); excluirConta(conta.id); }}
-                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" /> Excluir
-                                </button>
+                                {podeEditar && (
+                                  <>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); abrirModalConta(conta); }}
+                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" /> Editar
+                                    </button>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); excluirConta(conta.id); }}
+                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </>
                           )}
@@ -840,13 +857,15 @@ export default function ContasPage() {
                   className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
                 />
               </div>
-              <button
-                onClick={() => abrirModalParoquia()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-                Nova Paróquia
-              </button>
+              {podeEditar && (
+                <button
+                  onClick={() => abrirModalParoquia()}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                  Nova Paróquia
+                </button>
+              )}
             </div>
           </div>
           <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -856,7 +875,7 @@ export default function ContasPage() {
                   <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th>
                   <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Responsável</th>
                   <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Localização</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
+                  {podeEditar && <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -887,36 +906,38 @@ export default function ContasPage() {
                           {paroquia.cidade}
                         </div>
                       </td>
-                      <td className="px-2 py-1 border-b border-slate-100 text-center relative">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => setMenuAbertoId(menuAbertoId === `paroquia_${paroquia.id}` ? null : `paroquia_${paroquia.id}`)}
-                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
+                      {podeEditar && (
+                        <td className="px-2 py-1 border-b border-slate-100 text-center relative">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => setMenuAbertoId(menuAbertoId === `paroquia_${paroquia.id}` ? null : `paroquia_${paroquia.id}`)}
+                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
 
-                          {menuAbertoId === `paroquia_${paroquia.id}` && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
-                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); abrirModalParoquia(paroquia); }}
-                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" /> Editar
-                                </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); excluirParoquia(paroquia.id); }}
-                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" /> Excluir
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
+                            {menuAbertoId === `paroquia_${paroquia.id}` && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                                <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                                  <button
+                                    onClick={() => { setMenuAbertoId(null); abrirModalParoquia(paroquia); }}
+                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" /> Editar
+                                  </button>
+                                  <button
+                                    onClick={() => { setMenuAbertoId(null); excluirParoquia(paroquia.id); }}
+                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -1371,7 +1392,7 @@ export default function ContasPage() {
       {modalExtratoAberto && contaSelecionada && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-sm bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                   <Wallet className="w-6 h-6 text-[#1351b4]" />
@@ -1382,31 +1403,33 @@ export default function ContasPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => abrirModalLancamento(contaSelecionada)}
-                  className="px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all flex items-center gap-2 shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Lançar Movimento
-                </button>
-                <button onClick={() => setModalExtratoAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors"><X className="w-6 h-6" /></button>
+                {podeEditar && (
+                  <button
+                    onClick={() => abrirModalLancamento(contaSelecionada)}
+                    className="px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Lançar Movimento
+                  </button>
+                )}
+                <button onClick={() => setModalExtratoAberto(false)} className="p-1.5 text-slate-400 hover:text-slate-900 transition-colors"><X className="w-5 h-5" /></button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50/30">
               <div className="bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
                 <table className="w-full text-sm text-left">
                   <thead>
                     <tr className="bg-slate-50">
-                      <th className="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">Data</th>
-                      <th className="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">Descrição / Tipo</th>
-                      <th className="px-8 py-4 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 text-right">Valor</th>
+                      <th className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">Data</th>
+                      <th className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100">Descrição / Tipo</th>
+                      <th className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {!contaSelecionada.transacoes || contaSelecionada.transacoes.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="px-8 py-16 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">
+                        <td colSpan={3} className="px-4 py-8 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">
                           Nenhuma movimentação financeira encontrada nesta conta
                         </td>
                       </tr>
@@ -1421,21 +1444,21 @@ export default function ContasPage() {
 
                         return (
                           <tr key={transacao.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-8 py-4 text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                            <td className="px-4 py-2 text-[11px] font-bold text-slate-500 whitespace-nowrap">
                               {formatarData(transacao.data)}
                             </td>
-                            <td className="px-8 py-4">
-                              <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-sm flex items-center justify-center border ${bgIconColor} shadow-sm`}>
-                                  <Icon className="w-5 h-5" />
+                            <td className="px-4 py-2">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-4 h-4 rounded-sm flex items-center justify-center border ${bgIconColor} shadow-sm`}>
+                                  <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="font-black text-slate-700 text-xs uppercase">{transacao.descricao}</span>
-                                  <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-1 font-bold">{transacao.tipo}</span>
+                                  {/* <span className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 font-bold">{transacao.tipo}</span> */}
                                 </div>
                               </div>
                             </td>
-                            <td className={`px-8 py-4 font-black text-xs text-right whitespace-nowrap ${valorColor}`}>
+                            <td className={`px-4 py-2 font-black text-xs text-right whitespace-nowrap ${valorColor}`}>
                               <div className="flex items-center justify-end gap-1">
                                 <span className="text-[10px]">{sinal}</span>
                                 {formatarMoeda(transacao.valor)}

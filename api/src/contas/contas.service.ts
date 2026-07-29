@@ -60,6 +60,7 @@ export class ContasService {
     const contas = await this.prisma.conta.findMany({
       where: { paroquiaId },
       include: {
+        paroquia: true,
         transacoes: {
           orderBy: { data: 'desc' }
         },

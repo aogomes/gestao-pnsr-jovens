@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Cookies from 'js-cookie';
 import { api } from '@/lib/api';
+import { hasPermission, Modulo } from '@/lib/permissions.config';
 import {
   LayoutDashboard,
   Users,
@@ -24,7 +26,8 @@ import {
   Briefcase,
   ShoppingBag,
   Package,
-  User
+  User,
+  Lock
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +36,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarAberta, setSidebarAberta] = useState(true);
   const [usuario, setUsuario] = useState<any>(null);
   const [temRifas, setTemRifas] = useState(true);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const [modalSenhaAberta, setModalSenhaAberta] = useState(false);
+  const [novaSenha, setNovaSenha] = useState('');
+  const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
+  const [loadingSenha, setLoadingSenha] = useState(false);
+
+  const handleAlterarSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (novaSenha !== confirmarNovaSenha) {
+      alert('As senhas não conferem');
+      return;
+    }
+    if (novaSenha.length < 6) {
+      alert('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+    try {
+      setLoadingSenha(true);
+      await api.patch(`/usuarios/${usuario.id}`, { senha: novaSenha });
+      alert('Senha alterada com sucesso!');
+      setModalSenhaAberta(false);
+      setNovaSenha('');
+      setConfirmarNovaSenha('');
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao alterar senha. Você pode não ter permissão.');
+    } finally {
+      setLoadingSenha(false);
+    }
+  };
 
   useEffect(() => {
     // 1. Verificação de Autenticação e Segurança
@@ -46,9 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setUsuario(user);
 
     // 1.5. Verificar se existem rifas ativas para exibir o menu
-    api.get('/rifas').then(res => {
+    api.get('/rifas/ativas').then(res => {
       const rifasData = Array.isArray(res.data) ? res.data : [];
-      let disponiveis = rifasData.filter((r: any) => ['ATIVA', 'PAUSADA'].includes(r.status));
+      let disponiveis = rifasData;
       disponiveis = disponiveis.filter((r: any) =>
         r.alocacoes?.some((a: any) => a.pessoaId === user.pessoaId)
       );
@@ -60,8 +93,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Regra de Segurança: Validar acesso à rota atual
     const itemAtual = itensNav.find(item => item.href === pathname);
-    if (itemAtual && !itemAtual.papeis.includes(user.papel)) {
-      router.push('/meu-painel');
+    if (itemAtual) {
+      const temAcesso = itemAtual.href === '/' ? user.papel === 'ADMIN' : hasPermission(user.papel, itemAtual.modulo as Modulo, 'ler');
+      if (!temAcesso) {
+        router.push('/meu-painel');
+      }
     }
 
     // 2. Lógica de Responsividade (Sidebar)
@@ -85,18 +121,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const itensNav = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard, papeis: ['ADMIN'] },
-    { name: 'Meu Painel', href: '/meu-painel', icon: UserIcon, papeis: ['ADMIN', 'USUARIO'] },
-    { name: 'Minhas Rifas', href: '/minhas-rifas', icon: Ticket, papeis: ['ADMIN', 'USUARIO'] },
-    { name: 'Contas', href: '/contas', icon: Wallet, papeis: ['ADMIN'] },
-    { name: 'Transações', href: '/transacoes', icon: ArrowRightLeft, papeis: ['ADMIN'] },
-    { name: 'Vendas', href: '/vendas', icon: ShoppingBag, papeis: ['ADMIN', 'USUARIO'] },
-    { name: 'Trabalhos', href: '/trabalhos', icon: Briefcase, papeis: ['ADMIN'] },
-    { name: 'Eventos', href: '/eventos', icon: CalendarDays, papeis: ['ADMIN'] },
-    { name: 'Inscrições', href: '/inscricoes', icon: UserCheck, papeis: ['ADMIN'] },
-    { name: 'Rifas (Gestão)', href: '/rifas', icon: Ticket, papeis: ['ADMIN'] },
-    { name: 'Pessoas', href: '/pessoas', icon: Users, papeis: ['ADMIN'] },
-    { name: 'Usuários', href: '/usuarios', icon: Shield, papeis: ['ADMIN'] },
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard, modulo: 'painel' },
+    { name: 'Meu Painel', href: '/meu-painel', icon: UserIcon, modulo: 'painel' },
+    { name: 'Minhas Rifas', href: '/minhas-rifas', icon: Ticket, modulo: 'minhas-rifas' },
+    { name: 'Contas', href: '/contas', icon: Wallet, modulo: 'contas' },
+    { name: 'Transações', href: '/transacoes', icon: ArrowRightLeft, modulo: 'transacoes' },
+    { name: 'Vendas', href: '/vendas', icon: ShoppingBag, modulo: 'vendas' },
+    { name: 'Trabalhos', href: '/trabalhos', icon: Briefcase, modulo: 'trabalhos' },
+    { name: 'Eventos', href: '/eventos', icon: CalendarDays, modulo: 'eventos' },
+    { name: 'Inscrições', href: '/inscricoes', icon: UserCheck, modulo: 'inscricoes' },
+    { name: 'Rifas (Gestão)', href: '/rifas', icon: Ticket, modulo: 'rifas' },
+    { name: 'Pessoas', href: '/pessoas', icon: Users, modulo: 'pessoas' },
+    { name: 'Usuários', href: '/usuarios', icon: Shield, modulo: 'usuarios' },
   ];
 
   let itensMenu = [...itensNav];
@@ -109,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="h-screen bg-[#f2f3f7] flex flex-col overflow-hidden">
       {/* Cabeçalho Principal */}
-      <header className="h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-[60] sticky top-0 shrink-0">
+      <header className="bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-[60] sticky top-0 shrink-0">
         <div className="flex items-center gap-4 lg:gap-6">
           {/* Menu Mobile Button - Exibido no topo apenas quando a barra inferior estiver oculta (ex: Vendas) */}
           {pathname === '/vendas' && (
@@ -119,12 +155,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
 
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[#1351b4] rounded flex items-center justify-center text-white shadow-sm">
-              <Wallet className="w-5 h-5 lg:w-6 lg:h-6" />
+            <div className="w-18 h-14 relative">
+              <Image
+                src="/logo-jmj.png"
+                alt="Logo JMJ Seul 2027"
+                fill
+                sizes="96px"
+                className="object-contain"
+                priority
+              />
             </div>
             <div className="flex flex-col">
-              <span className="text-base lg:text-xl font-black text-[#1351b4] leading-none tracking-tighter uppercase">PNSR JMJ</span>
-              <span className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 lg:mt-1 hidden xs:block">GESTÃO</span>
+              <span className="text-base lg:text-xl font-black text-[#1351b4] leading-none tracking-tighter uppercase">Peregrinação</span>
+              <span className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 lg:mt-1 xs:block">Paróquia Nossa Senhora do Rosário</span>
             </div>
           </div>
         </div>
@@ -137,14 +180,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3">
+          <div className="flex items-center gap-2 lg:gap-3 relative">
             <div className="text-right hidden sm:block">
               <p className="text-xs font-bold text-slate-900 leading-none">{usuario.nome}</p>
               <p className="text-[9px] lg:text-[10px] font-medium text-slate-400 mt-1 uppercase">{usuario.papel}</p>
             </div>
-            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#1351b4] font-bold text-[10px] lg:text-xs border border-slate-200 shadow-sm shrink-0">
+            <button
+              onClick={() => setDropdownAberto(!dropdownAberto)}
+              className="w-8 h-8 lg:w-9 lg:h-9 rounded-full bg-slate-100 flex items-center justify-center text-[#1351b4] font-bold text-[10px] lg:text-xs border border-slate-200 shadow-sm shrink-0 hover:bg-slate-200 transition-colors focus:outline-none"
+              title='Alterar senha'
+            >
               {usuario.nome?.charAt(0).toUpperCase() || 'U'}
-            </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {dropdownAberto && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setDropdownAberto(false)}
+                />
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50">
+                  <button
+                    onClick={() => {
+                      setDropdownAberto(false);
+                      setModalSenhaAberta(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <Lock className="w-4 h-4" />
+                    Alterar Senha
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -161,7 +230,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Sidebar */}
         <aside className={`
           ${sidebarAberta ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'} 
-          fixed lg:relative h-full pb-20 lg:pb-0
+          fixed lg:relative top-16 lg:top-0 bottom-16 lg:bottom-0 lg:h-full
           bg-white border-r border-slate-200 flex flex-col z-50 
           transition-all duration-300 ease-in-out overflow-visible
         `}>
@@ -174,7 +243,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
 
           <nav className="flex-1 py-4 lg:py-6 overflow-y-auto custom-scrollbar">
-            {itensMenu.filter(item => item.papeis.includes(usuario?.papel)).map((item) => {
+            {itensMenu.filter(item => item.href === '/' ? usuario?.papel === 'ADMIN' : hasPermission(usuario?.papel, item.modulo as Modulo, 'ler')).map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
@@ -186,11 +255,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     flex items-center gap-3 px-6 lg:px-8 py-3.5 transition-all relative group
                     ${isActive
                       ? 'text-[#1351b4] bg-[#1351b4]/5 font-bold'
-                      : 'text-slate-500 hover:text-[#1351b4] hover:bg-slate-50'}
+                      : 'text-slate-700 hover:text-[#1351b4] hover:bg-slate-50 font-medium'}
                   `}
                 >
                   {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#1351b4]" />}
-                  <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#1351b4]' : 'text-slate-400 group-hover:text-[#1351b4]'}`} />
+                  <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#1351b4]' : 'text-slate-500 group-hover:text-[#1351b4]'}`} />
                   {(sidebarAberta || window.innerWidth < 1024) && (
                     <span className="text-[13px] tracking-tight truncate">{item.name}</span>
                   )}
@@ -223,25 +292,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Bottom Navigation (Mobile Only) */}
       {pathname !== '/vendas' && (
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-16 z-[60] px-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
-          {itensMenu.find(i => i.href === '/meu-painel')?.papeis.includes(usuario?.papel) && (
+          {hasPermission(usuario?.papel, 'painel', 'ler') && (
             <Link href="/meu-painel" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/meu-painel' || pathname === '/' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
               <UserIcon className="w-5 h-5" />
               <span className="text-[9px] font-bold">Painel</span>
             </Link>
           )}
-          {itensMenu.find(i => i.href === '/trabalhos')?.papeis.includes(usuario?.papel) && (
+          {hasPermission(usuario?.papel, 'trabalhos', 'ler') && (
             <Link href="/trabalhos" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/trabalhos' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
               <Briefcase className="w-5 h-5" />
               <span className="text-[9px] font-bold truncate">Trabalhos</span>
             </Link>
           )}
-          {itensMenu.find(i => i.href === '/inscricoes')?.papeis.includes(usuario?.papel) && (
+          {hasPermission(usuario?.papel, 'inscricoes', 'ler') && (
             <Link href="/inscricoes" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/inscricoes' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
               <UserCheck className="w-5 h-5" />
               <span className="text-[9px] font-bold truncate">Inscrições</span>
             </Link>
           )}
-          {itensMenu.find(i => i.href === '/pessoas')?.papeis.includes(usuario?.papel) && (
+          {hasPermission(usuario?.papel, 'pessoas', 'ler') && (
             <Link href="/pessoas" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/pessoas' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
               <User className="w-5 h-5" />
               <span className="text-[9px] font-bold truncate">Pessoas</span>
@@ -252,6 +321,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-[9px] font-bold">Menu</span>
           </button>
         </nav>
+      )}
+
+      {/* Modal Alterar Senha */}
+      {modalSenhaAberta && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Alterar Senha</h2>
+              <button
+                onClick={() => setModalSenhaAberta(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAlterarSenha} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nova Senha</label>
+                <input
+                  type="password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1351b4] focus:border-transparent transition-all"
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Confirmar Nova Senha</label>
+                <input
+                  type="password"
+                  value={confirmarNovaSenha}
+                  onChange={(e) => setConfirmarNovaSenha(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1351b4] focus:border-transparent transition-all"
+                  placeholder="Confirme a nova senha"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalSenhaAberta(false)}
+                  className="px-5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingSenha}
+                  className="px-5 py-2 text-sm font-semibold text-white bg-[#1351b4] hover:bg-[#1351b4]/90 rounded-lg shadow-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loadingSenha ? 'Salvando...' : 'Salvar Nova Senha'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { uploadFile } from '@/lib/storage';
+import Cookies from 'js-cookie';
 import {
   Loader2,
   User,
@@ -65,6 +67,7 @@ export default function MeuPainelPage() {
     fotoPassaporte: '',
     perfis: [] as string[]
   });
+  const [arquivoPassaporte, setArquivoPassaporte] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   // Modal de Extrato e Pagamentos
@@ -73,6 +76,9 @@ export default function MeuPainelPage() {
   const [inscricaoSelecionada, setInscricaoSelecionada] = useState<any>(null);
   const [inscrevendo, setInscrevendo] = useState(false);
   const [eventoParaInscrever, setEventoParaInscrever] = useState<any>(null);
+  const [modalInscricaoAberto, setModalInscricaoAberto] = useState(false);
+  const [intencaoPagamento, setIntencaoPagamento] = useState('');
+  const [comunidadeInscricao, setComunidadeInscricao] = useState('');
 
   useEffect(() => {
     buscarDados();
@@ -82,7 +88,7 @@ export default function MeuPainelPage() {
     try {
       const [perfilRes, eventosRes] = await Promise.all([
         api.get('/pessoas/perfil/me'),
-        api.get('/eventos')
+        api.get('/eventos/ativos')
       ]);
       setPerfil(perfilRes.data);
 
@@ -128,8 +134,19 @@ export default function MeuPainelPage() {
         necessidadesMedicas: perfil.necessidadesMedicas || '',
         responsavelLegal: perfil.responsavelLegal || '',
         fotoPassaporte: perfil.fotoPassaporte || '',
-        perfis: perfil.perfis || []
+        perfis: Array.from(new Set(
+          (Array.isArray(perfil.perfis) ? perfil.perfis : (typeof perfil.perfis === 'string' ? JSON.parse(perfil.perfis) : []))
+            .flatMap((p: any) => {
+              try {
+                return typeof p === 'string' && p.startsWith('[') ? JSON.parse(p) : p;
+              } catch {
+                return p;
+              }
+            })
+            .filter(Boolean)
+        )) as string[]
       });
+      setArquivoPassaporte(null);
       setModalAberto(true);
     }
   };
@@ -138,7 +155,12 @@ export default function MeuPainelPage() {
     e.preventDefault();
     setEnviando(true);
     try {
-      await api.patch(`/pessoas/${perfil.id}`, dadosForm);
+      let urlFoto = dadosForm.fotoPassaporte;
+      if (arquivoPassaporte) {
+        urlFoto = await uploadFile(arquivoPassaporte, 'passaportes', 'pessoas');
+      }
+
+      await api.patch(`/pessoas/${perfil.id}`, { ...dadosForm, fotoPassaporte: urlFoto });
       setModalAberto(false);
       buscarDados();
     } catch (err: any) {
@@ -146,21 +168,52 @@ export default function MeuPainelPage() {
       alert('Erro ao atualizar perfil: ' + (Array.isArray(msg) ? msg.join(', ') : msg || err.message));
     } finally {
       setEnviando(false);
+      setArquivoPassaporte(null);
     }
   };
 
-  const realizarInscricao = async (evento: any) => {
+  const handleUploadFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('A foto deve ter no máximo 10MB.');
+      return;
+    }
+
+    setArquivoPassaporte(file);
+    setDadosForm({ ...dadosForm, fotoPassaporte: URL.createObjectURL(file) });
+  };
+
+  const abrirModalInscricao = (evento: any) => {
     if (!evento || inscrevendo) return;
-    if (!confirm(`Deseja solicitar inscrição no evento "${evento.nome}"?`)) return;
+    setEventoParaInscrever(evento);
+    setIntencaoPagamento('');
+    setComunidadeInscricao(perfil.comunidade || '');
+    setModalInscricaoAberto(true);
+  };
+
+  const confirmarInscricao = async () => {
+    if (!eventoParaInscrever || inscrevendo) return;
+
+    if (!comunidadeInscricao) {
+      alert('Por favor, selecione uma comunidade antes de prosseguir.');
+      return;
+    }
 
     setInscrevendo(true);
-    setEventoParaInscrever(evento);
     try {
+      if (comunidadeInscricao !== perfil.comunidade) {
+        await api.patch(`/pessoas/${perfil.id}`, { comunidade: comunidadeInscricao });
+      }
+
       await api.post('/inscricoes', {
         pessoaId: perfil.id,
-        eventoId: evento.id
+        eventoId: eventoParaInscrever.id,
+        intencaoPagamento
       });
       buscarDados();
+      setModalInscricaoAberto(false);
       alert('Solicitação de inscrição enviada! Aguarde a confirmação do administrador.');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Erro ao realizar inscrição.');
@@ -203,10 +256,10 @@ export default function MeuPainelPage() {
   if (!perfil) return null;
 
   return (
-    <div className="h-full flex flex-col space-y-6 pb-10">
+    <div className="h-full flex flex-col space-y-4 pb-6">
 
       {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 px-2 sm:px-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-2 sm:px-0">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-[#1351b4] uppercase tracking-tight">Meu Painel Pessoal</h1>
           <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest mt-1">Visão geral da sua conta e atividades</p>
@@ -214,9 +267,9 @@ export default function MeuPainelPage() {
       </div>
 
       {/* SEÇÃO 1: PERFIL E SALDO (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 sm:p-8 relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-3 sm:p-5 relative overflow-hidden">
 
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-10">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-8">
 
           {/* Avatar e Nome */}
           <div className="flex flex-col lg:w-1/3 gap-3">
@@ -224,11 +277,21 @@ export default function MeuPainelPage() {
               <div className="w-8 h-8 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#90a1b9] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
                 {perfil?.id?.toString().padStart(3, '0')}
               </div>
-              <div className="flex flex-col w-full">
+              <div className="flex flex-col">
                 <h2 className="w-full font-black uppercase tracking-tight leading-tight">{perfil.nome}</h2>
                 {perfil?.perfis && perfil.perfis.length > 0 && (
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                    {perfil.perfis.join(' • ')}
+                    {Array.from(new Set(
+                      (Array.isArray(perfil.perfis) ? perfil.perfis : [perfil.perfis])
+                        .flatMap((p: any) => {
+                          try {
+                            return typeof p === 'string' && p.startsWith('[') ? JSON.parse(p) : p;
+                          } catch {
+                            return p;
+                          }
+                        })
+                        .filter(Boolean)
+                    )).join(' • ')}
                   </span>
                 )}
               </div>
@@ -271,11 +334,11 @@ export default function MeuPainelPage() {
           <div className="hidden lg:block w-px h-16 bg-slate-100" />
 
           {/* Card de Saldo Integrado com Botão de Extrato */}
-          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-6 rounded-sm relative overflow-hidden flex flex-col justify-center min-h-[120px] shadow-sm">
+          <div className="lg:w-1/3 bg-blue-50/50 border border-blue-100 p-4 rounded-sm relative overflow-hidden flex flex-col justify-center min-h-[90px] shadow-sm">
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1351b4]/5 rounded-bl-full pointer-events-none" />
 
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4 text-[#1351b4]" />
                 <span className="text-[10px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
               </div>
@@ -301,7 +364,7 @@ export default function MeuPainelPage() {
       </div>
 
       {/* SEÇÃO 2: INSCRIÇÕES E EVENTOS (HORIZONTAL) */}
-      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-4 sm:p-8 flex flex-col space-y-6">
+      <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-3 sm:p-5 flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-[#1351b4] shadow-sm">
@@ -314,67 +377,74 @@ export default function MeuPainelPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Eventos Inscritos */}
-          {perfil.inscricoes && perfil.inscricoes.map((insc: any) => {
-            const totalPago = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+          {perfil.inscricoes && perfil.inscricoes
+            .filter((insc: any) => {
+              const hoje = new Date();
+              hoje.setHours(0, 0, 0, 0);
+              const dataFim = new Date(insc.evento.dataFim);
+              return dataFim >= hoje && insc.evento.status === 'ATIVO';
+            })
+            .map((insc: any) => {
+              const totalPago = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
 
-            return (
-              <div key={insc.id} className="bg-slate-50 border border-slate-200 rounded-sm p-5 hover:border-[#1351b4] transition-all group relative">
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-[#1351b4] shadow-sm">
-                      <Trophy className="w-5 h-5" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                        insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                          insc.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                            'bg-slate-50 text-slate-400 border-slate-100'
-                        }`}>
-                        {insc.status === 'CONFIRMADO' ? 'Confirmado' :
-                          insc.status === 'EM_ANALISE' ? 'Em Análise' :
-                            insc.status === 'CANCELADO' ? 'Cancelado' :
-                              'Pendente'}
-                      </span>
-                    </div>
-                  </div>
-                  <h4 className="font-black text-slate-700 text-xs uppercase tracking-tight truncate">{insc.evento.nome}</h4>
-                  <div className="flex flex-col gap-1 mt-1">
-                    <span className="text-[11px] text-slate-500 font-bold">
-                      Data: {formatarData(insc.evento.dataInicio)} até {formatarData(insc.evento.dataFim)}
-                    </span>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50">
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Pago</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-black text-emerald-600">{formatarMoeda(totalPago)}</span>
-                          <button
-                            onClick={() => {
-                              setInscricaoSelecionada(insc);
-                              setModalPagamentosInscAberto(true);
-                            }}
-                            className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
-                            title="Ver histórico de pagamentos"
-                          >
-                            <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
-                          </button>
-                        </div>
+              return (
+                <div key={insc.id} className="bg-slate-50 border border-slate-200 rounded-sm p-4 hover:border-[#1351b4] transition-all group relative">
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-[#1351b4] shadow-sm">
+                        <Trophy className="w-5 h-5" />
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Total</span>
-                        <span className="text-[11px] font-black text-slate-600">{formatarMoeda(insc.evento.valor)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                            insc.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                              'bg-slate-50 text-slate-400 border-slate-100'
+                          }`}>
+                          {insc.status === 'CONFIRMADO' ? 'Confirmado' :
+                            insc.status === 'EM_ANALISE' ? 'Em Análise' :
+                              insc.status === 'CANCELADO' ? 'Cancelado' :
+                                'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+                    <h4 className="font-black text-slate-700 text-xs uppercase tracking-tight truncate">{insc.evento.nome}</h4>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <span className="text-[11px] text-slate-500 font-bold">
+                        Data: {formatarData(insc.evento.dataInicio)} até {formatarData(insc.evento.dataFim)}
+                      </span>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50">
+                        <div className="flex flex-col">
+                          <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Pago</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-black text-emerald-600">{formatarMoeda(totalPago)}</span>
+                            <button
+                              onClick={() => {
+                                setInscricaoSelecionada(insc);
+                                setModalPagamentosInscAberto(true);
+                              }}
+                              className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
+                              title="Ver histórico de pagamentos"
+                            >
+                              <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Total</span>
+                          <span className="text-[11px] font-black text-slate-600">{formatarMoeda(insc.evento.valor)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
           {/* Eventos Disponíveis (Para Inscrição) */}
           {eventosDisponiveis.map((evento: any) => (
-            <div key={evento.id} className="bg-blue-50/30 border border-blue-100 rounded-sm p-5 hover:border-[#1351b4] transition-all group relative flex flex-col justify-between">
+            <div key={evento.id} className="bg-blue-50/30 border border-blue-100 rounded-sm p-4 hover:border-[#1351b4] transition-all group relative flex flex-col justify-between">
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="w-10 h-10 rounded-lg bg-white border border-blue-100 flex items-center justify-center text-[#1351b4] shadow-sm">
@@ -399,7 +469,7 @@ export default function MeuPainelPage() {
               </div>
               <button
                 disabled={inscrevendo}
-                onClick={() => realizarInscricao(evento)}
+                onClick={() => abrirModalInscricao(evento)}
                 className="mt-4 w-full py-2 bg-[#1351b4] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md disabled:opacity-50"
               >
                 {inscrevendo && eventoParaInscrever?.id === evento.id ? 'Processando...' : 'Inscreva-se Agora'}
@@ -699,17 +769,17 @@ export default function MeuPainelPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
-            <div className="px-10 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">Atualizar Perfil</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Mantenha seus dados de contato em dia</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Mantenha seus dados atualizados</p>
               </div>
               <button onClick={() => setModalAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
               <form onSubmit={confirmarEnvioPerfil} className="space-y-6">
 
                 {/* Grid para os campos */}
@@ -719,13 +789,13 @@ export default function MeuPainelPage() {
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Completo</label>
                     <div className="relative group">
-                      <User className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         required
                         value={dadosForm.nome}
                         onChange={(e) => setDadosForm({ ...dadosForm, nome: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
                       />
                     </div>
                   </div>
@@ -734,12 +804,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nascimento</label>
                     <div className="relative group">
-                      <CalendarDays className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <CalendarDays className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="date"
                         value={dadosForm.dataNascimento}
                         onChange={(e) => setDadosForm({ ...dadosForm, dataNascimento: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -748,11 +818,11 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Sexo</label>
                     <div className="relative group">
-                      <UserCheck className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <UserCheck className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <select
                         value={dadosForm.sexo}
                         onChange={(e) => setDadosForm({ ...dadosForm, sexo: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       >
                         <option value="">Selecione</option>
                         <option value="Masculino">Masculino</option>
@@ -766,12 +836,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">CPF</label>
                     <div className="relative group">
-                      <Fingerprint className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Fingerprint className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.documento}
                         onChange={(e) => setDadosForm({ ...dadosForm, documento: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -780,12 +850,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
                     <div className="relative group">
-                      <Phone className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.telefone}
                         onChange={(e) => setDadosForm({ ...dadosForm, telefone: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -794,12 +864,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">RG</label>
                     <div className="relative group">
-                      <Fingerprint className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Fingerprint className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.rg}
                         onChange={(e) => setDadosForm({ ...dadosForm, rg: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -808,12 +878,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Orgão Emissor</label>
                     <div className="relative group">
-                      <Fingerprint className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Fingerprint className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.orgaoEmissor}
                         onChange={(e) => setDadosForm({ ...dadosForm, orgaoEmissor: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -822,12 +892,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail de Acesso</label>
                     <div className="relative group">
-                      <Mail className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="email"
                         value={dadosForm.email}
                         onChange={(e) => setDadosForm({ ...dadosForm, email: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -836,12 +906,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail do Responsável</label>
                     <div className="relative group">
-                      <Mail className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="email"
                         value={dadosForm.emailResponsavel}
                         onChange={(e) => setDadosForm({ ...dadosForm, emailResponsavel: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="E-mail do pai/responsável (preencher se for dependente)"
                       />
                     </div>
@@ -851,12 +921,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">E-mail do Responsável 2</label>
                     <div className="relative group">
-                      <Mail className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="email"
                         value={dadosForm.emailResponsavel2}
                         onChange={(e) => setDadosForm({ ...dadosForm, emailResponsavel2: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="E-mail do 2º responsável (opcional)"
                       />
                     </div>
@@ -866,13 +936,17 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Comunidade</label>
                     <div className="relative group">
-                      <Church className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-                      <input
-                        type="text"
+                      <Church className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <select
                         value={dadosForm.comunidade}
                         onChange={(e) => setDadosForm({ ...dadosForm, comunidade: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
-                      />
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecione uma comunidade...</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                          <option key={num} value={`Comunidade ${num}`}>Comunidade {num}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -880,12 +954,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Passaporte</label>
                     <div className="relative group">
-                      <Fingerprint className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <Fingerprint className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.passaporte}
                         onChange={(e) => setDadosForm({ ...dadosForm, passaporte: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="EX.: AB123456"
                       />
                     </div>
@@ -895,12 +969,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Emissão/Validade</label>
                     <div className="relative group">
-                      <CalendarDays className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <CalendarDays className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.passaporteEmissaoValidade}
                         onChange={(e) => setDadosForm({ ...dadosForm, passaporteEmissaoValidade: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="Ex.: Emitido: 10/01/2020 · Válido até: 10/01/2030"
                       />
                     </div>
@@ -910,11 +984,11 @@ export default function MeuPainelPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Camiseta</label>
                     <div className="relative group">
-                      <User className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <select
                         value={dadosForm.camiseta}
                         onChange={(e) => setDadosForm({ ...dadosForm, camiseta: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       >
                         <option value="">Selecione</option>
                         <option value="PP">PP</option>
@@ -944,12 +1018,12 @@ export default function MeuPainelPage() {
                     <div className="space-y-2 sm:col-span-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nome cônjuge</label>
                       <div className="relative group">
-                        <User className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                        <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                         <input
                           type="text"
                           value={dadosForm.nomeConjuge}
                           onChange={(e) => setDadosForm({ ...dadosForm, nomeConjuge: e.target.value })}
-                          className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
+                          className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
                         />
                       </div>
                     </div>
@@ -963,7 +1037,7 @@ export default function MeuPainelPage() {
                       <textarea
                         value={dadosForm.necessidadesMedicas}
                         onChange={(e) => setDadosForm({ ...dadosForm, necessidadesMedicas: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 h-24"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 h-24"
                       />
                     </div>
                   </div>
@@ -972,12 +1046,12 @@ export default function MeuPainelPage() {
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Responsável Legal (para menores)</label>
                     <div className="relative group">
-                      <User className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                       <input
                         type="text"
                         value={dadosForm.responsavelLegal}
                         onChange={(e) => setDadosForm({ ...dadosForm, responsavelLegal: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
+                        className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
                       />
                     </div>
                   </div>
@@ -986,12 +1060,59 @@ export default function MeuPainelPage() {
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Foto do Passaporte</label>
                     <div className="border-2 border-dashed border-slate-200 rounded-sm p-6 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors">
-                      <Plus className="w-6 h-6 text-slate-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-600">Nenhuma foto de passaporte cadastrada ainda.</span>
-                      <button type="button" className="mt-4 px-4 py-2 bg-[#1351b4] text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md">
-                        Enviar foto
-                      </button>
-                      <span className="text-[9px] text-slate-400 mt-2">Aceito: JPG, PNG, WEBP ou PDF · Máx. 10 MB.</span>
+                      {dadosForm.fotoPassaporte ? (
+                        <div className="flex flex-col items-center">
+                          {(() => {
+                            const isBase64 = dadosForm.fotoPassaporte.startsWith('data:image');
+                            const isPdfBase64 = dadosForm.fotoPassaporte.startsWith('data:application/pdf');
+                            const extMatch = dadosForm.fotoPassaporte.match(/\.(jpeg|jpg|gif|png|webp|pdf)($|\?)/i);
+                            const isImg = isBase64 || (extMatch && extMatch[1].toLowerCase() !== 'pdf');
+                            const isPdfUrl = isPdfBase64 || (extMatch && extMatch[1].toLowerCase() === 'pdf');
+                            
+                            const fileUrl = dadosForm.fotoPassaporte.startsWith('http') || dadosForm.fotoPassaporte.startsWith('data:') 
+                              ? dadosForm.fotoPassaporte 
+                              : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(dadosForm.fotoPassaporte)}&token=${Cookies.get('gf_token')}`;
+
+                            return (
+                              <>
+                                {isImg ? (
+                                  <a href={fileUrl} target="_blank" rel="noreferrer" className="block mb-2">
+                                    <img src={fileUrl} alt="Passaporte" className="max-h-32 rounded-md object-contain shadow-sm hover:opacity-90 transition-opacity" />
+                                  </a>
+                                ) : isPdfUrl ? (
+                                  <div className="flex items-center gap-2 mb-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-md border border-rose-100">
+                                    <span className="text-sm font-bold">PDF Anexado</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm font-bold mb-2 break-all text-center text-[#1351b4]">Arquivo Anexado</span>
+                                )}
+                                <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-[#1351b4] hover:underline mb-2">
+                                  Ver em nova aba
+                                </a>
+                              </>
+                            );
+                          })()}
+                          <button type="button" onClick={() => { setDadosForm({ ...dadosForm, fotoPassaporte: '' }); setArquivoPassaporte(null); }} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors">
+                            Remover arquivo
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Plus className="w-6 h-6 text-slate-400 mb-2" />
+                          <span className="text-xs font-bold text-slate-600 text-center">Nenhuma foto de passaporte cadastrada ainda.</span>
+                          
+                          <label className="mt-4 px-4 py-2 bg-[#1351b4] text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md cursor-pointer inline-flex items-center justify-center">
+                            Enviar foto
+                            <input 
+                              type="file" 
+                              accept=".jpg,.jpeg,.png,.webp,.pdf" 
+                              className="hidden" 
+                              onChange={handleUploadFoto}
+                            />
+                          </label>
+                          <span className="text-[9px] text-slate-400 mt-2">Aceito: JPG, PNG, WEBP ou PDF · Máx. 10 MB.</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1007,14 +1128,14 @@ export default function MeuPainelPage() {
                           <input
                             type="checkbox"
                             id={`perf-${perf}`}
-                            checked={dadosForm.perfis.includes(perf)}
+                            checked={dadosForm.perfis?.some(p => p && p.toLowerCase() === perf.toLowerCase()) || false}
                             onChange={(e) => {
                               const checked = e.target.checked;
                               setDadosForm((prev) => ({
                                 ...prev,
                                 perfis: checked
-                                  ? [...prev.perfis, perf]
-                                  : prev.perfis.filter((p) => p !== perf)
+                                  ? [...(prev.perfis || []), perf]
+                                  : (prev.perfis || []).filter((p) => p && p.toLowerCase() !== perf.toLowerCase())
                               }));
                             }}
                             className="w-4 h-4 text-[#1351b4] focus:ring-[#1351b4]/5 border-slate-200 rounded"
@@ -1039,13 +1160,106 @@ export default function MeuPainelPage() {
                   <button
                     type="submit"
                     disabled={enviando}
-                    className="px-10 py-4 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
+                    className="px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
                   >
                     {enviando && <Loader2 className="w-4 h-4 animate-spin" />}
                     Salvar Alterações
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Inscrição e Intenção de Pagamento */}
+      {modalInscricaoAberto && eventoParaInscrever && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">Confirma Inscrição?</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{eventoParaInscrever.nome}</p>
+              </div>
+              <button onClick={() => setModalInscricaoAberto(false)} className="p-1 text-slate-400 hover:text-slate-900 transition-colors">
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Resumo dos Dados */}
+              <div className="bg-blue-50/50 p-4 border border-blue-100 rounded-sm">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Seus Dados</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold text-slate-700">
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest">Nome</span>
+                    <span className="truncate">{perfil.nome}</span>
+                  </div>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest">E-mail</span>
+                    <span className="truncate">{perfil.email || 'Não informado'}</span>
+                  </div>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest">Telefone</span>
+                    <span className="truncate">{perfil.telefone || 'Não informado'}</span>
+                  </div>
+                  <div className="flex flex-col overflow-hidden col-span-1 sm:col-span-2">
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Comunidade</span>
+                    <select
+                      value={comunidadeInscricao}
+                      onChange={(e) => setComunidadeInscricao(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-blue-200 rounded-sm text-xs focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] transition-all text-slate-700 font-bold uppercase appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione...</option>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                        <option key={num} value={`Comunidade ${num}`}>Comunidade {num}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Questionário */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-black text-slate-700 uppercase tracking-tight block">
+                  Qual será a principal forma de custeio da sua viagem?
+                </label>
+                <div className="flex flex-col gap-2">
+                  {[
+                    'Recursos próprios',
+                    'Suporte familiar ou de terceiros',
+                    'Outra forma / Ainda em planejamento'
+                  ].map((opcao) => (
+                    <label key={opcao} className={`flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-all ${intencaoPagamento === opcao ? 'border-[#1351b4] bg-[#1351b4]/5' : 'border-slate-200 hover:border-slate-300'}`}>
+                      <input
+                        type="radio"
+                        name="intencaoPagamento"
+                        value={opcao}
+                        checked={intencaoPagamento === opcao}
+                        onChange={(e) => setIntencaoPagamento(e.target.value)}
+                        className="w-4 h-4 text-[#1351b4] focus:ring-[#1351b4] border-slate-300"
+                      />
+                      <span className="text-xs font-bold text-slate-700 uppercase">{opcao}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setModalInscricaoAberto(false)}
+                className="px-4 py-2 text-slate-500 hover:text-slate-800 text-[10px] font-black uppercase tracking-widest transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={inscrevendo || !intencaoPagamento || !comunidadeInscricao}
+                onClick={confirmarInscricao}
+                className="px-5 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
+              >
+                {inscrevendo && <Loader2 className="w-3 h-3 animate-spin" />}
+                Confirmar Inscrição
+              </button>
             </div>
           </div>
         </div>

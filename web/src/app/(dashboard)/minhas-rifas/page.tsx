@@ -123,8 +123,8 @@ export default function MinhasRifasPage() {
       const user = dadosUser ? JSON.parse(dadosUser) : null;
 
       const [resRifas, resPessoas] = await Promise.all([
-        api.get('/rifas').catch(err => {
-          console.error('Falha ao carregar /rifas:', err);
+        api.get('/rifas/ativas').catch(err => {
+          console.error('Falha ao carregar /rifas/ativas:', err);
           return { data: [] };
         }),
         api.get('/pessoas').catch(err => {
@@ -136,7 +136,7 @@ export default function MinhasRifasPage() {
       const rifasData = Array.isArray(resRifas.data) ? resRifas.data : [];
       const pessoasData = Array.isArray(resPessoas.data) ? resPessoas.data : [];
 
-      let disponiveis = rifasData.filter((r: any) => ['ATIVA', 'PAUSADA'].includes(r.status));
+      let disponiveis = rifasData;
 
       // Filtro: Mostrar apenas rifas onde o usuário tem alocação
       if (user) {

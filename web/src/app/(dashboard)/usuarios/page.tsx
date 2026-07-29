@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { hasPermission, PapelUsuario } from '@/lib/permissions.config';
+import Cookies from 'js-cookie';
 import {
   Plus,
   Shield,
@@ -27,6 +29,9 @@ export default function UsuariosPage() {
   const [termoBusca, setTermoBusca] = useState('');
   const [menuAbertoId, setMenuAbertoId] = useState<number | null>(null);
 
+  // Permissões
+  const [podeEditar, setPodeEditar] = useState(false);
+
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [usuarioEdicao, setUsuarioEdicao] = useState<any>(null);
@@ -34,6 +39,15 @@ export default function UsuariosPage() {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
+    const userStr = Cookies.get('gf_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setPodeEditar(hasPermission(user.papel as PapelUsuario, 'usuarios', 'escrever'));
+      } catch (e) {
+        console.error('Erro ao ler usuário do cookie');
+      }
+    }
     buscarUsuarios();
   }, []);
 
@@ -133,13 +147,15 @@ export default function UsuariosPage() {
                 className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
               />
             </div>
-            <button
-              onClick={() => abrirModal()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Novo Usuário
-            </button>
+            {podeEditar && (
+              <button
+                onClick={() => abrirModal()}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                Novo Usuário
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -149,7 +165,7 @@ export default function UsuariosPage() {
                 <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Identificação</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nível de Acesso</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Cadastro em</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
+                {podeEditar && <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -188,36 +204,38 @@ export default function UsuariosPage() {
                     <td className="px-2 py-2 border-b border-slate-100">
                       <span className="text-slate-500 font-bold text-xs uppercase">{new Date(usuario.criadoEm).toLocaleDateString('pt-BR')}</span>
                     </td>
-                    <td className="px-2 py-2 border-b border-slate-100 text-center relative">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => setMenuAbertoId(menuAbertoId === usuario.id ? null : usuario.id)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
+                    {podeEditar && (
+                      <td className="px-2 py-2 border-b border-slate-100 text-center relative">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => setMenuAbertoId(menuAbertoId === usuario.id ? null : usuario.id)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
 
-                        {menuAbertoId === usuario.id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
-                            <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
-                              <button
-                                onClick={() => { setMenuAbertoId(null); abrirModal(usuario); }}
-                                className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
-                              >
-                                <Pencil className="w-3.5 h-3.5" /> Editar
-                              </button>
-                              <button
-                                onClick={() => { setMenuAbertoId(null); confirmarExclusao(usuario.id); }}
-                                className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" /> Excluir
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </td>
+                          {menuAbertoId === usuario.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModal(usuario); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" /> Editar
+                                </button>
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); confirmarExclusao(usuario.id); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -283,6 +301,9 @@ export default function UsuariosPage() {
                       className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                     >
                       <option value="USUARIO">USUÁRIO PADRÃO</option>
+                      <option value="CONSULTOR">CONSULTOR</option>
+                      <option value="GESTOR">GESTOR</option>
+                      <option value="AUDITOR">AUDITOR</option>
                       <option value="ADMIN">ADMINISTRADOR</option>
                     </select>
                     <ChevronDownIcon className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />

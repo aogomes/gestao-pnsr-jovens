@@ -1,6 +1,7 @@
 import { Controller, Get, Query, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
+import { PermissionsGuard } from '../autenticacao/permissions.guard';
 import { createClient } from '@supabase/supabase-js';
 
 @Controller('arquivos')
@@ -17,7 +18,7 @@ export class ArquivosController {
   }
 
   @Get('download')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
   async downloadFile(
     @Query('bucket') bucket: string,
     @Query('path') path: string,

@@ -17,6 +17,7 @@ import { VendasModule } from './vendas/vendas.module';
 import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extrato.module';
 import { ArquivosModule } from './arquivos/arquivos.module';
 
+
 @Module({
   imports: [
     PrismaModule, 
@@ -36,6 +37,8 @@ import { ArquivosModule } from './arquivos/arquivos.module';
     ArquivosModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService
+  ],
 })
 export class AppModule {}
