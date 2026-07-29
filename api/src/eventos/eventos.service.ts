@@ -28,6 +28,15 @@ export class EventosService {
     });
   }
 
+  buscarAtivos() {
+    return this.prisma.evento.findMany({
+      where: { status: 'ATIVO' },
+      include: {
+        paroquia: true,
+      },
+    });
+  }
+
   buscarUm(id: number) {
     return this.prisma.evento.findUnique({
       where: { id },

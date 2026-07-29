@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import Cookies from 'js-cookie';
-import { Wallet, Mail, Lock, Loader2, ArrowRight, ShieldCheck, UserPlus, User } from 'lucide-react';
+import { Wallet, Mail, Lock, Loader2, ArrowRight, ShieldCheck, UserPlus, User, Church } from 'lucide-react';
 
 export default function LoginPage() {
   const [isRegistro, setIsRegistro] = useState(false);
@@ -14,7 +15,18 @@ export default function LoginPage() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [paroquiaId, setParoquiaId] = useState('');
+  const [comunidade, setComunidade] = useState('');
+  const [paroquias, setParoquias] = useState<any[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    if (isRegistro) {
+      api.get('/paroquias')
+        .then(res => setParoquias(res.data))
+        .catch(err => console.error('Erro ao buscar paroquias:', err));
+    }
+  }, [isRegistro]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +40,14 @@ export default function LoginPage() {
           setCarregando(false);
           return;
         }
-        const resposta = await api.post('/autenticacao/registrar', { nome, login, senha, confirmarSenha });
+
+        const payload: any = { nome, login, senha, confirmarSenha };
+        if (comunidade) payload.comunidade = comunidade;
+        if (paroquiaId) {
+          payload.paroquiaId = Number(paroquiaId);
+        }
+
+        const resposta = await api.post('/autenticacao/registrar', payload);
         const { access_token, usuario } = resposta.data;
         Cookies.set('gf_token', access_token, { expires: 7 });
         Cookies.set('gf_user', JSON.stringify(usuario), { expires: 7 });
@@ -64,29 +83,34 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo Area */}
           <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-[#1351b4] rounded flex items-center justify-center mb-6 shadow-xl shadow-blue-900/10">
-              <Wallet className="w-8 h-8 text-white" />
+            <div className="w-40 h-40 mb-4 relative">
+              <Image
+                src="/logo-jmj.png"
+                alt="Logo JMJ Seul 2027"
+                fill
+                sizes="160px"
+                className="object-contain"
+                priority
+              />
             </div>
-            <h1 className="text-3xl font-black text-[#1351b4] tracking-tighter text-center uppercase">
-              PNSR JMJ
-            </h1>
-            <p className="text-slate-400 mt-2 font-bold uppercase tracking-[0.2em] text-[9px]">Acesso ao Sistema de Gestão</p>
+            <h4 className="text-2xl font-black text-[#1351b4] tracking-tighter text-center uppercase">
+              Peregrinação
+            </h4>
+            <p className="text-slate-400 mt-2 font-bold uppercase tracking-[0.2em] text-[9px]"> Paróquia Nossa Senhora do Rosário</p>
           </div>
 
           {/* Login/Register Card */}
-          <div className="bg-white border border-slate-200 rounded-sm shadow-2xl p-10 space-y-6 relative">
+          <div className="bg-white border border-slate-200 rounded-sm shadow-2xl p-6 space-y-6 relative">
             <div className="absolute top-0 left-0 w-full h-1 bg-[#1351b4]" />
 
-            <div className="flex items-center justify-between">
+            {isRegistro && (<div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  {isRegistro ? 'Criar Nova Conta' : 'Identificação'}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isRegistro ? 'Preencha os dados para se cadastrar.' : 'Utilize suas credenciais para acessar.'}
+                <p className="text-xs text-slate-600 mt-1">
+                  Preencha os dados abaixo para se cadastrar.
                 </p>
               </div>
             </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {erro && (
@@ -96,28 +120,72 @@ export default function LoginPage() {
               )}
 
               {isRegistro && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="nome">
-                    Nome Completo
-                  </label>
-                  <div className="relative group">
-                    <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
-                    <input
-                      id="nome"
-                      type="text"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:bg-white focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4]/10 transition-all font-bold text-slate-700"
-                      placeholder="Seu nome"
-                      required
-                    />
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="nome">
+                      Nome Completo
+                    </label>
+                    <div className="relative group">
+                      <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <input
+                        id="nome"
+                        type="text"
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:bg-white focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4]/10 transition-all font-bold text-slate-700"
+                        placeholder="Seu nome"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="paroquia">
+                      Paróquia
+                    </label>
+                    <div className="relative group">
+                      <Church className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <select
+                        id="paroquia"
+                        value={paroquiaId}
+                        onChange={(e) => setParoquiaId(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:bg-white focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4]/10 transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="">Selecione sua paróquia</option>
+                        {paroquias.map((p) => (
+                          <option key={p.id} value={p.id}>{p.nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="comunidade">
+                      Comunidade
+                    </label>
+                    <div className="relative group">
+                      <Church className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <select
+                        id="comunidade"
+                        value={comunidade}
+                        onChange={(e) => setComunidade(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:bg-white focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4]/10 transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+                        required
+                      >
+                        <option value="">Selecione sua comunidade...</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                          <option key={num} value={`Comunidade ${num}`}>Comunidade {num}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="login">
-                  E-mail institucional
+                  Usuário (E-mail)
                 </label>
                 <div className="relative group">
                   <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
@@ -135,7 +203,7 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="password">
-                  Chave de Acesso
+                  Senha
                 </label>
                 <div className="relative group">
                   <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
@@ -154,7 +222,7 @@ export default function LoginPage() {
               {isRegistro && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" htmlFor="confirmPassword">
-                    Confirmar Chave
+                    Confirmar Senha
                   </label>
                   <div className="relative group">
                     <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
@@ -206,13 +274,6 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded text-[9px] font-bold text-[#168821] uppercase tracking-widest">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Conexão Segura e Criptografada
-            </div>
           </div>
         </div>
       </div>

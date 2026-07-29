@@ -131,15 +131,16 @@ model Evento {
 }
 
 model Inscricao {
-  id           Int      @id @default(autoincrement())
-  pessoaId     Int
-  pessoa       Pessoa   @relation(fields: [pessoaId], references: [id])
-  eventoId     Int
-  evento       Evento   @relation(fields: [eventoId], references: [id])
-  status       StatusInscricao @default(PENDENTE)
-  transacoes   Transacao[]   // Relação reversa para Transacao
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  pessoaId          Int
+  pessoa            Pessoa   @relation(fields: [pessoaId], references: [id])
+  eventoId          Int
+  evento            Evento   @relation(fields: [eventoId], references: [id])
+  status            StatusInscricao @default(PENDENTE)
+  intencaoPagamento String?
+  transacoes        Transacao[]   // Relação reversa para Transacao
+  criadoEm          DateTime @default(now())
+  atualizadoEm      DateTime @updatedAt
 
   @@unique([pessoaId, eventoId])
   @@map("inscricoes")
@@ -149,6 +150,9 @@ model Inscricao {
 
 enum PapelUsuario {
   ADMIN
+  AUDITOR
+  GESTOR
+  CONSULTOR
   USUARIO
 }
 

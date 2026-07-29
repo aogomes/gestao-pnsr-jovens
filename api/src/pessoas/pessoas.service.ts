@@ -11,7 +11,7 @@ export class PessoasService {
   async criar(createPessoaDto: CreatePessoaDto, user: any) {
     const dados: any = { 
       ...createPessoaDto,
-      paroquiaId: user.papel === 'ADMIN' ? (createPessoaDto.paroquiaId || user.paroquiaId) : user.paroquiaId
+      paroquiaId: ['ADMIN', 'AUDITOR'].includes(user.papel) ? (createPessoaDto.paroquiaId || user.paroquiaId) : user.paroquiaId
     };
     if (dados.email === '') dados.email = null;
     if (dados.dataNascimento === '') dados.dataNascimento = null;
@@ -50,6 +50,7 @@ export class PessoasService {
     
     transacoes.forEach((t: any) => {
       if (!t.eventoId) return;
+      if (t.evento && t.evento.status !== 'ATIVO') return;
       if (!eventosMap[t.eventoId]) {
         eventosMap[t.eventoId] = { id: t.eventoId, nome: t.evento?.nome || `Evento #${t.eventoId}`, receitas: 0, despesas: 0 };
       }
@@ -78,7 +79,7 @@ export class PessoasService {
   }
 
   async buscarTodas(user: any) {
-    const where = user.papel === 'ADMIN' ? { ativo: true } : { paroquiaId: user.paroquiaId, ativo: true };
+    const where = ['ADMIN', 'AUDITOR'].includes(user.papel) ? { ativo: true } : { paroquiaId: user.paroquiaId, ativo: true };
     const pessoas = await this.prisma.pessoa.findMany({
       where,
       include: { 
@@ -91,9 +92,19 @@ export class PessoasService {
     
     const pessoaIds = pessoas.map(p => p.id);
     
+    const eventosAtivosInfo = await this.prisma.evento.findMany({ where: { status: 'ATIVO' }, select: { id: true, nome: true } });
+    const ativosIds = eventosAtivosInfo.map(e => e.id);
+    const nomeEventosMap = eventosAtivosInfo.reduce((acc, ev) => ({ ...acc, [ev.id]: ev.nome }), {} as Record<number, string>);
+
     const saldosGerais = await this.prisma.transacao.groupBy({
       by: ['pessoaId', 'tipo'],
-      where: { pessoaId: { in: pessoaIds } },
+      where: { 
+        pessoaId: { in: pessoaIds },
+        OR: [
+          { eventoId: { in: ativosIds } },
+          { eventoId: null }
+        ]
+      },
       _sum: { valor: true }
     });
 
@@ -109,12 +120,9 @@ export class PessoasService {
 
     const saldosEventos = await this.prisma.transacao.groupBy({
       by: ['pessoaId', 'eventoId', 'tipo'],
-      where: { pessoaId: { in: pessoaIds }, eventoId: { not: null } },
+      where: { pessoaId: { in: pessoaIds }, eventoId: { in: ativosIds } },
       _sum: { valor: true }
     });
-
-    const eventosInfo = await this.prisma.evento.findMany({ select: { id: true, nome: true } });
-    const nomeEventosMap = eventosInfo.reduce((acc, ev) => ({ ...acc, [ev.id]: ev.nome }), {} as Record<number, string>);
 
     const saldosDetalhadosMap: Record<number, any[]> = {};
     pessoaIds.forEach(id => { saldosDetalhadosMap[id] = []; });
@@ -160,6 +168,9 @@ export class PessoasService {
     if (!pessoa) {
       throw new NotFoundException(`Pessoa com ID ${id} não encontrada.`);
     }
+    if ((pessoa as any).transacoes) {
+      (pessoa as any).transacoes = (pessoa as any).transacoes.filter((t: any) => !(t.evento && t.evento.status !== 'ATIVO'));
+    }
     const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;
@@ -199,6 +210,9 @@ export class PessoasService {
       throw new NotFoundException('Perfil não encontrado para o identificador informado.');
     }
 
+    if ((pessoa as any).transacoes) {
+      (pessoa as any).transacoes = (pessoa as any).transacoes.filter((t: any) => !(t.evento && t.evento.status !== 'ATIVO'));
+    }
     const totalTransacoes = (pessoa as any).transacoes.reduce((acc: number, t: any) => {
         if (t.tipo === 'RECEITA') return acc + t.valor;
         if (t.tipo === 'DESPESA') return acc - t.valor;

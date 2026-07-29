@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsInt } from 'class-validator';
+import { IsNotEmpty, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CreateInscricaoDto {
   @IsInt()
@@ -8,5 +8,8 @@ export class CreateInscricaoDto {
   @IsInt()
   @IsNotEmpty()
   eventoId: number;
-}
 
+  @IsOptional()
+  @IsString()
+  intencaoPagamento?: string;
+}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import Cookies from 'js-cookie';
+import { hasPermission } from '@/lib/permissions.config';
 import {
   Plus,
   ArrowRightLeft,
@@ -57,7 +59,13 @@ export default function TransacoesPage() {
     data: new Date().toISOString().split('T')[0]
   });
 
+  const [usuarioAtual, setUsuarioAtual] = useState<any>(null);
+
   useEffect(() => {
+    const cookie = Cookies.get('gf_user');
+    if (cookie) {
+      setUsuarioAtual(JSON.parse(cookie));
+    }
     buscarFiltros();
   }, []);
 
@@ -68,11 +76,11 @@ export default function TransacoesPage() {
   const buscarFiltros = async () => {
     try {
       const [pessoasRes, contasRes] = await Promise.all([
-        api.get('/pessoas'),
-        api.get('/contas')
+        api.get('/pessoas').catch(() => ({ data: [] })),
+        api.get('/contas').catch(() => ({ data: [] }))
       ]);
-      setPessoas(pessoasRes.data);
-      setContas(contasRes.data);
+      setPessoas(pessoasRes.data || []);
+      setContas(contasRes.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -336,13 +344,15 @@ export default function TransacoesPage() {
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{totalTransacoes} movimentação{totalTransacoes !== 1 ? 'ões' : ''}</span>
-          <button
-            onClick={() => setModalAberto(true)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
-          >
-            <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-            Novo Lançamento
-          </button>
+          {usuarioAtual && hasPermission(usuarioAtual.papel, 'transacoes', 'escrever') && (
+            <button
+              onClick={() => setModalAberto(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
+            >
+              <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+              Novo Lançamento
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
@@ -407,13 +417,17 @@ export default function TransacoesPage() {
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => confirmarExclusao(tx.id)}
-                          className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                          title="Excluir Lançamento"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {usuarioAtual && hasPermission(usuarioAtual.papel, 'transacoes', 'escrever') ? (
+                          <button
+                            onClick={() => confirmarExclusao(tx.id)}
+                            className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                            title="Excluir Lançamento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="text-slate-300">-</span>
+                        )}
                       </div>
                     </td>
                   </tr>

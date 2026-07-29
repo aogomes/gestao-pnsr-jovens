@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import Cookies from 'js-cookie';
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -28,6 +29,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const buscarDadosDashboard = async () => {
       try {
+        const userCookie = Cookies.get('gf_user');
+        if (!userCookie) return;
+        const user = JSON.parse(userCookie);
+        
+        if (user.papel !== 'ADMIN') {
+          setCarregando(false);
+          return;
+        }
+
         const [pessoasRes, transacoesRes] = await Promise.all([
           api.get('/pessoas'),
           api.get('/transacoes')

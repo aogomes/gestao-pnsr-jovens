@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import Cookies from 'js-cookie';
 import {
   Plus,
   Search,
@@ -23,7 +26,10 @@ import {
   Wallet,
   MoreVertical,
   UserMinus,
-  Eye
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 export default function InscricoesPage() {
@@ -34,6 +40,7 @@ export default function InscricoesPage() {
   const [carregando, setCarregando] = useState(true);
   const [carregandoInscricoes, setCarregandoInscricoes] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
+  const [ordenacao, setOrdenacao] = useState<{ coluna: string, direcao: 'asc' | 'desc' }>({ coluna: 'nome', direcao: 'asc' });
 
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
@@ -58,6 +65,19 @@ export default function InscricoesPage() {
   // Modal de Visualização
   const [modalVisualizacaoAberto, setModalVisualizacaoAberto] = useState(false);
   const [inscricaoParaVisualizar, setInscricaoParaVisualizar] = useState<any>(null);
+
+  const toggleOrdenacao = (coluna: string) => {
+    if (ordenacao.coluna === coluna) {
+      setOrdenacao({ coluna, direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setOrdenacao({ coluna, direcao: 'asc' });
+    }
+  };
+
+  const renderIconeOrdenacao = (coluna: string) => {
+    if (ordenacao.coluna !== coluna) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40 inline" />;
+    return ordenacao.direcao === 'asc' ? <ArrowUp className="w-3 h-3 ml-1 inline" /> : <ArrowDown className="w-3 h-3 ml-1 inline" />;
+  };
 
   useEffect(() => {
     buscarDadosIniciais();
@@ -212,6 +232,43 @@ export default function InscricoesPage() {
     return `${day}/${month}/${year}`;
   };
 
+  const gerarPDF = () => {
+    const doc = new jsPDF('landscape');
+
+    doc.setFontSize(16);
+    doc.text(`Relatório de Inscrições - ${eventoSelecionado?.nome || ''}`, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Total de Inscritos: ${inscricoes.length}`, 14, 22);
+
+    const inscricoesFiltradas = inscricoes
+      .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()))
+      .sort((a, b) => a.pessoa.nome.localeCompare(b.pessoa.nome));
+
+    const tableData = inscricoesFiltradas.map((insc) => {
+      const totalPagoCru = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+      const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
+
+      return [
+        insc.pessoa.nome || '-',
+        insc.pessoa.comunidade || '-',
+        insc.pessoa.telefone || '-',
+        insc.intencaoPagamento || '-',
+        formatarMoeda(totalPago)
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['Nome Completo', 'Comunidade', 'Telefone', 'Intenção de Pagamento', 'Valor Pago']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [19, 81, 180] },
+      styles: { fontSize: 8 },
+    });
+
+    doc.save(`Inscricoes.pdf`);
+  };
+
   const eventoSelecionado = eventos.find(e => String(e.id) === String(eventoSelecionadoId));
   const eventoAbertoInscricao = eventoSelecionado && eventoSelecionado.status === 'ATIVO' && new Date() <= new Date(eventoSelecionado.limiteInscricao);
 
@@ -253,10 +310,10 @@ export default function InscricoesPage() {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-6 pb-10">
+    <div className="h-full flex flex-col space-y-4 pb-6">
 
       {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">Gestão de Inscrições</h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Controle de participantes por evento</p>
@@ -285,7 +342,7 @@ export default function InscricoesPage() {
 
       {/* SEÇÃO 2: LISTA DE INSCRITOS (HORIZONTAL / FULL WIDTH) */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between bg-slate-50/30 gap-4">
+        <div className="p-3 md:p-4 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between bg-slate-50/30 gap-4">
           {/* Stats Badges */}
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <div className="flex flex-col items-center justify-center px-3 py-1 bg-blue-50 border border-blue-100 rounded-sm" title="Total de Inscritos">
@@ -326,6 +383,13 @@ export default function InscricoesPage() {
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
               Nova Inscrição
             </button>
+            <button
+              onClick={gerarPDF}
+              title='Exportar PDF'
+              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm group"
+            >
+              Relatório
+            </button>
           </div>
         </div>
 
@@ -334,8 +398,15 @@ export default function InscricoesPage() {
             <thead>
               <tr className="bg-[#1351b4]">
                 <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome Completo</th>
-                {/* <th className="px-2 py-1 text-xs font-bold text-white border-b border-[#1351b4] hidden md:table-cell text-center">Grupo</th> */}
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('nome')}>
+                  Nome Completo {renderIconeOrdenacao('nome')}
+                </th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('comunidade')}>
+                  Comunidade {renderIconeOrdenacao('comunidade')}
+                </th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('custeio')}>
+                  Custeio {renderIconeOrdenacao('custeio')}
+                </th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
@@ -363,9 +434,27 @@ export default function InscricoesPage() {
                 </tr>
               ) : (
                 (() => {
-                  const inscricoesFiltradas = inscricoes
-                    .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()))
-                    .sort((a, b) => a.pessoa.nome.localeCompare(b.pessoa.nome));
+                  let inscricoesFiltradas = inscricoes
+                    .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()));
+
+                  inscricoesFiltradas.sort((a, b) => {
+                    let valA = '';
+                    let valB = '';
+
+                    if (ordenacao.coluna === 'nome') {
+                      valA = a.pessoa.nome || '';
+                      valB = b.pessoa.nome || '';
+                    } else if (ordenacao.coluna === 'comunidade') {
+                      valA = a.pessoa.comunidade || '';
+                      valB = b.pessoa.comunidade || '';
+                    } else if (ordenacao.coluna === 'custeio') {
+                      valA = a.intencaoPagamento || '';
+                      valB = b.intencaoPagamento || '';
+                    }
+
+                    const compare = valA.localeCompare(valB);
+                    return ordenacao.direcao === 'asc' ? compare : -compare;
+                  });
 
                   if (inscricoesFiltradas.length === 0) {
                     return (
@@ -398,11 +487,24 @@ export default function InscricoesPage() {
                             <span className="text-xs text-slate-400 mt-0.5">{inscricao.pessoa.email || 'sem-email@informado.com'}</span>
                           </div>
                         </td>
-                        {/* <td className="px-4 py-2 border-b border-slate-100 hidden md:table-cell text-center">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500 text-white shadow-sm">
-                            {inscricao.pessoa.comunidade || 'Grupo 20 - N.Sra. Rosário'}
-                          </span>
-                        </td> */}
+                        <td className="px-2 py-1 border-b border-slate-100 hidden md:table-cell">
+                          {inscricao.pessoa.comunidade ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200">
+                              {inscricao.pessoa.comunidade}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-300">-</span>
+                          )}
+                        </td>
+                        <td className="px-0 py-1 border-b border-slate-100 hidden md:table-cell">
+                          {inscricao.intencaoPagamento ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black text-slate-500">
+                              {inscricao.intencaoPagamento}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-300">-</span>
+                          )}
+                        </td>
 
                         <td className="px-2 py-1 border-b border-slate-100 text-right hidden sm:table-cell">
                           <span className={`text-[12px] font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
@@ -878,9 +980,49 @@ export default function InscricoesPage() {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tamanho da Camiseta</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.camiseta || 'Não informado'}</span>
                   </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Como pretende custear a peregrinação?</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.intencaoPagamento || 'Não informado'}</span>
+                  </div>
                   <div className="col-span-1 sm:col-span-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Necessidades Médicas / Alergias</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.necessidadesMedicas || 'Nenhuma informada'}</span>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2 mt-4 pt-4 border-t border-slate-100">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Anexo / Foto do Passaporte</span>
+                    {inscricaoParaVisualizar.pessoa.fotoPassaporte ? (
+                      <div className="flex flex-col items-start gap-2">
+                        {(() => {
+                          const urlFoto = inscricaoParaVisualizar.pessoa.fotoPassaporte;
+                          const isBase64 = urlFoto.startsWith('data:image');
+                          const extMatch = urlFoto.match(/\.(jpeg|jpg|gif|png|webp|pdf)($|\?)/i);
+                          const isImg = isBase64 || (extMatch && extMatch[1].toLowerCase() !== 'pdf');
+                          
+                          const fileUrl = urlFoto.startsWith('http') || urlFoto.startsWith('data:') 
+                            ? urlFoto 
+                            : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(urlFoto)}&token=${Cookies.get('gf_token')}`;
+
+                          return (
+                            <>
+                              {isImg ? (
+                                <a href={fileUrl} target="_blank" rel="noreferrer">
+                                  <img src={fileUrl} alt="Passaporte" className="max-h-40 rounded-md object-contain border border-slate-200 shadow-sm hover:opacity-90 transition-opacity" />
+                                </a>
+                              ) : (
+                                <div className="px-4 py-3 bg-[#1351b4]/5 text-[#1351b4] rounded-md border border-[#1351b4]/20 flex flex-col items-center justify-center">
+                                   <span className="text-sm font-bold">Documento Anexado</span>
+                                </div>
+                              )}
+                              <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-[#1351b4] hover:underline">
+                                Visualizar em nova aba
+                              </a>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <span className="text-sm font-bold text-slate-700 italic opacity-50">Não anexado</span>
+                    )}
                   </div>
                 </div>
               </div>
