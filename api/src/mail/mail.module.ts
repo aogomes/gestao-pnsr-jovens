@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail.service';
+import * as dns from 'dns';
+
+// Força o Node.js a preferir IPv4 para evitar erro ENETUNREACH (IPv6) no Render
+dns.setDefaultResultOrder('ipv4first');
 
 @Module({
   imports: [
