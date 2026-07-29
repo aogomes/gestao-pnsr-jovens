@@ -13,6 +13,7 @@ dns.setDefaultResultOrder('ipv4first');
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
         secure: process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : true, // default para true se 465
+        // @ts-ignore - Nodemailer aceita essa opção repassando para o net.Socket, mas o TypeScript não reconhece na tipagem
         family: 4, // Força o uso de IPv4 na conexão de socket
 
         auth: {
