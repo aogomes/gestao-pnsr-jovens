@@ -11,7 +11,7 @@ export class AutenticacaoService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
-  ) {}
+  ) { }
 
   async login(login: string, senha: string) {
     const usuario = await this.prisma.usuario.findUnique({
@@ -33,12 +33,12 @@ export class AutenticacaoService {
     }
 
     const pessoa = usuario.pessoa;
-    const payload = { 
-      sub: usuario.id, 
-      login: usuario.login, 
-      papel: usuario.papel, 
+    const payload = {
+      sub: usuario.id,
+      login: usuario.login,
+      papel: usuario.papel,
       pessoaId: usuario.pessoaId,
-      paroquiaId: pessoa?.paroquiaId 
+      paroquiaId: pessoa?.paroquiaId
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -118,9 +118,9 @@ export class AutenticacaoService {
 
         // Envia o e-mail de verificação (pode ser executado assincronamente)
         this.mailService.sendVerificationCode(login, codigoVerificacao, nome);
-        
+
         // Log para testes locais:
-        console.log(`[TESTE LOCAL] Código de verificação para ${login}: ${codigoVerificacao}`);
+        console.log(`[TESTE] Código de verificação para ${login}: ${codigoVerificacao}`);
       });
       console.log('Transação concluída com sucesso');
     } catch (error) {
@@ -166,12 +166,12 @@ export class AutenticacaoService {
 
     // Retorna o token para logar automaticamente
     const pessoa = usuario.pessoa;
-    const payload = { 
-      sub: usuario.id, 
-      login: usuario.login, 
-      papel: usuario.papel, 
+    const payload = {
+      sub: usuario.id,
+      login: usuario.login,
+      papel: usuario.papel,
       pessoaId: usuario.pessoaId,
-      paroquiaId: pessoa?.paroquiaId 
+      paroquiaId: pessoa?.paroquiaId
     };
     return {
       message: 'E-mail confirmado com sucesso!',
@@ -214,7 +214,7 @@ export class AutenticacaoService {
     await this.mailService.sendVerificationCode(login, codigoVerificacao, usuario.pessoa?.nome || 'Usuário');
 
     // Log para testes locais:
-    console.log(`[TESTE LOCAL] Novo código reenviado para ${login}: ${codigoVerificacao}`);
+    console.log(`[TESTE] Novo código reenviado para ${login}: ${codigoVerificacao}`);
 
     return { message: 'Novo código enviado com sucesso' };
   }
