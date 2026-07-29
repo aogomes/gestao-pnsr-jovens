@@ -16,6 +16,7 @@ import { ProdutosVendaModule } from './produtos-venda/produtos-venda.module';
 import { VendasModule } from './vendas/vendas.module';
 import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extrato.module';
 import { ArquivosModule } from './arquivos/arquivos.module';
+import { MailModule } from './mail/mail.module';
 
 
 @Module({
@@ -34,7 +35,8 @@ import { ArquivosModule } from './arquivos/arquivos.module';
     ProdutosVendaModule,
     VendasModule,
     LancamentosExtratoModule,
-    ArquivosModule
+    ArquivosModule,
+    MailModule
   ],
   controllers: [AppController],
   providers: [

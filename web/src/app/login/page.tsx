@@ -48,15 +48,10 @@ export default function LoginPage() {
         }
 
         const resposta = await api.post('/autenticacao/registrar', payload);
-        const { access_token, usuario } = resposta.data;
-        Cookies.set('gf_token', access_token, { expires: 7 });
-        Cookies.set('gf_user', JSON.stringify(usuario), { expires: 7 });
-
-        if (usuario.papel === 'ADMIN') {
-          router.push('/');
-        } else {
-          router.push('/meu-painel');
-        }
+        
+        // Em vez de logar, redireciona para a verificação
+        router.push(`/verificar-email?email=${encodeURIComponent(login)}`);
+        return;
       } else {
         const resposta = await api.post('/autenticacao/login', { login, senha });
         const { access_token, usuario } = resposta.data;
@@ -70,7 +65,11 @@ export default function LoginPage() {
         }
       }
     } catch (err: any) {
-      setErro(err.response?.data?.message || 'Credenciais inválidas ou erro no cadastro.');
+      if (err.response?.data?.message === 'EMAIL_NAO_CONFIRMADO') {
+        router.push(`/verificar-email?email=${encodeURIComponent(login)}`);
+      } else {
+        setErro(err.response?.data?.message || 'Credenciais inválidas ou erro no cadastro.');
+      }
     } finally {
       setCarregando(false);
     }

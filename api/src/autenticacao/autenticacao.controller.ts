@@ -16,5 +16,15 @@ export class AutenticacaoController {
   async registrar(@Body() registrarDto: RegistrarDto) {
     return this.autenticacaoService.registrar(registrarDto);
   }
+
+  @Post('verificar-email')
+  async verificarEmail(@Body() body: { login: string; codigo: string }) {
+    return this.autenticacaoService.verificarEmail(body.login, body.codigo);
+  }
+
+  @Post('reenviar-codigo')
+  async reenviarCodigo(@Body() body: { login: string }) {
+    return this.autenticacaoService.reenviarCodigo(body.login);
+  }
 }
 

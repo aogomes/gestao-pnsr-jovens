@@ -16,6 +16,10 @@ model Usuario {
   criadoEm     DateTime     @default(now())
   atualizadoEm DateTime     @updatedAt
 
+  emailConfirmado Boolean   @default(false)
+  codigoVerificacao String?
+  codigoVerificacaoExpira DateTime?
+
   @@map("usuarios")
 }
 
