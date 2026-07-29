@@ -13,6 +13,8 @@ dns.setDefaultResultOrder('ipv4first');
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
         secure: process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : true, // default para true se 465
+        family: 4, // Força o uso de IPv4 na conexão de socket
+
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
