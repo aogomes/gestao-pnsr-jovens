@@ -1,24 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  private resend: Resend;
-
-  constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
-  }
-
   async sendVerificationCode(email: string, code: string, userName: string) {
     try {
-      const { data, error } = await this.resend.emails.send({
-        from: 'Peregrinação Rosário (JMJ Seul 2027) <onboarding@resend.dev>',
-        to: email,
-        subject: 'Seu Código de Verificação - Peregrinação Rosário (JMJ Seul 2027)',
-        html: `
+      const apiKey = process.env.BREVO_API_KEY;
+      if (!apiKey) {
+        console.error('BREVO_API_KEY não configurada no ambiente.');
+        return false;
+      }
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { 
+            name: 'Peregrinação Rosário (JMJ Seul 2027)', 
+            email: 'peregrinacaorosario@gmail.com' 
+          },
+          to: [{ email: email }],
+          subject: 'Seu Código de Verificação - Peregrinação Rosário (JMJ Seul 2027)',
+          htmlContent: `
           <div style="font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
             <div style="background: linear-gradient(135deg, #1351b4 0%, #0d3880 100%); padding: 40px 20px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">Peregrinação</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Peregrinação Rosário</h1>
               <div style="background-color: rgba(255, 255, 255, 0.2); display: inline-block; padding: 6px 16px; border-radius: 20px; margin-top: 12px;">
                 <p style="color: #ffffff; margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">JMJ Seul 2027 🇰🇷</p>
               </div>
@@ -46,16 +55,18 @@ export class MailService {
               </p>
             </div>
           </div>
-        `,
+        `
+        })
       });
 
-      if (error) {
-        console.error('Erro Resend:', error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Erro Brevo:', JSON.stringify(errorData));
         return false;
       }
       return true;
     } catch (error) {
-      console.error('Erro ao enviar e-mail:', error);
+      console.error('Erro ao enviar e-mail via Brevo:', error);
       return false;
     }
   }
