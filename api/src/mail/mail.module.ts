@@ -13,6 +13,8 @@ import { MailService } from './mail.service';
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: 10000, // 10 segundos
+        greetingTimeout: 10000,
       },
       defaults: {
         from: '"Peregrinação Rosário (JMJ Seul 2027)" <noreply@peregrinacaorosario.com.br>',
