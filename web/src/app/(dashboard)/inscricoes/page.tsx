@@ -385,7 +385,7 @@ export default function InscricoesPage() {
             </button>
             <button
               onClick={gerarPDF}
-              title='Exportar PDF'
+              title='Relatório PDF'
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm group"
             >
               Relatório
@@ -997,9 +997,9 @@ export default function InscricoesPage() {
                           const isBase64 = urlFoto.startsWith('data:image');
                           const extMatch = urlFoto.match(/\.(jpeg|jpg|gif|png|webp|pdf)($|\?)/i);
                           const isImg = isBase64 || (extMatch && extMatch[1].toLowerCase() !== 'pdf');
-                          
-                          const fileUrl = urlFoto.startsWith('http') || urlFoto.startsWith('data:') 
-                            ? urlFoto 
+
+                          const fileUrl = urlFoto.startsWith('http') || urlFoto.startsWith('data:')
+                            ? urlFoto
                             : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(urlFoto)}&token=${Cookies.get('gf_token')}`;
 
                           return (
@@ -1010,7 +1010,7 @@ export default function InscricoesPage() {
                                 </a>
                               ) : (
                                 <div className="px-4 py-3 bg-[#1351b4]/5 text-[#1351b4] rounded-md border border-[#1351b4]/20 flex flex-col items-center justify-center">
-                                   <span className="text-sm font-bold">Documento Anexado</span>
+                                  <span className="text-sm font-bold">Documento Anexado</span>
                                 </div>
                               )}
                               <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-[#1351b4] hover:underline">
