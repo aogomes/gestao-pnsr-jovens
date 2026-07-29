@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { MailService } from './mail.service';
+import * as dns from 'dns';
+
+// Força o Node.js a preferir IPv4 para evitar erro ENETUNREACH (IPv6) no Render
+dns.setDefaultResultOrder('ipv4first');
 
 @Module({
   imports: [
@@ -13,6 +17,8 @@ import { MailService } from './mail.service';
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: 10000, // 10 segundos
+        greetingTimeout: 10000,
       },
       defaults: {
         from: '"Peregrinação Rosário (JMJ Seul 2027)" <noreply@peregrinacaorosario.com.br>',
