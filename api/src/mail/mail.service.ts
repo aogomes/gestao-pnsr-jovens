@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
-  constructor(private mailerService: MailerService) { }
+  private resend: Resend;
+
+  constructor() {
+    this.resend = new Resend(process.env.RESEND_API_KEY);
+  }
 
   async sendVerificationCode(email: string, code: string, userName: string) {
     try {
-      await this.mailerService.sendMail({
+      const { data, error } = await this.resend.emails.send({
+        from: 'Peregrinação Rosário (JMJ Seul 2027) <onboarding@resend.dev>',
         to: email,
         subject: 'Seu Código de Verificação - Peregrinação Rosário (JMJ Seul 2027)',
         html: `
@@ -43,6 +48,11 @@ export class MailService {
           </div>
         `,
       });
+
+      if (error) {
+        console.error('Erro Resend:', error);
+        return false;
+      }
       return true;
     } catch (error) {
       console.error('Erro ao enviar e-mail:', error);
