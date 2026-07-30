@@ -14,6 +14,9 @@ export class EventosService {
         dataInicio: new Date(createEventoDto.dataInicio),
         dataFim: new Date(createEventoDto.dataFim),
         limiteInscricao: new Date(createEventoDto.limiteInscricao),
+        dataIdaEstimada: createEventoDto.dataIdaEstimada ? new Date(createEventoDto.dataIdaEstimada) : null,
+        dataRetornoEstimada: createEventoDto.dataRetornoEstimada ? new Date(createEventoDto.dataRetornoEstimada) : null,
+        dataLimiteSinal: createEventoDto.dataLimiteSinal ? new Date(createEventoDto.dataLimiteSinal) : null,
       },
     });
   }
@@ -53,6 +56,9 @@ export class EventosService {
     if (dados.dataInicio) dados.dataInicio = new Date(dados.dataInicio);
     if (dados.dataFim) dados.dataFim = new Date(dados.dataFim);
     if (dados.limiteInscricao) dados.limiteInscricao = new Date(dados.limiteInscricao);
+    if (dados.dataIdaEstimada) dados.dataIdaEstimada = new Date(dados.dataIdaEstimada);
+    if (dados.dataRetornoEstimada) dados.dataRetornoEstimada = new Date(dados.dataRetornoEstimada);
+    if (dados.dataLimiteSinal) dados.dataLimiteSinal = new Date(dados.dataLimiteSinal);
     return this.prisma.evento.update({ where: { id }, data: dados });
   }
 

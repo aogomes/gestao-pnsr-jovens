@@ -15,7 +15,10 @@ import {
   Clock,
   AlertCircle,
   ArrowRight,
-  MoreVertical
+  MoreVertical,
+  Plane,
+  List,
+  Info
 } from 'lucide-react';
 
 export default function EventosPage() {
@@ -37,7 +40,13 @@ export default function EventosPage() {
     dataFim: '',
     valor: 0,
     limiteInscricao: '',
-    status: 'ATIVO'
+    status: 'ATIVO',
+    itensInclusosTexto: '',
+    dataIdaEstimada: '',
+    dataRetornoEstimada: '',
+    duracaoDias: '',
+    valorSinal: 0,
+    dataLimiteSinal: ''
   });
   const [enviando, setEnviando] = useState(false);
 
@@ -73,7 +82,13 @@ export default function EventosPage() {
         dataFim: new Date(evento.dataFim).toISOString().split('T')[0],
         valor: evento.valor,
         limiteInscricao: new Date(evento.limiteInscricao).toISOString().split('T')[0],
-        status: evento.status
+        status: evento.status,
+        itensInclusosTexto: evento.itensInclusos ? evento.itensInclusos.join('\n') : '',
+        dataIdaEstimada: evento.dataIdaEstimada ? new Date(evento.dataIdaEstimada).toISOString().split('T')[0] : '',
+        dataRetornoEstimada: evento.dataRetornoEstimada ? new Date(evento.dataRetornoEstimada).toISOString().split('T')[0] : '',
+        duracaoDias: evento.duracaoDias || '',
+        valorSinal: evento.valorSinal || 0,
+        dataLimiteSinal: evento.dataLimiteSinal ? new Date(evento.dataLimiteSinal).toISOString().split('T')[0] : '',
       });
     } else {
       setEventoEdicao(null);
@@ -85,7 +100,13 @@ export default function EventosPage() {
         dataFim: '',
         valor: 0,
         limiteInscricao: '',
-        status: 'ATIVO'
+        status: 'ATIVO',
+        itensInclusosTexto: '',
+        dataIdaEstimada: '',
+        dataRetornoEstimada: '',
+        duracaoDias: '',
+        valorSinal: 0,
+        dataLimiteSinal: ''
       });
     }
     setModalAberto(true);
@@ -95,7 +116,7 @@ export default function EventosPage() {
     e.preventDefault();
     setEnviando(true);
     try {
-      const cargaUtil = {
+      const cargaUtil: any = {
         ...dadosForm,
         paroquiaId: Number(dadosForm.paroquiaId),
         contaId: Number(dadosForm.contaId),
@@ -103,7 +124,14 @@ export default function EventosPage() {
         dataInicio: new Date(dadosForm.dataInicio).toISOString(),
         dataFim: new Date(dadosForm.dataFim).toISOString(),
         limiteInscricao: new Date(dadosForm.limiteInscricao).toISOString(),
+        itensInclusos: dadosForm.itensInclusosTexto.split('\n').map(i => i.trim()).filter(i => i),
+        duracaoDias: dadosForm.duracaoDias ? Number(dadosForm.duracaoDias) : null,
+        valorSinal: dadosForm.valorSinal ? Number(dadosForm.valorSinal) : null,
+        dataIdaEstimada: dadosForm.dataIdaEstimada ? new Date(dadosForm.dataIdaEstimada).toISOString() : null,
+        dataRetornoEstimada: dadosForm.dataRetornoEstimada ? new Date(dadosForm.dataRetornoEstimada).toISOString() : null,
+        dataLimiteSinal: dadosForm.dataLimiteSinal ? new Date(dadosForm.dataLimiteSinal).toISOString() : null,
       };
+      delete cargaUtil.itensInclusosTexto;
 
       if (eventoEdicao) {
         await api.patch(`/eventos/${eventoEdicao.id}`, cargaUtil);
@@ -444,6 +472,97 @@ export default function EventosPage() {
                     onChange={(e) => setDadosForm({ ...dadosForm, limiteInscricao: e.target.value })}
                     className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 transition-all font-black text-slate-700"
                   />
+                </div>
+              </div>
+
+              {/* Seção Dinâmica do Pacote */}
+              <div className="pt-4 mt-6 border-t border-slate-100">
+                <h3 className="text-xs font-black text-[#1351b4] uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Plane className="w-4 h-4" /> Informações Dinâmicas do Pacote
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Itens Inclusos (um por linha)</label>
+                    <div className="relative group">
+                      <List className="w-4 h-4 absolute left-5 top-5 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                      <textarea
+                        rows={4}
+                        value={dadosForm.itensInclusosTexto}
+                        onChange={(e) => setDadosForm({ ...dadosForm, itensInclusosTexto: e.target.value })}
+                        className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-bold text-slate-700 custom-scrollbar"
+                        placeholder="Ex: Passagem aérea internacional&#10;Transfer aeroporto&#10;Seguro viagem"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Ida Estimada</label>
+                      <div className="relative group">
+                        <Calendar className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                        <input
+                          type="date"
+                          value={dadosForm.dataIdaEstimada}
+                          onChange={(e) => setDadosForm({ ...dadosForm, dataIdaEstimada: e.target.value })}
+                          className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Retorno Estimado</label>
+                      <div className="relative group">
+                        <Calendar className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                        <input
+                          type="date"
+                          value={dadosForm.dataRetornoEstimada}
+                          onChange={(e) => setDadosForm({ ...dadosForm, dataRetornoEstimada: e.target.value })}
+                          className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Duração (Dias)</label>
+                      <div className="relative group">
+                        <Info className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                        <input
+                          type="number"
+                          value={dadosForm.duracaoDias}
+                          onChange={(e) => setDadosForm({ ...dadosForm, duracaoDias: e.target.value })}
+                          className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                          placeholder="Ex: 7"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor do Sinal (R$)</label>
+                      <div className="relative group">
+                        <DollarSign className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={dadosForm.valorSinal}
+                          onChange={(e) => setDadosForm({ ...dadosForm, valorSinal: Number(e.target.value) })}
+                          className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black text-slate-700"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Prazo para o Sinal</label>
+                      <div className="relative group">
+                        <Clock className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-rose-500 transition-colors" />
+                        <input
+                          type="date"
+                          value={dadosForm.dataLimiteSinal}
+                          onChange={(e) => setDadosForm({ ...dadosForm, dataLimiteSinal: e.target.value })}
+                          className="w-full pl-14 pr-6 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 transition-all font-black text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

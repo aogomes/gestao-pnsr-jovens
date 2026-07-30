@@ -29,5 +29,28 @@ export class CreateEventoDto {
   @IsEnum(StatusEvento)
   @IsOptional()
   status?: StatusEvento;
+
+  @IsOptional()
+  itensInclusos?: string[];
+
+  @IsDateString()
+  @IsOptional()
+  dataIdaEstimada?: string;
+
+  @IsDateString()
+  @IsOptional()
+  dataRetornoEstimada?: string;
+
+  @IsInt()
+  @IsOptional()
+  duracaoDias?: number;
+
+  @IsNumber()
+  @IsOptional()
+  valorSinal?: number;
+
+  @IsDateString()
+  @IsOptional()
+  dataLimiteSinal?: string;
 }
 
