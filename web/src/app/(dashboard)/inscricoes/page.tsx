@@ -404,9 +404,9 @@ export default function InscricoesPage() {
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('comunidade')}>
                   Comunidade {renderIconeOrdenacao('comunidade')}
                 </th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('custeio')}>
+                {/* <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('custeio')}>
                   Custeio {renderIconeOrdenacao('custeio')}
-                </th>
+                </th> */}
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
@@ -416,7 +416,7 @@ export default function InscricoesPage() {
             <tbody className="bg-white">
               {carregandoInscricoes ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-24 text-center">
+                  <td colSpan={6} className="px-8 py-24 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="w-12 h-12 animate-spin text-[#1351b4] opacity-20" />
                       <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Carregando dados...</span>
@@ -425,7 +425,7 @@ export default function InscricoesPage() {
                 </tr>
               ) : inscricoes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-32 text-center text-slate-300">
+                  <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
                     <div className="flex flex-col items-center gap-4 opacity-20">
                       <AlertCircle className="w-16 h-16" />
                       <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição neste evento</span>
@@ -459,7 +459,7 @@ export default function InscricoesPage() {
                   if (inscricoesFiltradas.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={7} className="px-8 py-32 text-center text-slate-300">
+                        <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
                           <div className="flex flex-col items-center gap-4 opacity-20">
                             <AlertCircle className="w-16 h-16" />
                             <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada na busca</span>
@@ -496,7 +496,7 @@ export default function InscricoesPage() {
                             <span className="text-xs text-slate-300">-</span>
                           )}
                         </td>
-                        <td className="px-0 py-1 border-b border-slate-100 hidden md:table-cell">
+                        {/* <td className="px-0 py-1 border-b border-slate-100 hidden md:table-cell">
                           {inscricao.intencaoPagamento ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black text-slate-500">
                               {inscricao.intencaoPagamento}
@@ -504,7 +504,7 @@ export default function InscricoesPage() {
                           ) : (
                             <span className="text-xs text-slate-300">-</span>
                           )}
-                        </td>
+                        </td> */}
 
                         <td className="px-2 py-1 border-b border-slate-100 text-right hidden sm:table-cell">
                           <span className={`text-[12px] font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
@@ -980,10 +980,10 @@ export default function InscricoesPage() {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tamanho da Camiseta</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.camiseta || 'Não informado'}</span>
                   </div>
-                  <div>
+                  {/* <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Como pretende custear a peregrinação?</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.intencaoPagamento || 'Não informado'}</span>
-                  </div>
+                  </div> */}
                   <div className="col-span-1 sm:col-span-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Necessidades Médicas / Alergias</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.necessidadesMedicas || 'Nenhuma informada'}</span>

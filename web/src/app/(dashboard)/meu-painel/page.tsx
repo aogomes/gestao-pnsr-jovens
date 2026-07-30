@@ -1068,9 +1068,9 @@ export default function MeuPainelPage() {
                             const extMatch = dadosForm.fotoPassaporte.match(/\.(jpeg|jpg|gif|png|webp|pdf)($|\?)/i);
                             const isImg = isBase64 || (extMatch && extMatch[1].toLowerCase() !== 'pdf');
                             const isPdfUrl = isPdfBase64 || (extMatch && extMatch[1].toLowerCase() === 'pdf');
-                            
-                            const fileUrl = dadosForm.fotoPassaporte.startsWith('http') || dadosForm.fotoPassaporte.startsWith('data:') 
-                              ? dadosForm.fotoPassaporte 
+
+                            const fileUrl = dadosForm.fotoPassaporte.startsWith('http') || dadosForm.fotoPassaporte.startsWith('data:')
+                              ? dadosForm.fotoPassaporte
                               : `${process.env.NEXT_PUBLIC_API_URL}/arquivos/download?bucket=passaportes&path=${encodeURIComponent(dadosForm.fotoPassaporte)}&token=${Cookies.get('gf_token')}`;
 
                             return (
@@ -1100,13 +1100,13 @@ export default function MeuPainelPage() {
                         <>
                           <Plus className="w-6 h-6 text-slate-400 mb-2" />
                           <span className="text-xs font-bold text-slate-600 text-center">Nenhuma foto de passaporte cadastrada ainda.</span>
-                          
+
                           <label className="mt-4 px-4 py-2 bg-[#1351b4] text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-md cursor-pointer inline-flex items-center justify-center">
                             Enviar foto
-                            <input 
-                              type="file" 
-                              accept=".jpg,.jpeg,.png,.webp,.pdf" 
-                              className="hidden" 
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.webp,.pdf"
+                              className="hidden"
                               onChange={handleUploadFoto}
                             />
                           </label>
@@ -1219,7 +1219,7 @@ export default function MeuPainelPage() {
               </div>
 
               {/* Questionário */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <label className="text-[11px] font-black text-slate-700 uppercase tracking-tight block">
                   Qual será a principal forma de custeio da sua viagem?
                 </label>
@@ -1242,7 +1242,7 @@ export default function MeuPainelPage() {
                     </label>
                   ))}
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -1253,7 +1253,7 @@ export default function MeuPainelPage() {
                 Cancelar
               </button>
               <button
-                disabled={inscrevendo || !intencaoPagamento || !comunidadeInscricao}
+                disabled={inscrevendo || !comunidadeInscricao}
                 onClick={confirmarInscricao}
                 className="px-5 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
               >
