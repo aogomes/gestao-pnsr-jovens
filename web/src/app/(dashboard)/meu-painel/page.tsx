@@ -34,7 +34,8 @@ import {
   Trophy,
   ChevronDown,
   History,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 
 export default function MeuPainelPage() {
@@ -77,6 +78,7 @@ export default function MeuPainelPage() {
   const [inscrevendo, setInscrevendo] = useState(false);
   const [eventoParaInscrever, setEventoParaInscrever] = useState<any>(null);
   const [modalInscricaoAberto, setModalInscricaoAberto] = useState(false);
+  const [modalInfoEventoAberto, setModalInfoEventoAberto] = useState(false);
   const [intencaoPagamento, setIntencaoPagamento] = useState('');
   const [comunidadeInscricao, setComunidadeInscricao] = useState('');
 
@@ -447,8 +449,17 @@ export default function MeuPainelPage() {
             <div key={evento.id} className="bg-blue-50/30 border border-blue-100 rounded-sm p-4 hover:border-[#1351b4] transition-all group relative flex flex-col justify-between">
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-lg bg-white border border-blue-100 flex items-center justify-center text-[#1351b4] shadow-sm">
-                    <Plus className="w-5 h-5" />
+                  <div className="flex gap-2">
+                    <div className="w-10 h-10 rounded-lg bg-white border border-blue-100 flex items-center justify-center text-[#1351b4] shadow-sm">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <button 
+                      onClick={() => setModalInfoEventoAberto(true)}
+                      className="w-10 h-10 rounded-lg bg-white border border-blue-100 hover:bg-amber-50 transition-colors flex items-center justify-center text-amber-500 shadow-sm relative overflow-hidden group/bell"
+                      title="Informações do Pacote"
+                    >
+                      <Bell className="w-5 h-5 group-hover/bell:animate-bounce" />
+                    </button>
                   </div>
                   <span className="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100 shadow-sm">
                     Disponível
@@ -462,9 +473,9 @@ export default function MeuPainelPage() {
                   <span className="text-[11px] text-amber-600 font-bold">
                     Inscrições até: {formatarData(evento.limiteInscricao)}
                   </span>
-                  <span className="text-base font-black text-emerald-600 mt-1">
+                  {/* <span className="text-base font-black text-emerald-600 mt-1">
                     {formatarMoeda(evento.valor)}
-                  </span>
+                  </span> */}
                 </div>
               </div>
               <button
@@ -1259,6 +1270,87 @@ export default function MeuPainelPage() {
               >
                 {inscrevendo && <Loader2 className="w-3 h-3 animate-spin" />}
                 Confirmar Inscrição
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Informações do Evento */}
+      {modalInfoEventoAberto && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 text-[#1351b4] flex items-center justify-center">
+                  <Info className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">Informações do Pacote</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">JMJ Seul 2027</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalInfoEventoAberto(false)}
+                className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  O que está incluso:
+                </h3>
+                <ul className="space-y-2 text-sm text-slate-600 pl-6 list-disc marker:text-[#1351b4]">
+                  <li>inscrição oficial da Jornada Mundial da Juventude (JMJ Seul 2027);</li>
+                  <li>passagem aérea internacional (ida e volta);</li>
+                  <li>transfer aeroporto;</li>
+                  <li>seguro viagem internacional;</li>
+                  <li>alojamento estudantil, em quartos triplos, com café da manhã;</li>
+                  <li>pacote de alimentação (almoço e jantar) e transporte oficial da organização da JMJ.</li>
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Ida Estimada</span>
+                  <span className="font-bold text-slate-700">1º/08</span>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                  <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Retorno Estimado</span>
+                  <span className="font-bold text-slate-700">11/08</span>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                <span className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Duração</span>
+                <span className="font-bold text-amber-800">Previsão de 7 dias em Seul</span>
+              </div>
+
+              <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                <div className="flex justify-between items-center pb-3 border-b border-blue-100/50">
+                  <span className="text-xs font-bold text-slate-600">Valor estimado por peregrino:</span>
+                  <span className="font-black text-[#1351b4]">R$ 18.500,00</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600">Valor do Sinal:</span>
+                  <span className="font-black text-emerald-600">R$ 2.500,00</span>
+                </div>
+                <div className="mt-2 text-center bg-white py-2 rounded border border-blue-100 text-xs font-bold text-amber-600">
+                  Prazo estabelecido para o sinal: <span className="font-black">7 de setembro</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+              <button
+                onClick={() => setModalInfoEventoAberto(false)}
+                className="px-5 py-2 bg-slate-800 text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-700 shadow-lg"
+              >
+                Ciente
               </button>
             </div>
           </div>
