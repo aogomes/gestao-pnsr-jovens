@@ -396,9 +396,16 @@ export default function MeuPainelPage() {
                 <div key={insc.id} className="bg-slate-50 border border-slate-200 rounded-sm p-4 hover:border-[#1351b4] transition-all group relative">
                   <div className="flex flex-col space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-[#1351b4] shadow-sm">
+                      {/* <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-[#1351b4] shadow-sm">
                         <Trophy className="w-5 h-5" />
-                      </div>
+                      </div> */}
+                      <button
+                        onClick={() => { setEventoInfoSelecionado(insc.evento); setModalInfoEventoAberto(true); }}
+                        className="w-10 h-10 rounded-lg bg-white border border-blue-100 hover:bg-amber-50 transition-colors flex items-center justify-center text-amber-500 shadow-sm relative overflow-hidden group/bell"
+                        title="Informações do Pacote"
+                      >
+                        <Bell className="w-5 h-5 group-hover/bell:animate-bounce" />
+                      </button>
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
@@ -408,7 +415,7 @@ export default function MeuPainelPage() {
                           {insc.status === 'CONFIRMADO' ? 'Confirmado' :
                             insc.status === 'EM_ANALISE' ? 'Em Análise' :
                               insc.status === 'CANCELADO' ? 'Cancelado' :
-                                'Pendente'}
+                                'Aguardando Confirmação'}
                         </span>
                       </div>
                     </div>
@@ -417,28 +424,26 @@ export default function MeuPainelPage() {
                       <span className="text-[11px] text-slate-500 font-bold">
                         Data: {formatarData(insc.evento.dataInicio)} até {formatarData(insc.evento.dataFim)}
                       </span>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/50">
-                        <div className="flex flex-col">
-                          <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Pago</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-black text-emerald-600">{formatarMoeda(totalPago)}</span>
-                            <button
-                              onClick={() => {
-                                setInscricaoSelecionada(insc);
-                                setModalPagamentosInscAberto(true);
-                              }}
-                              className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
-                              title="Ver histórico de pagamentos"
-                            >
-                              <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
-                            </button>
+                      {insc.status === 'CONFIRMADO' && (
+                        <div className="flex items-center justify-end mt-2 pt-2 border-t border-slate-200/50">
+                          <div className="flex flex-col">
+                            <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Valor Pago</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-black text-emerald-600">{formatarMoeda(totalPago)}</span>
+                              <button
+                                onClick={() => {
+                                  setInscricaoSelecionada(insc);
+                                  setModalPagamentosInscAberto(true);
+                                }}
+                                className="p-1.5 bg-[#1351b4]/10 text-[#1351b4] hover:bg-[#1351b4] hover:text-white border border-[#1351b4]/10 rounded-sm transition-all shadow-sm group/hist"
+                                title="Ver histórico de pagamentos"
+                              >
+                                <Wallet className="w-3 h-3 group-hover/hist:rotate-[-45deg] transition-transform" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Total</span>
-                          <span className="text-[11px] font-black text-slate-600">{formatarMoeda(insc.evento.valor)}</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -451,10 +456,10 @@ export default function MeuPainelPage() {
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-blue-100 flex items-center justify-center text-[#1351b4] shadow-sm">
+                    {/* <div className="w-10 h-10 rounded-lg bg-white border border-blue-100 flex items-center justify-center text-[#1351b4] shadow-sm">
                       <Plus className="w-5 h-5" />
-                    </div>
-                    <button 
+                    </div> */}
+                    <button
                       onClick={() => { setEventoInfoSelecionado(evento); setModalInfoEventoAberto(true); }}
                       className="w-10 h-10 rounded-lg bg-white border border-blue-100 hover:bg-amber-50 transition-colors flex items-center justify-center text-amber-500 shadow-sm relative overflow-hidden group/bell"
                       title="Informações do Pacote"
@@ -471,9 +476,9 @@ export default function MeuPainelPage() {
                   <span className="text-[11px] text-slate-500 font-bold">
                     Data: {formatarData(evento.dataInicio)} até {formatarData(evento.dataFim)}
                   </span>
-                  <span className="text-[11px] text-amber-600 font-bold">
+                  {/* <span className="text-[11px] text-amber-600 font-bold">
                     Inscrições até: {formatarData(evento.limiteInscricao)}
-                  </span>
+                  </span> */}
                   {/* <span className="text-base font-black text-emerald-600 mt-1">
                     {formatarMoeda(evento.valor)}
                   </span> */}
@@ -1230,6 +1235,20 @@ export default function MeuPainelPage() {
                 </div>
               </div>
 
+              {eventoInfoSelecionado?.itensInclusos && eventoInfoSelecionado.itensInclusos.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    O que está incluso:
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-600 pl-6 list-disc marker:text-[#1351b4]">
+                    {eventoInfoSelecionado.itensInclusos.map((item: string, idx: number) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Questionário */}
               {/* <div className="space-y-3">
                 <label className="text-[11px] font-black text-slate-700 uppercase tracking-tight block">
@@ -1298,7 +1317,7 @@ export default function MeuPainelPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto space-y-6">
               {eventoInfoSelecionado?.itensInclusos && eventoInfoSelecionado.itensInclusos.length > 0 && (
                 <div>
@@ -1329,29 +1348,29 @@ export default function MeuPainelPage() {
                 )}
               </div>
 
-              {eventoInfoSelecionado?.duracaoDias && (
+              {/* {eventoInfoSelecionado?.dataLimiteSinal && (
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-                  <span className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Duração</span>
-                  <span className="font-bold text-amber-800">Previsão de {eventoInfoSelecionado.duracaoDias} dias</span>
+                  <span className="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Prazo estabelecido para o sinal</span>
+                  <span className="font-bold text-amber-800">{formatarData(eventoInfoSelecionado.dataLimiteSinal)}</span>
                 </div>
-              )}
+              )} */}
 
               <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                 <div className="flex justify-between items-center pb-3 border-b border-blue-100/50">
-                  <span className="text-xs font-bold text-slate-600">Valor estimado por peregrino:</span>
+                  <span className="text-xs font-bold text-slate-600">Valor estimado por peregrino</span>
                   <span className="font-black text-[#1351b4]">{formatarMoeda(eventoInfoSelecionado?.valor || 0)}</span>
                 </div>
-                {eventoInfoSelecionado?.valorSinal && (
+                {/* {eventoInfoSelecionado?.valorSinal && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-600">Valor do Sinal:</span>
                     <span className="font-black text-emerald-600">{formatarMoeda(eventoInfoSelecionado.valorSinal)}</span>
                   </div>
-                )}
-                {eventoInfoSelecionado?.dataLimiteSinal && (
+                )} */}
+                {/* {eventoInfoSelecionado?.dataLimiteSinal && (
                   <div className="mt-2 text-center bg-white py-2 rounded border border-blue-100 text-xs font-bold text-amber-600">
                     Prazo estabelecido para o sinal: <span className="font-black">{formatarData(eventoInfoSelecionado.dataLimiteSinal)}</span>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -1360,7 +1379,7 @@ export default function MeuPainelPage() {
                 onClick={() => setModalInfoEventoAberto(false)}
                 className="px-5 py-2 bg-slate-800 text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-700 shadow-lg"
               >
-                Ciente
+                OK
               </button>
             </div>
           </div>
