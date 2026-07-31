@@ -65,7 +65,7 @@ export class InscricoesService {
 
       // Sintetizar dinamicamente o array de pagamentos a partir de transacoes
       const pagamentosSintetizados = insc.transacoes
-        .filter((t) => t.pessoaId === insc.pessoaId)
+        .filter((t) => t.pessoaId === insc.pessoaId && !(t.tipo === 'RECEITA' && t.origem !== 'EVENTOS'))
         .map((t) => ({
           id: t.id,
           valor: t.tipo === 'DESPESA' ? t.valor : -t.valor,
