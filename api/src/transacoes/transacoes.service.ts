@@ -21,15 +21,6 @@ export class TransacoesService {
     }
 
     return this.prisma.$transaction(async (prisma) => {
-      if (dados.pessoaId && dados.eventoId && !dados.inscricaoId) {
-        const inscricao = await prisma.inscricao.findFirst({
-          where: { pessoaId: dados.pessoaId, eventoId: dados.eventoId }
-        });
-        if (inscricao) {
-          dados.inscricaoId = inscricao.id;
-        }
-      }
-
       const transacao = await prisma.transacao.create({ data: dados });
 
       const valorAtualizar = createTransacaoDto.tipo === TipoTransacao.RECEITA

@@ -223,7 +223,7 @@ export class PessoasService {
 
     const inscricoesFormatadas = (pessoa.inscricoes || []).map((insc: any) => {
       const pagamentosSintetizados = (insc.transacoes || [])
-        .filter((t: any) => t.pessoaId === pessoa.id && !(t.tipo === 'RECEITA' && t.origem !== 'EVENTOS'))
+        .filter((t: any) => t.pessoaId === pessoa.id)
         .map((t: any) => ({
           id: t.id,
           valor: t.tipo === 'DESPESA' ? t.valor : -t.valor,
