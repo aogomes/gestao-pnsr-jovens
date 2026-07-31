@@ -31,6 +31,7 @@ export default function TransacoesPage() {
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [pessoas, setPessoas] = useState<any[]>([]);
   const [contas, setContas] = useState<any[]>([]);
+  const [eventosAtivos, setEventosAtivos] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtroTipo, setFiltroTipo] = useState('Todos');
   const [filtroVinculo, setFiltroVinculo] = useState('TODOS');
@@ -55,6 +56,7 @@ export default function TransacoesPage() {
     vinculoTipo: 'PESSOA' as 'PESSOA' | 'CONTA',
     pessoaId: '',
     contaId: '',
+    eventoId: '',
     metodo: '',
     data: new Date().toISOString().split('T')[0]
   });
@@ -75,12 +77,14 @@ export default function TransacoesPage() {
 
   const buscarFiltros = async () => {
     try {
-      const [pessoasRes, contasRes] = await Promise.all([
+      const [pessoasRes, contasRes, eventosRes] = await Promise.all([
         api.get('/pessoas').catch(() => ({ data: [] })),
-        api.get('/contas').catch(() => ({ data: [] }))
+        api.get('/contas').catch(() => ({ data: [] })),
+        api.get('/eventos').catch(() => ({ data: [] }))
       ]);
       setPessoas(pessoasRes.data || []);
       setContas(contasRes.data || []);
+      setEventosAtivos(eventosRes.data?.filter((e: any) => e.status === 'ATIVO') || []);
     } catch (err) {
       console.error(err);
     }
@@ -127,10 +131,16 @@ export default function TransacoesPage() {
         valor: parseFloat(dadosForm.valor),
         pessoaId: dadosForm.vinculoTipo === 'PESSOA' && dadosForm.pessoaId ? Number(dadosForm.pessoaId) : null,
         contaId: dadosForm.vinculoTipo === 'CONTA' && dadosForm.contaId ? Number(dadosForm.contaId) : null,
+        eventoId: dadosForm.eventoId ? Number(dadosForm.eventoId) : null,
         data: dadosForm.data,
         metodo: dadosForm.metodo || null
       };
 
+      if (!cargaUtil.eventoId) {
+        alert('Por favor, selecione um evento.');
+        setEnviando(false);
+        return;
+      }
       if (dadosForm.vinculoTipo === 'PESSOA' && !cargaUtil.pessoaId) {
         alert('Por favor, selecione uma pessoa.');
         setEnviando(false);
@@ -152,6 +162,7 @@ export default function TransacoesPage() {
         vinculoTipo: 'PESSOA',
         pessoaId: '',
         contaId: '',
+        eventoId: '',
         metodo: '',
         data: new Date().toISOString().split('T')[0]
       });
@@ -621,6 +632,26 @@ export default function TransacoesPage() {
                     />
                     Conta
                   </label>
+                </div>
+              </div>
+
+              {/* Seleção do Evento (Obrigatório) */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Evento Vinculado</label>
+                <div className="relative group">
+                  <Calendar className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                  <select
+                    value={dadosForm.eventoId}
+                    onChange={(e) => setDadosForm({ ...dadosForm, eventoId: e.target.value })}
+                    required
+                    className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione um evento...</option>
+                    {eventosAtivos.map((e) => (
+                      <option key={e.id} value={e.id}>{e.nome}</option>
+                    ))}
+                  </select>
+                  <ChevronDownIcon className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 

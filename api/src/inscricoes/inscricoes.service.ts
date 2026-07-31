@@ -44,7 +44,8 @@ export class InscricoesService {
     const transacoesAgregadas = await this.prisma.transacao.groupBy({
       by: ['pessoaId', 'tipo'],
       where: { 
-        pessoaId: { in: pessoaIds }
+        pessoaId: { in: pessoaIds },
+        ...(eventoId ? { eventoId } : {})
       },
       _sum: { valor: true }
     });
