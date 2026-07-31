@@ -31,6 +31,7 @@ export default function TransacoesPage() {
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [pessoas, setPessoas] = useState<any[]>([]);
   const [contas, setContas] = useState<any[]>([]);
+  const [eventosAtivos, setEventosAtivos] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtroTipo, setFiltroTipo] = useState('Todos');
   const [filtroVinculo, setFiltroVinculo] = useState('TODOS');
@@ -55,6 +56,7 @@ export default function TransacoesPage() {
     vinculoTipo: 'PESSOA' as 'PESSOA' | 'CONTA',
     pessoaId: '',
     contaId: '',
+    eventoId: '',
     metodo: '',
     data: new Date().toISOString().split('T')[0]
   });
@@ -75,12 +77,14 @@ export default function TransacoesPage() {
 
   const buscarFiltros = async () => {
     try {
-      const [pessoasRes, contasRes] = await Promise.all([
+      const [pessoasRes, contasRes, eventosRes] = await Promise.all([
         api.get('/pessoas').catch(() => ({ data: [] })),
-        api.get('/contas').catch(() => ({ data: [] }))
+        api.get('/contas').catch(() => ({ data: [] })),
+        api.get('/eventos').catch(() => ({ data: [] }))
       ]);
       setPessoas(pessoasRes.data || []);
       setContas(contasRes.data || []);
+      setEventosAtivos(eventosRes.data?.filter((e: any) => e.status === 'ATIVO') || []);
     } catch (err) {
       console.error(err);
     }
@@ -127,10 +131,16 @@ export default function TransacoesPage() {
         valor: parseFloat(dadosForm.valor),
         pessoaId: dadosForm.vinculoTipo === 'PESSOA' && dadosForm.pessoaId ? Number(dadosForm.pessoaId) : null,
         contaId: dadosForm.vinculoTipo === 'CONTA' && dadosForm.contaId ? Number(dadosForm.contaId) : null,
+        eventoId: dadosForm.eventoId ? Number(dadosForm.eventoId) : null,
         data: dadosForm.data,
         metodo: dadosForm.metodo || null
       };
 
+      if (!cargaUtil.eventoId) {
+        alert('Por favor, selecione um evento.');
+        setEnviando(false);
+        return;
+      }
       if (dadosForm.vinculoTipo === 'PESSOA' && !cargaUtil.pessoaId) {
         alert('Por favor, selecione uma pessoa.');
         setEnviando(false);
@@ -152,6 +162,7 @@ export default function TransacoesPage() {
         vinculoTipo: 'PESSOA',
         pessoaId: '',
         contaId: '',
+        eventoId: '',
         metodo: '',
         data: new Date().toISOString().split('T')[0]
       });
@@ -466,8 +477,8 @@ export default function TransacoesPage() {
       {/* MODAL DE LANÇAMENTO */}
       {modalAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white w-full max-w-xl rounded-sm shadow-2xl overflow-hidden animate-in flex flex-col max-h-[90vh] fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">Novo Lançamento</h2>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Gestão de Auditoria Financeira</p>
@@ -477,7 +488,7 @@ export default function TransacoesPage() {
               </button>
             </div>
 
-            <form onSubmit={confirmarEnvio} className="p-10 space-y-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6"><form onSubmit={confirmarEnvio} className="space-y-4">
               <div className="flex gap-2 bg-slate-100 p-2 rounded-sm">
                 {[
                   { id: 'RECEITA', label: 'Receita', icon: ArrowUpRight, active: 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20', inactive: 'text-slate-400 hover:text-emerald-600' },
@@ -491,7 +502,7 @@ export default function TransacoesPage() {
                       tipo: t.id,
                       origem: t.id === 'RECEITA' ? 'DEPOSITO' : 'PAGAMENTO'
                     })}
-                    className={`flex-1 py-4 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${dadosForm.tipo === t.id ? t.active : t.inactive
+                    className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${dadosForm.tipo === t.id ? t.active : t.inactive
                       }`}
                   >
                     <t.icon className="w-4 h-4" />
@@ -507,7 +518,7 @@ export default function TransacoesPage() {
                   <select
                     value={dadosForm.origem}
                     onChange={(e) => setDadosForm({ ...dadosForm, origem: e.target.value })}
-                    className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                    className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                   >
                     {dadosForm.tipo === 'RECEITA' ? (
                       <>
@@ -534,13 +545,13 @@ export default function TransacoesPage() {
                     required
                     value={dadosForm.descricao}
                     onChange={(e) => setDadosForm({ ...dadosForm, descricao: e.target.value })}
-                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
+                    className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
                     placeholder="Ex: Oferta de Comunidade"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Valor do Título (R$)</label>
                   <div className="relative group">
@@ -551,7 +562,7 @@ export default function TransacoesPage() {
                       required
                       value={dadosForm.valor}
                       onChange={(e) => setDadosForm({ ...dadosForm, valor: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black text-slate-700"
+                      className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black text-slate-700"
                       placeholder="0,00"
                     />
                   </div>
@@ -565,7 +576,7 @@ export default function TransacoesPage() {
                       required
                       value={dadosForm.data}
                       onChange={(e) => setDadosForm({ ...dadosForm, data: e.target.value })}
-                      className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                      className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                     />
                   </div>
                 </div>
@@ -578,7 +589,7 @@ export default function TransacoesPage() {
                   <select
                     value={dadosForm.metodo}
                     onChange={(e) => setDadosForm({ ...dadosForm, metodo: e.target.value })}
-                    className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                    className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                   >
                     <option value="">Selecione o método...</option>
                     <option value="PIX">PIX</option>
@@ -624,6 +635,26 @@ export default function TransacoesPage() {
                 </div>
               </div>
 
+              {/* Seleção do Evento (Obrigatório) */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Evento Vinculado</label>
+                <div className="relative group">
+                  <Calendar className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
+                  <select
+                    value={dadosForm.eventoId}
+                    onChange={(e) => setDadosForm({ ...dadosForm, eventoId: e.target.value })}
+                    required
+                    className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione um evento...</option>
+                    {eventosAtivos.map((e) => (
+                      <option key={e.id} value={e.id}>{e.nome}</option>
+                    ))}
+                  </select>
+                  <ChevronDownIcon className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
               {/* Combobox Condicional de Pessoa ou Conta */}
               {dadosForm.vinculoTipo === 'PESSOA' ? (
                 <div className="space-y-2">
@@ -634,7 +665,7 @@ export default function TransacoesPage() {
                       value={dadosForm.pessoaId}
                       onChange={(e) => setDadosForm({ ...dadosForm, pessoaId: e.target.value })}
                       required
-                      className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                      className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                     >
                       <option value="">Selecione uma pessoa...</option>
                       {pessoas.map((p) => (
@@ -653,7 +684,7 @@ export default function TransacoesPage() {
                       value={dadosForm.contaId}
                       onChange={(e) => setDadosForm({ ...dadosForm, contaId: e.target.value })}
                       required
-                      className="w-full pl-14 pr-10 py-5 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                      className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                     >
                       <option value="">Selecione uma conta...</option>
                       {contas.map((c) => (
@@ -665,7 +696,7 @@ export default function TransacoesPage() {
                 </div>
               )}
 
-              <div className="pt-8 flex items-center justify-end gap-4 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setModalAberto(false)}
@@ -676,13 +707,14 @@ export default function TransacoesPage() {
                 <button
                   type="submit"
                   disabled={enviando}
-                  className="px-10 py-4 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-3 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
                 >
                   {enviando && <Loader2 className="w-4 h-4 animate-spin" />}
                   Confirmar Lançamento
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

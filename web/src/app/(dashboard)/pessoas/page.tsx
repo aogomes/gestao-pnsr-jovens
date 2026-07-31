@@ -361,14 +361,14 @@ export default function PessoasPage() {
                                 >
                                   <ArrowRightLeft className="w-4 h-4" /> Extrato
                                 </button>
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                                >
+                                  <Pencil className="w-4 h-4" /> Editar
+                                </button>
                                 {podeEditar && (
                                   <>
-                                    <button
-                                      onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
-                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
-                                    >
-                                      <Pencil className="w-4 h-4" /> Editar
-                                    </button>
                                     <button
                                       onClick={() => { setMenuAbertoId(null); confirmarExclusao(pessoa.id); }}
                                       className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
@@ -396,7 +396,7 @@ export default function PessoasPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
 
-            <div className="px-10 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">
                   {pessoaEdicao ? 'Atualizar Dados' : 'Novo Cadastro'}
@@ -408,11 +408,11 @@ export default function PessoasPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
-              <form onSubmit={confirmarEnvio} className="space-y-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+              <form onSubmit={confirmarEnvio} className="space-y-4">
 
                 {/* Grid para os campos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                   {/* Nome Completo */}
                   <div className="space-y-2 sm:col-span-2">
@@ -424,7 +424,7 @@ export default function PessoasPage() {
                         required
                         value={dadosForm.nome}
                         onChange={(e) => setDadosForm({ ...dadosForm, nome: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 uppercase"
                       />
                     </div>
                   </div>
@@ -438,7 +438,7 @@ export default function PessoasPage() {
                         required
                         value={dadosForm.paroquiaId || ''}
                         onChange={(e) => setDadosForm({ ...dadosForm, paroquiaId: e.target.value })}
-                        className="w-full pl-14 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
+                        className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                       >
                         <option value="">Selecione uma comunidade...</option>
                         {paroquias.map(p => (
@@ -458,7 +458,7 @@ export default function PessoasPage() {
                         type="date"
                         value={dadosForm.dataNascimento}
                         onChange={(e) => setDadosForm({ ...dadosForm, dataNascimento: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -471,7 +471,7 @@ export default function PessoasPage() {
                       <select
                         value={dadosForm.sexo}
                         onChange={(e) => setDadosForm({ ...dadosForm, sexo: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       >
                         <option value="">Selecione</option>
                         <option value="Masculino">Masculino</option>
@@ -490,7 +490,7 @@ export default function PessoasPage() {
                         type="text"
                         value={dadosForm.documento}
                         onChange={(e) => setDadosForm({ ...dadosForm, documento: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -504,7 +504,7 @@ export default function PessoasPage() {
                         type="text"
                         value={dadosForm.telefone}
                         onChange={(e) => setDadosForm({ ...dadosForm, telefone: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -518,7 +518,7 @@ export default function PessoasPage() {
                         type="text"
                         value={dadosForm.rg}
                         onChange={(e) => setDadosForm({ ...dadosForm, rg: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -532,7 +532,7 @@ export default function PessoasPage() {
                         type="text"
                         value={dadosForm.orgaoEmissor}
                         onChange={(e) => setDadosForm({ ...dadosForm, orgaoEmissor: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -546,7 +546,7 @@ export default function PessoasPage() {
                         type="email"
                         value={dadosForm.email}
                         onChange={(e) => setDadosForm({ ...dadosForm, email: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -560,7 +560,7 @@ export default function PessoasPage() {
                         type="email"
                         value={dadosForm.emailResponsavel}
                         onChange={(e) => setDadosForm({ ...dadosForm, emailResponsavel: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="E-mail do pai/responsável"
                       />
                     </div>
@@ -575,7 +575,7 @@ export default function PessoasPage() {
                         type="email"
                         value={dadosForm.emailResponsavel2}
                         onChange={(e) => setDadosForm({ ...dadosForm, emailResponsavel2: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                         placeholder="Opcional"
                       />
                     </div>
@@ -590,7 +590,7 @@ export default function PessoasPage() {
                         type="text"
                         value={dadosForm.comunidade}
                         onChange={(e) => setDadosForm({ ...dadosForm, comunidade: e.target.value })}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
+                        className="w-full pl-14 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700"
                       />
                     </div>
                   </div>
@@ -780,7 +780,7 @@ export default function PessoasPage() {
                 </div>
 
                 {/* Botões de Ação */}
-                <div className="pt-6 flex items-center justify-end gap-4 border-t border-slate-100">
+                <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setModalAberto(false)}
