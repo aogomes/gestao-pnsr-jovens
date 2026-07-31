@@ -43,7 +43,7 @@ export class InscricoesService {
 
     const transacoesAgregadas = await this.prisma.transacao.groupBy({
       by: ['pessoaId', 'tipo'],
-      where: { 
+      where: {
         pessoaId: { in: pessoaIds },
         ...(eventoId ? { eventoId } : {})
       },
@@ -69,9 +69,9 @@ export class InscricoesService {
         .map((t) => ({
           id: t.id,
           valor: t.tipo === 'DESPESA' ? t.valor : -t.valor,
-          data: t.data,
-          metodo: t.metodo || 'SALDO',
-          observacao: t.descricao
+          tipo: t.tipo,
+          descricao: t.descricao,
+          data: t.data
         }));
 
       return {
@@ -98,8 +98,8 @@ export class InscricoesService {
         throw new BadRequestException('Inscrição não encontrada.');
       }
 
-      // 2. Se o novo status for CANCELADO e houver pagamentos de débito da pessoa vinculados, realiza o estorno de partida dobrada
-      if (status === 'CANCELADO' && inscricao.transacoes && inscricao.transacoes.length > 0) {
+      // 2. Se o novo status for DESISTENCIA e houver pagamentos de débito da pessoa vinculados, realiza o estorno de partida dobrada
+      if (status === 'DESISTENCIA' && inscricao.transacoes && inscricao.transacoes.length > 0) {
         const pagamentosDebito = inscricao.transacoes.filter(
           (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA'
         );
@@ -235,7 +235,7 @@ export class InscricoesService {
     return this.prisma.$transaction(async (tx) => {
       const inscricao = await tx.inscricao.findUnique({
         where: { id },
-        include: { transacoes: true, evento: true }
+        include: { transacoes: true, evento: true, pessoa: true }
       });
 
       if (!inscricao) {
@@ -246,54 +246,107 @@ export class InscricoesService {
         throw new BadRequestException('Apenas inscrições confirmadas podem ser objeto de desistência.');
       }
 
+      let pessoaDestinoNome = '';
       if (targetPessoaId) {
         const p = await tx.pessoa.findUnique({ where: { id: targetPessoaId } });
         if (!p) throw new BadRequestException('Pessoa de destino não encontrada.');
+        pessoaDestinoNome = p.nome;
       }
 
       const pagamentosDebito = inscricao.transacoes.filter(
         (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA'
       );
+      const receitasConta = inscricao.transacoes.filter(
+        (t) => t.contaId && t.tipo === 'RECEITA'
+      );
 
-      for (const pagamento of pagamentosDebito) {
+      const totalPago = pagamentosDebito.reduce((acc, t) => acc + t.valor, 0);
+
+      if (totalPago > 0) {
         if (opcao === 'SALDO') {
-          const pessoaDestino = targetPessoaId || inscricao.pessoaId;
-          await tx.transacao.create({
-            data: {
-              valor: pagamento.valor,
-              tipo: 'RECEITA',
-              descricao: `Crédito de Desistência: ${inscricao.evento.nome}`,
-              pessoaId: pessoaDestino,
-              inscricaoId: id,
-              eventoId: inscricao.eventoId,
-              origem: 'EVENTOS',
-              data: new Date()
-            }
-          });
-        }
-        
-        await tx.transacao.create({
-          data: {
-            valor: pagamento.valor,
-            tipo: 'DESPESA',
-            descricao: `Estorno Desistência Inscrição: ${inscricao.evento.nome}`,
-            contaId: inscricao.evento.contaId,
-            inscricaoId: id,
-            eventoId: inscricao.eventoId,
-            origem: 'EVENTOS',
-            data: new Date()
+          // 1. Decrementar da Conta Bancária do Evento as receitas vinculadas
+          for (const receita of receitasConta) {
+            await tx.conta.update({
+              where: { id: receita.contaId! },
+              data: { saldo: { decrement: receita.valor } }
+            });
           }
-        });
 
-        await tx.conta.update({
-          where: { id: inscricao.evento.contaId },
-          data: { saldo: { decrement: pagamento.valor } }
-        });
+          // 2. Excluir fisicamente todos os pagamentos / recebimentos atrelados à inscrição
+          if (inscricao.transacoes.length > 0) {
+            await tx.transacao.deleteMany({
+              where: { inscricaoId: id }
+            });
+          }
+
+          // Se vai transferir para outra pessoa
+          if (targetPessoaId && targetPessoaId !== inscricao.pessoaId) {
+            await tx.transacao.create({
+              data: {
+                valor: totalPago,
+                tipo: 'DESPESA',
+                descricao: `Transferência de Saldo para: ${pessoaDestinoNome}`,
+                pessoaId: inscricao.pessoaId,
+                eventoId: inscricao.eventoId,
+                origem: 'EVENTOS',
+                data: new Date()
+              }
+            });
+
+            await tx.transacao.create({
+              data: {
+                valor: totalPago,
+                tipo: 'RECEITA',
+                descricao: `Transferência de Saldo de: ${inscricao.pessoa.nome}`,
+                pessoaId: targetPessoaId,
+                eventoId: inscricao.eventoId,
+                origem: 'EVENTOS',
+                data: new Date()
+              }
+            });
+          }
+        } else if (opcao === 'CAIXA') {
+          // Mantém as transações originais para rastreabilidade
+          // 1. Atualizar a descrição da DESPESA original da pessoa e desvincular da inscrição
+          for (const pagamento of pagamentosDebito) {
+            await tx.transacao.update({
+              where: { id: pagamento.id },
+              data: { 
+                descricao: `${pagamento.descricao} (DEVOLVIDO)`,
+                inscricaoId: null 
+              }
+            });
+          }
+
+          // 2. Criar uma nova DESPESA na Conta Bancária e decrementar o saldo
+          // (Estorno do dinheiro físico)
+          // Assumimos que o dinheiro sai da conta onde entrou (pegamos a primeira receita como base ou a conta do evento)
+          const contaIdEstorno = receitasConta.length > 0 ? receitasConta[0].contaId : inscricao.evento.contaId;
+          
+          if (contaIdEstorno) {
+            await tx.transacao.create({
+              data: {
+                valor: totalPago,
+                tipo: 'DESPESA',
+                descricao: `Saque (DEVOLUÇÃO): ${inscricao.evento.nome} - ${inscricao.pessoa.nome}`,
+                contaId: contaIdEstorno,
+                eventoId: inscricao.eventoId,
+                origem: 'EVENTOS',
+                data: new Date()
+              }
+            });
+
+            await tx.conta.update({
+              where: { id: contaIdEstorno },
+              data: { saldo: { decrement: totalPago } }
+            });
+          }
+        }
       }
 
       return tx.inscricao.update({
         where: { id },
-        data: { status: 'CANCELADO' }
+        data: { status: 'DESISTENCIA' }
       });
     });
   }

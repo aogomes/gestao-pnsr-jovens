@@ -522,10 +522,10 @@ export default function InscricoesPage() {
                             value={inscricao.status}
                             onChange={(e) => {
                               const novoStatus = e.target.value;
-                              if (novoStatus === 'CANCELADO') {
+                              if (novoStatus === 'DESISTENCIA') {
                                 const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
                                 if (totalPago > 0) {
-                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao cancelá-la, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao desistir, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
                                     e.target.value = inscricao.status;
                                     return;
                                   }
@@ -539,15 +539,15 @@ export default function InscricoesPage() {
                               atualizarStatus(inscricao.id, novoStatus);
                             }}
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                              inscricao.status === 'EM_ANALISE' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                inscricao.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                              inscricao.status === 'DESISTENCIA' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
                                   'bg-white text-slate-600 border-slate-200'
                               }`}
                           >
                             <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
                             <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
                             <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
-                            <option value="CANCELADO" className="text-rose-600 bg-white">Cancelado</option>
+                            <option value="DESISTENCIA" className="text-rose-600 bg-white">Desistência</option>
                           </select>
                         </td>
 
@@ -749,7 +749,7 @@ export default function InscricoesPage() {
                           Esta inscrição está com status "{
                             inscricaoParaPagar.status === 'PENDENTE' ? 'Pendente' :
                               inscricaoParaPagar.status === 'EM_ANALISE' ? 'Em Análise' :
-                                inscricaoParaPagar.status === 'CANCELADO' ? 'Cancelado' :
+                                inscricaoParaPagar.status === 'DESISTENCIA' ? 'Desistência' :
                                   inscricaoParaPagar.status
                           }". Para registrar pagamentos, a inscrição deve ser primeiro aprovada e CONFIRMADA pelo administrador do sistema.
                         </p>
