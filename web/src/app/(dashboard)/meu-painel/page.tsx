@@ -1235,14 +1235,14 @@ export default function MeuPainelPage() {
                 </div>
               </div>
 
-              {eventoInfoSelecionado?.itensInclusos && eventoInfoSelecionado.itensInclusos.length > 0 && (
+              {eventoParaInscrever?.itensInclusos && eventoParaInscrever.itensInclusos.length > 0 && (
                 <div>
                   <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     O que está incluso:
                   </h3>
                   <ul className="space-y-2 text-sm text-slate-600 pl-6 list-disc marker:text-[#1351b4]">
-                    {eventoInfoSelecionado.itensInclusos.map((item: string, idx: number) => (
+                    {eventoParaInscrever.itensInclusos.map((item: string, idx: number) => (
                       <li key={idx}>{item}</li>
                     ))}
                   </ul>
