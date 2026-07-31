@@ -399,7 +399,7 @@ model Conta {
 enum StatusInscricao {
   PENDENTE
   CONFIRMADO
-  DESISTENCIA
+  DESISTENCIA @map("CANCELADO")
   EM_ANALISE
   AGUARDANDO_VAGA
 }
