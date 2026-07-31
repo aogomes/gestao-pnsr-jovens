@@ -409,12 +409,12 @@ export default function MeuPainelPage() {
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shadow-sm ${insc.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           insc.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                            insc.status === 'CANCELADO' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                            insc.status === 'DESISTENCIA' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                               'bg-slate-50 text-slate-400 border-slate-100'
                           }`}>
                           {insc.status === 'CONFIRMADO' ? 'Confirmado' :
                             insc.status === 'EM_ANALISE' ? 'Em Análise' :
-                              insc.status === 'CANCELADO' ? 'Cancelado' :
+                              insc.status === 'DESISTENCIA' ? 'Desistência' :
                                 'Aguardando Confirmação'}
                         </span>
                       </div>
