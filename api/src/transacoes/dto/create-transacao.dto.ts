@@ -34,5 +34,13 @@ export class CreateTransacaoDto {
   @IsInt()
   @IsOptional()
   contaId?: number;
+
+  @IsInt()
+  @IsOptional()
+  eventoId?: number;
+
+  @IsInt()
+  @IsOptional()
+  inscricaoId?: number;
 }
 
