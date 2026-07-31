@@ -252,14 +252,19 @@ export default function InscricoesPage() {
         insc.pessoa.nome || '-',
         insc.pessoa.comunidade || '-',
         insc.pessoa.telefone || '-',
-        insc.intencaoPagamento || '-',
+        insc.pessoa.email || '-',
+        insc.status === 'CONFIRMADO' ? 'Confirmado' :
+          insc.status === 'PENDENTE' ? 'Pendente' :
+          insc.status === 'DESISTENCIA' ? 'Desistência' :
+          insc.status === 'EM_ANALISE' ? 'Em Análise' :
+          insc.status === 'AGUARDANDO_VAGA' ? 'Fila de Espera' : insc.status,
         formatarMoeda(totalPago)
       ];
     });
 
     autoTable(doc, {
       startY: 30,
-      head: [['Nome Completo', 'Comunidade', 'Telefone', 'Intenção de Pagamento', 'Valor Pago']],
+      head: [['Nome Completo', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [19, 81, 180] },
