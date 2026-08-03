@@ -15,7 +15,8 @@ export type Modulo =
   | 'contas'
   | 'eventos'
   | 'rifas'
-  | 'usuarios';
+  | 'usuarios'
+  | 'relatorios';
 
 export type Acao = 'ler' | 'escrever';
 
@@ -39,7 +40,8 @@ export const rolePermissions: PermissionsMap = {
     'trabalhos': ['ler'],
     'eventos': ['ler', 'escrever'],
     'inscricoes': ['ler', 'escrever'],
-    'pessoas': ['ler']
+    'pessoas': ['ler'],
+    'relatorios': ['ler']
   },
   AUDITOR: {
     'painel': ['ler'],
@@ -52,7 +54,8 @@ export const rolePermissions: PermissionsMap = {
     'eventos': ['ler', 'escrever'],
     'rifas': ['ler', 'escrever'],
     'pessoas': ['ler'],
-    'usuarios': ['ler']
+    'usuarios': ['ler'],
+    'relatorios': ['ler']
   },
   ADMIN: {
     'painel': ['ler', 'escrever'],
@@ -65,7 +68,8 @@ export const rolePermissions: PermissionsMap = {
     'eventos': ['ler', 'escrever'],
     'rifas': ['ler', 'escrever'],
     'pessoas': ['ler', 'escrever'],
-    'usuarios': ['ler', 'escrever']
+    'usuarios': ['ler', 'escrever'],
+    'relatorios': ['ler']
   }
 };
 
