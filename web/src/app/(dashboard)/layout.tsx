@@ -27,7 +27,8 @@ import {
   ShoppingBag,
   Package,
   User,
-  Lock
+  Lock,
+  BarChart
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -133,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Rifas (Gestão)', href: '/rifas', icon: Ticket, modulo: 'rifas' },
     { name: 'Pessoas', href: '/pessoas', icon: Users, modulo: 'pessoas' },
     { name: 'Usuários', href: '/usuarios', icon: Shield, modulo: 'usuarios' },
+    { name: 'Relatórios', href: '/relatorios', icon: BarChart, modulo: 'relatorios' },
   ];
 
   let itensMenu = [...itensNav];
@@ -298,10 +300,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span className="text-[9px] font-bold">Painel</span>
             </Link>
           )}
-          {hasPermission(usuario?.papel, 'trabalhos', 'ler') && (
-            <Link href="/trabalhos" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/trabalhos' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
-              <Briefcase className="w-5 h-5" />
-              <span className="text-[9px] font-bold truncate">Trabalhos</span>
+          {hasPermission(usuario?.papel, 'relatorios', 'ler') && (
+            <Link href="/relatorios" className={`flex flex-col items-center justify-center w-14 h-full space-y-1 ${pathname === '/relatorios' ? 'text-[#1351b4]' : 'text-slate-400'}`}>
+              <BarChart className="w-5 h-5" />
+              <span className="text-[9px] font-bold truncate">Relatórios</span>
             </Link>
           )}
           {hasPermission(usuario?.papel, 'inscricoes', 'ler') && (

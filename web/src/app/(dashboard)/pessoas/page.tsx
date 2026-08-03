@@ -278,7 +278,7 @@ export default function PessoasPage() {
                 <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome</th>
                 {/* <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th> */}
-                <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Documento</th>
+                <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Telefone</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Saldo</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
@@ -322,7 +322,7 @@ export default function PessoasPage() {
                     </td> */}
                     <td className="border-b border-slate-100 hidden md:table-cell px-2 py-1">
                       <div className="flex flex-col">
-                        <span className="font-bold text-[12px] text-slate-500 tracking-widest leading-tight">{pessoa.documento || '---.---.--- --'}</span>
+                        {/* <span className="font-bold text-[12px] text-slate-500 tracking-widest leading-tight">{pessoa.documento || '---.---.--- --'}</span> */}
                         <span className="text-xs text-slate-400 mt-0.5">{pessoa.telefone || 'Telefone não cadastrado'}</span>
                       </div>
                     </td>
@@ -361,14 +361,15 @@ export default function PessoasPage() {
                                 >
                                   <ArrowRightLeft className="w-4 h-4" /> Extrato
                                 </button>
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
-                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
-                                >
-                                  <Pencil className="w-4 h-4" /> Editar
-                                </button>
+
                                 {podeEditar && (
                                   <>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); abrirModal(pessoa); }}
+                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                                    >
+                                      <Pencil className="w-4 h-4" /> Editar
+                                    </button>
                                     <button
                                       onClick={() => { setMenuAbertoId(null); confirmarExclusao(pessoa.id); }}
                                       className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
