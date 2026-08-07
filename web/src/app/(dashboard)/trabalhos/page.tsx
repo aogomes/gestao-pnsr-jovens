@@ -198,13 +198,14 @@ export default function TrabalhosPage() {
 
   const buscarDados = async () => {
     try {
-      const [trabRes, eventosRes, prodRes] = await Promise.all([
+      const [trabRes, eventosRes, prodRes, pessoasRes] = await Promise.all([
         api.get('/trabalhos'),
         api.get('/eventos'),
-        api.get('/produtos-venda')
+        api.get('/produtos-venda'),
+        api.get('/pessoas')
       ]);
       setTrabalhos(trabRes.data);
-      setPessoas([]);
+      setPessoas(pessoasRes.data);
       const eventosAtivos = eventosRes.data.filter((e: any) => e.status === 'ATIVO');
       setEventos(eventosAtivos);
       setEventoSelecionadoId(prev => {
@@ -2110,7 +2111,7 @@ export default function TrabalhosPage() {
                           }}
                         >
                           <option value="">Selecione um trabalhador para adicionar...</option>
-                          {inscritosEvento.filter(p => !dadosForm.membrosIds.includes(p.id.toString())).map(p => (
+                          {pessoas.filter(p => !dadosForm.membrosIds.includes(p.id.toString())).map(p => (
                             <option key={p.id} value={p.id}>{p.nome}</option>
                           ))}
                         </select>
@@ -2122,7 +2123,7 @@ export default function TrabalhosPage() {
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Trabalhadores Selecionados ({dadosForm.membrosIds.length})</label>
                         <div className="border border-slate-200 rounded-sm max-h-48 overflow-y-auto bg-slate-50 p-2 space-y-1">
                           {dadosForm.membrosIds.map(membroId => {
-                            const pessoa = inscritosEvento.find(p => p.id.toString() === membroId);
+                            const pessoa = pessoas.find(p => p.id.toString() === membroId);
                             if (!pessoa) return null;
                             return (
                               <div key={pessoa.id} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-sm shadow-sm">
@@ -2276,7 +2277,7 @@ export default function TrabalhosPage() {
                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-sm text-[11px] font-black text-slate-700 outline-none focus:border-[#1351b4] uppercase"
                       >
                         <option value="">Selecione a pessoa...</option>
-                        {inscritosEvento.map((p: any) => (
+                        {pessoas.map((p: any) => (
                           <option key={p.id} value={p.id}>{p.nome}</option>
                         ))}
                       </select>

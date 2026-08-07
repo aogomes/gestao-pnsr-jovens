@@ -343,7 +343,7 @@ export default function MeuPainelPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4 text-[#1351b4]" />
-                <span className="text-[10px] font-black text-[#1351b4]/60 uppercase tracking-widest">Créditos Disponíveis</span>
+                <span className="text-[10px] font-black text-[#1351b4]/60 uppercase tracking-widest">Saldo Disponível</span>
               </div>
               <div className="flex items-end justify-between">
                 <div className="flex items-center gap-4">
