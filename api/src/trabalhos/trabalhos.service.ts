@@ -13,26 +13,7 @@ export class TrabalhosService {
     const { membrosIds, ...dados } = createTrabalhoDto;
 
     return this.prisma.$transaction(async (prisma) => {
-      // Validar trava de segurança: Apenas inscritos no evento do trabalho podem ser escalados
-      if (dados.tipo === 'INDIVIDUAL' && dados.pessoaId) {
-        const inscrito = await prisma.inscricao.findUnique({
-          where: { pessoaId_eventoId: { pessoaId: dados.pessoaId, eventoId: dados.eventoId } }
-        });
-        if (!inscrito) {
-          throw new BadRequestException('O participante individual deve estar inscrito no evento deste trabalho.');
-        }
-      }
-
-      if (dados.tipo === 'GRUPO' && membrosIds && membrosIds.length > 0) {
-        for (const pessoaId of membrosIds) {
-          const inscrito = await prisma.inscricao.findUnique({
-            where: { pessoaId_eventoId: { pessoaId, eventoId: dados.eventoId } }
-          });
-          if (!inscrito) {
-            throw new BadRequestException(`O participante ID ${pessoaId} deve estar inscrito no evento deste trabalho para ser escalado.`);
-          }
-        }
-      }
+      // Validar trava de segurança: removida conforme solicitação para permitir todas as pessoas cadastradas ativas
 
       const trabalho = await prisma.trabalho.create({
         data: {
@@ -132,26 +113,7 @@ export class TrabalhosService {
 
     const evId = data.eventoId || trabalhoExistente.eventoId;
 
-    // Validar trava de segurança: Apenas inscritos no evento do trabalho podem ser escalados
-    if (trabalhoExistente.tipo === 'INDIVIDUAL' && data.pessoaId) {
-      const inscrito = await this.prisma.inscricao.findUnique({
-        where: { pessoaId_eventoId: { pessoaId: data.pessoaId, eventoId: evId } }
-      });
-      if (!inscrito) {
-        throw new BadRequestException('O participante individual deve estar inscrito no evento deste trabalho.');
-      }
-    }
-
-    if (trabalhoExistente.tipo === 'GRUPO' && membrosIds !== undefined && membrosIds.length > 0) {
-      for (const pessoaId of membrosIds) {
-        const inscrito = await this.prisma.inscricao.findUnique({
-          where: { pessoaId_eventoId: { pessoaId, eventoId: evId } }
-        });
-        if (!inscrito) {
-          throw new BadRequestException(`O participante ID ${pessoaId} deve estar inscrito no evento deste trabalho para ser escalado.`);
-        }
-      }
-    }
+    // Validar trava de segurança: removida conforme solicitação para permitir todas as pessoas cadastradas ativas
 
     return this.prisma.$transaction(async (prisma) => {
       const trabalho = await prisma.trabalho.update({
