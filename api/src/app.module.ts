@@ -20,17 +20,18 @@ import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extr
 import { ArquivosModule } from './arquivos/arquivos.module';
 import { MailModule } from './mail/mail.module';
 
-
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
-    PrismaModule, 
-    AutenticacaoModule, 
-    UsuariosModule, 
-    PessoasModule, 
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+    PrismaModule,
+    AutenticacaoModule,
+    UsuariosModule,
+    PessoasModule,
     TransacoesModule,
     ParoquiasModule,
     EventosModule,
@@ -42,7 +43,7 @@ import { MailModule } from './mail/mail.module';
     VendasModule,
     LancamentosExtratoModule,
     ArquivosModule,
-    MailModule
+    MailModule,
   ],
   controllers: [AppController],
   providers: [
@@ -50,7 +51,7 @@ import { MailModule } from './mail/mail.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
-    }
+    },
   ],
 })
 export class AppModule {}

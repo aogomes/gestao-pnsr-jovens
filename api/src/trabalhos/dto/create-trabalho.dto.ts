@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsDateString, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsArray,
+} from 'class-validator';
 import { TipoTrabalho, StatusTrabalho } from '@prisma/client';
 
 export class CreateTrabalhoDto {

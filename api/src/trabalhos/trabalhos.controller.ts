@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
 import { TrabalhosService } from './trabalhos.service';
 import { CreateTrabalhoDto } from './dto/create-trabalho.dto';
 import { UpdateTrabalhoDto } from './dto/update-trabalho.dto';
@@ -33,7 +44,10 @@ export class TrabalhosController {
 
   @Patch(':id')
   @RequirePermissions('trabalhos', 'escrever')
-  update(@Param('id') id: string, @Body() updateTrabalhoDto: UpdateTrabalhoDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateTrabalhoDto: UpdateTrabalhoDto,
+  ) {
     return this.trabalhosService.update(+id, updateTrabalhoDto);
   }
 
@@ -68,10 +82,7 @@ export class TrabalhosController {
 
   @Delete(':id/recebimentos/:recId')
   @RequirePermissions('trabalhos', 'escrever')
-  removeRecebimento(
-    @Param('id') id: string,
-    @Param('recId') recId: string,
-  ) {
+  removeRecebimento(@Param('id') id: string, @Param('recId') recId: string) {
     return this.trabalhosService.removeRecebimento(+id, +recId);
   }
 
@@ -92,7 +103,10 @@ export class TrabalhosController {
   // Despesas
   @Post(':id/despesas')
   @RequirePermissions('trabalhos', 'escrever')
-  addDespesa(@Param('id') id: string, @Body() data: { valor: number; descricao: string }) {
+  addDespesa(
+    @Param('id') id: string,
+    @Body() data: { valor: number; descricao: string },
+  ) {
     return this.trabalhosService.addDespesa(+id, data);
   }
 

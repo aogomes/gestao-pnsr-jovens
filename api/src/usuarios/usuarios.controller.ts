@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -34,7 +44,10 @@ export class UsuariosController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Patch(':id')
   @RequirePermissions('usuarios', 'escrever')
-  atualizar(@Param('id', ParseIntPipe) id: number, @Body() updateUsuarioDto: UpdateUsuarioDto) {
+  atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+  ) {
     return this.usuariosService.atualizar(id, updateUsuarioDto);
   }
 
@@ -45,4 +58,3 @@ export class UsuariosController {
     return this.usuariosService.remover(id);
   }
 }
-

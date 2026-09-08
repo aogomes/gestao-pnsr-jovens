@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { EventosService } from './eventos.service';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
@@ -37,7 +47,10 @@ export class EventosController {
 
   @Patch(':id')
   @RequirePermissions('eventos', 'escrever')
-  atualizar(@Param('id', ParseIntPipe) id: number, @Body() updateEventoDto: UpdateEventoDto) {
+  atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateEventoDto: UpdateEventoDto,
+  ) {
     return this.eventosService.atualizar(id, updateEventoDto);
   }
 
@@ -53,4 +66,3 @@ export class EventosController {
     return this.eventosService.buscarDespesasMembros(id);
   }
 }
-

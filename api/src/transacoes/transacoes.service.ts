@@ -23,11 +23,10 @@ export class TransacoesService {
     return this.prisma.$transaction(async (prisma) => {
       const transacao = await prisma.transacao.create({ data: dados });
 
-      const valorAtualizar = createTransacaoDto.tipo === TipoTransacao.RECEITA
-        ? createTransacaoDto.valor
-        : -createTransacaoDto.valor;
-
-
+      const valorAtualizar =
+        createTransacaoDto.tipo === TipoTransacao.RECEITA
+          ? createTransacaoDto.valor
+          : -createTransacaoDto.valor;
 
       if (dados.contaId) {
         await prisma.conta.update({
@@ -48,7 +47,16 @@ export class TransacoesService {
   }
 
   async buscarPaginada(query: any) {
-    const { page = '1', limit = '50', tipo, vinculo, pessoaId, contaId, dataInicio, dataFim } = query;
+    const {
+      page = '1',
+      limit = '50',
+      tipo,
+      vinculo,
+      pessoaId,
+      contaId,
+      dataInicio,
+      dataFim,
+    } = query;
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
@@ -73,7 +81,7 @@ export class TransacoesService {
       dEnd.setUTCHours(23, 59, 59, 999);
       where.data = {
         gte: dStart,
-        lte: dEnd
+        lte: dEnd,
       };
     }
 
@@ -84,15 +92,15 @@ export class TransacoesService {
         skip,
         take,
         include: { pessoa: true, conta: true },
-        orderBy: { data: 'desc' }
-      })
+        orderBy: { data: 'desc' },
+      }),
     ]);
 
     return {
       data,
       total,
       page: Number(page),
-      totalPages: Math.ceil(total / take)
+      totalPages: Math.ceil(total / take),
     };
   }
 
@@ -116,7 +124,10 @@ export class TransacoesService {
     };
 
     return this.prisma.$transaction(async (prisma) => {
-      const transacaoAtualizada = await prisma.transacao.update({ where: { id }, data: dados });
+      const transacaoAtualizada = await prisma.transacao.update({
+        where: { id },
+        data: dados,
+      });
 
       // Atualiza os saldos estáticos no BD para consistência
       if (transacaoOriginal.contaId) {
@@ -143,15 +154,14 @@ export class TransacoesService {
 
   private async atualizarSaldoConta(contaId: number, prisma: any) {
     const transacoes = await prisma.transacao.findMany({
-      where: { contaId }
+      where: { contaId },
     });
     const saldo = transacoes.reduce((acc: number, t: any) => {
       return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
     }, 0);
     await prisma.conta.update({
       where: { id: contaId },
-      data: { saldo }
+      data: { saldo },
     });
   }
 }
-

@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, Query, Delete, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+  Delete,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { RifasService } from './rifas.service';
 import { CreateRifaDto } from './dto/create-rifa.dto';
 import { AlocarRifaDto } from './dto/alocar-rifa.dto';
@@ -40,9 +52,15 @@ export class RifasController {
 
   @Patch('bilhetes/bulk')
   @RequirePermissions('rifas', 'escrever')
-  atualizarBilhetesEmLote(@Body() updateBilheteBulkDto: UpdateBilheteBulkDto, @Request() req) {
+  atualizarBilhetesEmLote(
+    @Body() updateBilheteBulkDto: UpdateBilheteBulkDto,
+    @Request() req,
+  ) {
     const pessoaId = req.user.pessoaId;
-    return this.rifasService.atualizarBilhetesEmLote(updateBilheteBulkDto, pessoaId);
+    return this.rifasService.atualizarBilhetesEmLote(
+      updateBilheteBulkDto,
+      pessoaId,
+    );
   }
 
   @Post(':id/ratear')
@@ -67,7 +85,11 @@ export class RifasController {
 
   @Patch('bilhetes/:id')
   @RequirePermissions('rifas', 'escrever')
-  atualizarBilhete(@Param('id', ParseIntPipe) id: number, @Body() updateBilheteDto: UpdateBilheteDto, @Request() req) {
+  atualizarBilhete(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateBilheteDto: UpdateBilheteDto,
+    @Request() req,
+  ) {
     const pessoaId = req.user.pessoaId;
     return this.rifasService.atualizarBilhete(id, updateBilheteDto, pessoaId);
   }

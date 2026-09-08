@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsDate, IsOptional, IsArray, ValidateNested, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDate,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsInt,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreatePremioDto {

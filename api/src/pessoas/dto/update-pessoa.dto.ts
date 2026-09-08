@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsInt, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsArray,
+} from 'class-validator';
 
 export class UpdatePessoaDto {
   @IsString()
@@ -87,4 +93,3 @@ export class UpdatePessoaDto {
   @IsOptional()
   perfis?: string[];
 }
-

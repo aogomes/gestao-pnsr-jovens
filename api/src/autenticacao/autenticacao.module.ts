@@ -21,5 +21,3 @@ import { MailModule } from '../mail/mail.module';
   providers: [AutenticacaoService, JwtStrategy],
 })
 export class AutenticacaoModule {}
-
-

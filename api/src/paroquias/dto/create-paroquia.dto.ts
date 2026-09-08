@@ -13,4 +13,3 @@ export class CreateParoquiaDto {
   @IsNotEmpty()
   cidade: string;
 }
-

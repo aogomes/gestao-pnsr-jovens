@@ -4,6 +4,6 @@ import { RifasService } from './rifas.service';
 
 @Module({
   controllers: [RifasController],
-  providers: [RifasService]
+  providers: [RifasService],
 })
 export class RifasModule {}

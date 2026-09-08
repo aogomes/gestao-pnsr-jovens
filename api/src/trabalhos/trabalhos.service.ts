@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrabalhoDto } from './dto/create-trabalho.dto';
 import { UpdateTrabalhoDto } from './dto/update-trabalho.dto';
@@ -7,7 +11,7 @@ import { UpdateRecebimentoDto } from './dto/update-recebimento.dto';
 
 @Injectable()
 export class TrabalhosService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createTrabalhoDto: CreateTrabalhoDto) {
     const { membrosIds, ...dados } = createTrabalhoDto;
@@ -54,11 +58,11 @@ export class TrabalhosService {
         },
         despesas: true,
         evento: {
-          include: { paroquia: true, conta: true }
+          include: { paroquia: true, conta: true },
         },
         lotesRateio: {
-          include: { transacoes: true, recebimentos: true }
-        }
+          include: { transacoes: true, recebimentos: true },
+        },
       },
       orderBy: { dataTrabalho: 'desc' },
     });
@@ -78,11 +82,15 @@ export class TrabalhosService {
         },
         despesas: true,
         evento: {
-          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
+          include: {
+            paroquia: true,
+            conta: true,
+            inscricoes: { include: { pessoa: true } },
+          },
         },
         lotesRateio: {
-          include: { transacoes: true, recebimentos: true }
-        }
+          include: { transacoes: true, recebimentos: true },
+        },
       },
     });
 
@@ -95,11 +103,17 @@ export class TrabalhosService {
     const { membrosIds, dataTrabalho, status, ...dados } = updateTrabalhoDto;
 
     if (status === 'CONCLUIDO') {
-      const temPendencia = trabalhoExistente.recebimentos.some((r: any) => r.status === 'PENDENTE');
-      const temRateioPendente = trabalhoExistente.recebimentos.some((r: any) => r.status === 'PAGO' && r.loteRateioId === null);
+      const temPendencia = trabalhoExistente.recebimentos.some(
+        (r: any) => r.status === 'PENDENTE',
+      );
+      const temRateioPendente = trabalhoExistente.recebimentos.some(
+        (r: any) => r.status === 'PAGO' && r.loteRateioId === null,
+      );
 
       if (temPendencia || temRateioPendente) {
-        throw new BadRequestException('Não é possível fechar o trabalho com recebimentos pendentes ou sem rateio executado.');
+        throw new BadRequestException(
+          'Não é possível fechar o trabalho com recebimentos pendentes ou sem rateio executado.',
+        );
       }
     }
 
@@ -146,11 +160,21 @@ export class TrabalhosService {
 
   async remove(id: number) {
     const trabalhoExistente = await this.findOne(id);
-    if (trabalhoExistente.lotesRateio && trabalhoExistente.lotesRateio.length > 0) {
-      throw new BadRequestException('Não é possível excluir um trabalho que já possui lotes de rateio executados.');
+    if (
+      trabalhoExistente.lotesRateio &&
+      trabalhoExistente.lotesRateio.length > 0
+    ) {
+      throw new BadRequestException(
+        'Não é possível excluir um trabalho que já possui lotes de rateio executados.',
+      );
     }
-    if (trabalhoExistente.status !== 'ABERTO' && trabalhoExistente.status !== 'EM_ANDAMENTO') {
-      throw new BadRequestException('Apenas trabalhos com status ABERTO ou EM_ANDAMENTO podem ser excluídos.');
+    if (
+      trabalhoExistente.status !== 'ABERTO' &&
+      trabalhoExistente.status !== 'EM_ANDAMENTO'
+    ) {
+      throw new BadRequestException(
+        'Apenas trabalhos com status ABERTO ou EM_ANDAMENTO podem ser excluídos.',
+      );
     }
     return this.prisma.trabalho.delete({ where: { id } });
   }
@@ -166,7 +190,11 @@ export class TrabalhosService {
     });
   }
 
-  async updateRecebimento(trabalhoId: number, recId: number, dto: UpdateRecebimentoDto) {
+  async updateRecebimento(
+    trabalhoId: number,
+    recId: number,
+    dto: UpdateRecebimentoDto,
+  ) {
     const recebimento = await this.prisma.recebimentoTrabalho.findUnique({
       where: { id: recId },
     });
@@ -176,7 +204,9 @@ export class TrabalhosService {
     }
 
     if (recebimento.loteRateioId !== null) {
-      throw new BadRequestException('Não é possível editar um recebimento que já foi rateado.');
+      throw new BadRequestException(
+        'Não é possível editar um recebimento que já foi rateado.',
+      );
     }
 
     return this.prisma.recebimentoTrabalho.update({
@@ -195,7 +225,9 @@ export class TrabalhosService {
     }
 
     if (recebimento.loteRateioId !== null) {
-      throw new BadRequestException('Não é possível excluir um recebimento que já foi rateado.');
+      throw new BadRequestException(
+        'Não é possível excluir um recebimento que já foi rateado.',
+      );
     }
 
     return this.prisma.recebimentoTrabalho.delete({
@@ -207,190 +239,235 @@ export class TrabalhosService {
     const trabalho = await this.findOne(id);
     if (!trabalho.evento?.contaId) {
       throw new BadRequestException(
-        'Não é possível processar o rateio. O evento deste trabalho não possui uma conta financeira vinculada.'
+        'Não é possível processar o rateio. O evento deste trabalho não possui uma conta financeira vinculada.',
       );
     }
-    const dataFormatada = new Date(trabalho.dataTrabalho).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    const dataFormatada = new Date(trabalho.dataTrabalho).toLocaleDateString(
+      'pt-BR',
+      { timeZone: 'UTC' },
+    );
 
     // Buscar todos os recebimentos pagos que não pertencem a nenhum lote de rateio
     const recebimentosPendentesRateio = trabalho.recebimentos.filter(
-      (r) => r.status === 'PAGO' && r.loteRateioId === null
+      (r) => r.status === 'PAGO' && r.loteRateioId === null,
     );
 
     if (recebimentosPendentesRateio.length === 0) {
-      throw new BadRequestException('Nenhum recebimento PAGO aguardando rateio.');
+      throw new BadRequestException(
+        'Nenhum recebimento PAGO aguardando rateio.',
+      );
     }
 
     // Calcular totais
-    const valorArrecadado = recebimentosPendentesRateio.reduce((acc, r) => acc + r.valor, 0);
+    const valorArrecadado = recebimentosPendentesRateio.reduce(
+      (acc, r) => acc + r.valor,
+      0,
+    );
 
     // As despesas acumuladas do trabalho que ainda não foram abatidas em lotes anteriores
-    const totalDespesasTrabalho = trabalho.despesas.reduce((acc, d) => acc + d.valor, 0);
+    const totalDespesasTrabalho = trabalho.despesas.reduce(
+      (acc, d) => acc + d.valor,
+      0,
+    );
 
-    const despesasJaAbatidas = trabalho.lotesRateio.reduce((acc, l) => acc + l.valorDespesas, 0);
-    const valorDespesasPendente = Math.max(0, totalDespesasTrabalho - despesasJaAbatidas);
+    const despesasJaAbatidas = trabalho.lotesRateio.reduce(
+      (acc, l) => acc + l.valorDespesas,
+      0,
+    );
+    const valorDespesasPendente = Math.max(
+      0,
+      totalDespesasTrabalho - despesasJaAbatidas,
+    );
 
     if (trabalho.tipo === 'GRUPO' && valorDespesasPendente > valorArrecadado) {
       throw new BadRequestException(
-        `O valor das despesas pendentes (R$ ${valorDespesasPendente.toFixed(2)}) é maior do que o valor arrecadado (R$ ${valorArrecadado.toFixed(2)}). Lançamentos insuficientes.`
+        `O valor das despesas pendentes (R$ ${valorDespesasPendente.toFixed(2)}) é maior do que o valor arrecadado (R$ ${valorArrecadado.toFixed(2)}). Lançamentos insuficientes.`,
       );
     }
 
     const valorDespesasLote = valorDespesasPendente;
-    const valorLiquidoLote = trabalho.tipo === 'GRUPO' ? valorArrecadado - valorDespesasLote : valorArrecadado;
+    const valorLiquidoLote =
+      trabalho.tipo === 'GRUPO'
+        ? valorArrecadado - valorDespesasLote
+        : valorArrecadado;
 
     let loteRateioId: number = 0;
 
-    await this.prisma.$transaction(async (prisma) => {
-      // 1. Criar o Lote de Rateio
-      const lote = await prisma.loteRateio.create({
-        data: {
-          trabalhoId: id,
-          valorArrecadado,
-          valorDespesas: valorDespesasLote,
-          valorLiquido: valorLiquidoLote,
-        }
-      });
-      loteRateioId = lote.id;
-
-      // 2. Vincular os recebimentos ao lote
-      await prisma.recebimentoTrabalho.updateMany({
-        where: { id: { in: recebimentosPendentesRateio.map(r => r.id) } },
-        data: { loteRateioId: lote.id }
-      });
-
-      // 3. Processar e agrupar transações financeiras por método
-      const recebimentosPorMetodo: { [metodo: string]: typeof recebimentosPendentesRateio } = {};
-      for (const rec of recebimentosPendentesRateio) {
-        const metodo = rec.metodo || 'OUTROS';
-        if (!recebimentosPorMetodo[metodo]) {
-          recebimentosPorMetodo[metodo] = [];
-        }
-        recebimentosPorMetodo[metodo].push(rec);
-      }
-
-      for (const [metodo, recs] of Object.entries(recebimentosPorMetodo)) {
-        const valorMetodo = recs.reduce((acc, r) => acc + r.valor, 0);
-
-        // Despesa proporcional a este método no lote
-        const proporcaoMetodo = valorMetodo / valorArrecadado;
-        const despesaProporcionalMetodo = Number((valorDespesasLote * proporcaoMetodo).toFixed(2));
-        const liquidoProporcionalMetodo = Number((valorMetodo - despesaProporcionalMetodo).toFixed(2));
-
-        if (trabalho.tipo === 'INDIVIDUAL') {
-          // No individual, agrupamos por pessoa e por método
-          const recsPorPessoa: { [pessoaId: number]: number } = {};
-          for (const r of recs) {
-            if (!r.pessoaId) {
-              throw new BadRequestException('Recebimento de trabalho individual sem pessoa vinculada.');
-            }
-            recsPorPessoa[r.pessoaId] = (recsPorPessoa[r.pessoaId] || 0) + r.valor;
-          }
-
-          let totalComunidadeMetodo = 0;
-
-          for (const [pessoaIdStr, valorPessoa] of Object.entries(recsPorPessoa)) {
-            const pessoaId = Number(pessoaIdStr);
-            const valorTrabalhadorPessoa = Number((valorPessoa * (trabalho.proporcao / 100)).toFixed(2));
-            const valorComunidadePessoa = Number((valorPessoa - valorTrabalhadorPessoa).toFixed(2));
-            totalComunidadeMetodo = Number((totalComunidadeMetodo + valorComunidadePessoa).toFixed(2));
-
-            if (valorTrabalhadorPessoa > 0) {
-              await prisma.transacao.create({
-                data: {
-                  valor: valorTrabalhadorPessoa,
-                  tipo: 'RECEITA',
-                  origem: 'TRABALHO',
-                  descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
-                  metodo,
-                  pessoaId,
-                  loteRateioId: lote.id,
-                  eventoId: trabalho.eventoId,
-                  data: new Date()
-                }
-              });
-            }
-          }
-
-          if (totalComunidadeMetodo > 0) {
-            await prisma.transacao.create({
-              data: {
-                valor: totalComunidadeMetodo,
-                tipo: 'RECEITA',
-                origem: 'TRABALHO',
-                descricao: `Custos do trabalho (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
-                metodo,
-                contaId: trabalho.evento.contaId,
-                loteRateioId: lote.id,
-                eventoId: trabalho.eventoId,
-                data: new Date()
-              }
-            });
-          }
-
-        } else {
-          // GRUPO
-          // 1. Transação de reembolso/comunidade para a despesa
-          if (despesaProporcionalMetodo > 0) {
-            await prisma.transacao.create({
-              data: {
-                valor: despesaProporcionalMetodo,
-                tipo: 'RECEITA',
-                origem: 'TRABALHO',
-                descricao: `Reembolso Despesas (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
-                metodo,
-                contaId: trabalho.evento.contaId,
-                loteRateioId: lote.id,
-                eventoId: trabalho.eventoId,
-                data: new Date()
-              }
-            });
-          }
-
-          // 2. Transações dos trabalhadores do grupo
-          if (liquidoProporcionalMetodo > 0) {
-            if (trabalho.membros.length === 0) {
-              throw new BadRequestException('Trabalho em grupo sem membros vinculados.');
-            }
-            const valorPorMembro = Number((liquidoProporcionalMetodo / trabalho.membros.length).toFixed(2));
-            for (const membro of trabalho.membros) {
-              await prisma.transacao.create({
-                data: {
-                  valor: valorPorMembro,
-                  tipo: 'RECEITA',
-                  origem: 'TRABALHO',
-                  descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
-                  metodo,
-                  pessoaId: membro.pessoaId,
-                  loteRateioId: lote.id,
-                  eventoId: trabalho.eventoId,
-                  data: new Date()
-                }
-              });
-            }
-          }
-        }
-      }
-
-      // Para trabalho INDIVIDUAL, as despesas não são deduzidas do rateio (o valor líquido já ignora as despesas),
-      // mas devem gerar um lançamento de DESPESA na conta do trabalho.
-      if (trabalho.tipo === 'INDIVIDUAL' && valorDespesasLote > 0) {
-        await prisma.transacao.create({
+    await this.prisma.$transaction(
+      async (prisma) => {
+        // 1. Criar o Lote de Rateio
+        const lote = await prisma.loteRateio.create({
           data: {
-            valor: valorDespesasLote,
-            tipo: 'DESPESA',
-            origem: 'TRABALHO',
-            descricao: `Despesas do trabalho individual (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
-            contaId: trabalho.evento.contaId,
-            loteRateioId: lote.id,
-            eventoId: trabalho.eventoId,
-            data: new Date()
-          }
+            trabalhoId: id,
+            valorArrecadado,
+            valorDespesas: valorDespesasLote,
+            valorLiquido: valorLiquidoLote,
+          },
         });
-      }
-    }, {
-      timeout: 15000, // Aumenta o tempo limite da transação para 15 segundos
-    });
+        loteRateioId = lote.id;
+
+        // 2. Vincular os recebimentos ao lote
+        await prisma.recebimentoTrabalho.updateMany({
+          where: { id: { in: recebimentosPendentesRateio.map((r) => r.id) } },
+          data: { loteRateioId: lote.id },
+        });
+
+        // 3. Processar e agrupar transações financeiras por método
+        const recebimentosPorMetodo: {
+          [metodo: string]: typeof recebimentosPendentesRateio;
+        } = {};
+        for (const rec of recebimentosPendentesRateio) {
+          const metodo = rec.metodo || 'OUTROS';
+          if (!recebimentosPorMetodo[metodo]) {
+            recebimentosPorMetodo[metodo] = [];
+          }
+          recebimentosPorMetodo[metodo].push(rec);
+        }
+
+        for (const [metodo, recs] of Object.entries(recebimentosPorMetodo)) {
+          const valorMetodo = recs.reduce((acc, r) => acc + r.valor, 0);
+
+          // Despesa proporcional a este método no lote
+          const proporcaoMetodo = valorMetodo / valorArrecadado;
+          const despesaProporcionalMetodo = Number(
+            (valorDespesasLote * proporcaoMetodo).toFixed(2),
+          );
+          const liquidoProporcionalMetodo = Number(
+            (valorMetodo - despesaProporcionalMetodo).toFixed(2),
+          );
+
+          if (trabalho.tipo === 'INDIVIDUAL') {
+            // No individual, agrupamos por pessoa e por método
+            const recsPorPessoa: { [pessoaId: number]: number } = {};
+            for (const r of recs) {
+              if (!r.pessoaId) {
+                throw new BadRequestException(
+                  'Recebimento de trabalho individual sem pessoa vinculada.',
+                );
+              }
+              recsPorPessoa[r.pessoaId] =
+                (recsPorPessoa[r.pessoaId] || 0) + r.valor;
+            }
+
+            let totalComunidadeMetodo = 0;
+
+            for (const [pessoaIdStr, valorPessoa] of Object.entries(
+              recsPorPessoa,
+            )) {
+              const pessoaId = Number(pessoaIdStr);
+              const valorTrabalhadorPessoa = Number(
+                (valorPessoa * (trabalho.proporcao / 100)).toFixed(2),
+              );
+              const valorComunidadePessoa = Number(
+                (valorPessoa - valorTrabalhadorPessoa).toFixed(2),
+              );
+              totalComunidadeMetodo = Number(
+                (totalComunidadeMetodo + valorComunidadePessoa).toFixed(2),
+              );
+
+              if (valorTrabalhadorPessoa > 0) {
+                await prisma.transacao.create({
+                  data: {
+                    valor: valorTrabalhadorPessoa,
+                    tipo: 'RECEITA',
+                    origem: 'TRABALHO',
+                    descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
+                    metodo,
+                    pessoaId,
+                    loteRateioId: lote.id,
+                    eventoId: trabalho.eventoId,
+                    data: new Date(),
+                  },
+                });
+              }
+            }
+
+            if (totalComunidadeMetodo > 0) {
+              await prisma.transacao.create({
+                data: {
+                  valor: totalComunidadeMetodo,
+                  tipo: 'RECEITA',
+                  origem: 'TRABALHO',
+                  descricao: `Custos do trabalho (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
+                  metodo,
+                  contaId: trabalho.evento.contaId,
+                  loteRateioId: lote.id,
+                  eventoId: trabalho.eventoId,
+                  data: new Date(),
+                },
+              });
+            }
+          } else {
+            // GRUPO
+            // 1. Transação de reembolso/comunidade para a despesa
+            if (despesaProporcionalMetodo > 0) {
+              await prisma.transacao.create({
+                data: {
+                  valor: despesaProporcionalMetodo,
+                  tipo: 'RECEITA',
+                  origem: 'TRABALHO',
+                  descricao: `Reembolso Despesas (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
+                  metodo,
+                  contaId: trabalho.evento.contaId,
+                  loteRateioId: lote.id,
+                  eventoId: trabalho.eventoId,
+                  data: new Date(),
+                },
+              });
+            }
+
+            // 2. Transações dos trabalhadores do grupo
+            if (liquidoProporcionalMetodo > 0) {
+              if (trabalho.membros.length === 0) {
+                throw new BadRequestException(
+                  'Trabalho em grupo sem membros vinculados.',
+                );
+              }
+              const valorPorMembro = Number(
+                (liquidoProporcionalMetodo / trabalho.membros.length).toFixed(
+                  2,
+                ),
+              );
+              for (const membro of trabalho.membros) {
+                await prisma.transacao.create({
+                  data: {
+                    valor: valorPorMembro,
+                    tipo: 'RECEITA',
+                    origem: 'TRABALHO',
+                    descricao: `Crédito Rateio (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
+                    metodo,
+                    pessoaId: membro.pessoaId,
+                    loteRateioId: lote.id,
+                    eventoId: trabalho.eventoId,
+                    data: new Date(),
+                  },
+                });
+              }
+            }
+          }
+        }
+
+        // Para trabalho INDIVIDUAL, as despesas não são deduzidas do rateio (o valor líquido já ignora as despesas),
+        // mas devem gerar um lançamento de DESPESA na conta do trabalho.
+        if (trabalho.tipo === 'INDIVIDUAL' && valorDespesasLote > 0) {
+          await prisma.transacao.create({
+            data: {
+              valor: valorDespesasLote,
+              tipo: 'DESPESA',
+              origem: 'TRABALHO',
+              descricao: `Despesas do trabalho individual (${trabalho.descricao} ${dataFormatada}) - Lote #${lote.id}`,
+              contaId: trabalho.evento.contaId,
+              loteRateioId: lote.id,
+              eventoId: trabalho.eventoId,
+              data: new Date(),
+            },
+          });
+        }
+      },
+      {
+        timeout: 15000, // Aumenta o tempo limite da transação para 15 segundos
+      },
+    );
 
     return {
       message: 'Rateio por lote processado com sucesso',
@@ -398,14 +475,14 @@ export class TrabalhosService {
       recebimentosProcessados: recebimentosPendentesRateio.length,
       valorArrecadado,
       valorDespesas: valorDespesasLote,
-      valorLiquido: valorLiquidoLote
+      valorLiquido: valorLiquidoLote,
     };
   }
 
   async importarDoExtrato(id: number) {
     const trabalho = await this.prisma.trabalho.findUnique({
       where: { id },
-      include: { recebimentos: true, evento: { include: { conta: true } } }
+      include: { recebimentos: true, evento: { include: { conta: true } } },
     });
 
     if (!trabalho) throw new NotFoundException('Trabalho não encontrado');
@@ -436,7 +513,7 @@ export class TrabalhosService {
       const dataFormatada = `${day}/${month}/${year}`;
       const contaNome = trabalho.evento?.conta?.nome || 'Nenhuma';
       throw new BadRequestException(
-        `Nenhum lançamento de extrato (receita) não conciliado encontrado na data ${dataFormatada} para a conta "${contaNome}". Certifique-se de que o extrato foi importado para essa conta ou edite o Trabalho para vincular a conta bancária correta.`
+        `Nenhum lançamento de extrato (receita) não conciliado encontrado na data ${dataFormatada} para a conta "${contaNome}". Certifique-se de que o extrato foi importado para essa conta ou edite o Trabalho para vincular a conta bancária correta.`,
       );
     }
 
@@ -477,8 +554,8 @@ export class TrabalhosService {
       data: {
         valor: data.valor,
         descricao: data.descricao,
-        trabalhoId: id
-      }
+        trabalhoId: id,
+      },
     });
   }
 
@@ -489,23 +566,25 @@ export class TrabalhosService {
   async removeLoteRateio(trabalhoId: number, loteId: number) {
     const trabalho = await this.findOne(trabalhoId);
     if (trabalho.status === 'CONCLUIDO') {
-      throw new BadRequestException('Não é possível cancelar rateios de um trabalho já concluído.');
+      throw new BadRequestException(
+        'Não é possível cancelar rateios de um trabalho já concluído.',
+      );
     }
 
     const result = await this.prisma.loteRateio.delete({
-      where: { id: loteId }
+      where: { id: loteId },
     });
 
     if (trabalho.evento?.contaId) {
       const transacoes = await this.prisma.transacao.findMany({
-        where: { contaId: trabalho.evento.contaId }
+        where: { contaId: trabalho.evento.contaId },
       });
       const saldo = transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
       await this.prisma.conta.update({
         where: { id: trabalho.evento.contaId },
-        data: { saldo }
+        data: { saldo },
       });
     }
 

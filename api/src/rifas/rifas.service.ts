@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRifaDto } from './dto/create-rifa.dto';
 import { AlocarRifaDto } from './dto/alocar-rifa.dto';
@@ -21,9 +27,9 @@ export class RifasService {
             chavePix: createRifaDto.chavePix || null,
             tipoChavePix: createRifaDto.tipoChavePix || null,
             premios: {
-              create: premios
-            }
-          }
+              create: premios,
+            },
+          },
         });
 
         // Gerar todos os bilhetes da rifa como LIVRE
@@ -32,12 +38,12 @@ export class RifasService {
           bilhetesData.push({
             numero: i,
             rifaId: rifa.id,
-            status: 'LIVRE' as any
+            status: 'LIVRE' as any,
           });
         }
 
         await tx.bilhete.createMany({
-          data: bilhetesData
+          data: bilhetesData,
         });
 
         return rifa;
@@ -50,7 +56,7 @@ export class RifasService {
 
   async listarTodas(user: any) {
     let where: any = {};
-    
+
     if (user.papel !== 'ADMIN') {
       if (user.paroquiaId) {
         where = { evento: { paroquiaId: user.paroquiaId } };
@@ -65,49 +71,53 @@ export class RifasService {
       include: {
         premios: true,
         evento: {
-          include: { paroquia: true, conta: true }
+          include: { paroquia: true, conta: true },
         },
         alocacoes: {
-          include: { pessoa: true }
+          include: { pessoa: true },
         },
         _count: {
-          select: { bilhetes: true }
-        }
+          select: { bilhetes: true },
+        },
       },
-      orderBy: { criadoEm: 'desc' }
+      orderBy: { criadoEm: 'desc' },
     });
 
     if (rifas.length === 0) return [];
 
-    const rifaIds = rifas.map(r => r.id);
+    const rifaIds = rifas.map((r) => r.id);
     const contagens = await this.prisma.bilhete.groupBy({
       by: ['rifaId', 'status'],
       where: { rifaId: { in: rifaIds } },
-      _count: { _all: true }
+      _count: { _all: true },
     });
 
-    const statsMap: Record<number, { livres: number, reservados: number, vendidos: number }> = {};
-    rifaIds.forEach(id => {
+    const statsMap: Record<
+      number,
+      { livres: number; reservados: number; vendidos: number }
+    > = {};
+    rifaIds.forEach((id) => {
       statsMap[id] = { livres: 0, reservados: 0, vendidos: 0 };
     });
 
-    contagens.forEach(c => {
+    contagens.forEach((c) => {
       if (c.status === 'LIVRE') statsMap[c.rifaId].livres = c._count._all;
-      if (c.status === 'RESERVADO') statsMap[c.rifaId].reservados = c._count._all;
+      if (c.status === 'RESERVADO')
+        statsMap[c.rifaId].reservados = c._count._all;
       if (c.status === 'VENDIDO') statsMap[c.rifaId].vendidos = c._count._all;
     });
 
-    return rifas.map(rifa => ({
+    return rifas.map((rifa) => ({
       ...rifa,
-      stats: statsMap[rifa.id]
+      stats: statsMap[rifa.id],
     }));
   }
 
   async listarAtivas(user: any) {
-    let where: any = {
-      status: { in: ['ATIVA', 'PAUSADA'] }
+    const where: any = {
+      status: { in: ['ATIVA', 'PAUSADA'] },
     };
-    
+
     if (user.papel !== 'ADMIN') {
       if (user.paroquiaId) {
         where.evento = { paroquiaId: user.paroquiaId };
@@ -119,9 +129,9 @@ export class RifasService {
     return this.prisma.rifa.findMany({
       where,
       include: {
-        alocacoes: true
+        alocacoes: true,
       },
-      orderBy: { criadoEm: 'desc' }
+      orderBy: { criadoEm: 'desc' },
     });
   }
 
@@ -131,15 +141,19 @@ export class RifasService {
       include: {
         premios: true,
         evento: {
-          include: { paroquia: true, conta: true, inscricoes: { include: { pessoa: true } } }
+          include: {
+            paroquia: true,
+            conta: true,
+            inscricoes: { include: { pessoa: true } },
+          },
         },
         alocacoes: {
-          include: { pessoa: true }
-        }
-      }
+          include: { pessoa: true },
+        },
+      },
     });
     if (!rifa) throw new NotFoundException('Rifa não encontrada');
-    
+
     if (user.papel !== 'ADMIN' && rifa.evento?.paroquiaId !== user.paroquiaId) {
       throw new ForbiddenException('Acesso negado a esta rifa');
     }
@@ -157,15 +171,19 @@ export class RifasService {
       const rifa = await tx.rifa.findUnique({ where: { id: rifaId } });
       if (!rifa) throw new NotFoundException('Rifa não encontrada');
       if (rifa.status === 'FINALIZADA' || rifa.status === 'SORTEADA') {
-        throw new BadRequestException('Não é permitido alocar cartelas para uma campanha finalizada ou sorteada.');
+        throw new BadRequestException(
+          'Não é permitido alocar cartelas para uma campanha finalizada ou sorteada.',
+        );
       }
 
       // Validar trava de segurança: Apenas inscritos no evento da rifa podem participar
       const inscrito = await tx.inscricao.findUnique({
-        where: { pessoaId_eventoId: { pessoaId, eventoId: rifa.eventoId } }
+        where: { pessoaId_eventoId: { pessoaId, eventoId: rifa.eventoId } },
       });
       if (!inscrito) {
-        throw new BadRequestException('Apenas pessoas inscritas no evento desta rifa podem ser alocadas.');
+        throw new BadRequestException(
+          'Apenas pessoas inscritas no evento desta rifa podem ser alocadas.',
+        );
       }
 
       // 1. Validar trava de estoque: Se houver números LIVRE ou RESERVADO na alocação anterior, não permite nova
@@ -173,8 +191,8 @@ export class RifasService {
         where: {
           rifaId,
           pessoaId,
-          ativa: true
-        }
+          ativa: true,
+        },
       });
 
       if (alocacaoAtiva) {
@@ -182,35 +200,42 @@ export class RifasService {
           where: {
             rifaId,
             vendedorId: pessoaId,
-            numero: { gte: alocacaoAtiva.inicioRange, lte: alocacaoAtiva.fimRange },
-            status: { in: ['LIVRE', 'RESERVADO'] as any }
-          }
+            numero: {
+              gte: alocacaoAtiva.inicioRange,
+              lte: alocacaoAtiva.fimRange,
+            },
+            status: { in: ['LIVRE', 'RESERVADO'] as any },
+          },
         });
 
         if (pendentes > 0) {
-          throw new BadRequestException(`Você ainda possui ${pendentes} números pendentes na sua cartela atual. Liquide 100% para solicitar novos.`);
+          throw new BadRequestException(
+            `Você ainda possui ${pendentes} números pendentes na sua cartela atual. Liquide 100% para solicitar novos.`,
+          );
         }
 
         // Se chegou aqui, a cartela anterior foi 100% vendida. Desativa a alocação anterior.
         await tx.alocacaoRifa.update({
           where: { id: alocacaoAtiva.id },
-          data: { ativa: false }
+          data: { ativa: false },
         });
       }
 
       // 2. Buscar o próximo intervalo disponível
       const ultimoBilheteAlocado = await tx.bilhete.findFirst({
         where: { rifaId, vendedorId: { not: null } },
-        orderBy: { numero: 'desc' }
+        orderBy: { numero: 'desc' },
       });
 
       const inicio = ultimoBilheteAlocado ? ultimoBilheteAlocado.numero + 1 : 1;
       const fim = inicio + quantidade - 1;
 
       // Verificar se há números suficientes
-      
+
       if (fim > rifa.totalNumeros) {
-        throw new BadRequestException('Não há números disponíveis suficientes para esta quantidade.');
+        throw new BadRequestException(
+          'Não há números disponíveis suficientes para esta quantidade.',
+        );
       }
 
       // 3. Criar a nova alocação
@@ -220,44 +245,64 @@ export class RifasService {
           pessoaId,
           inicioRange: inicio,
           fimRange: fim,
-          ativa: true
-        }
+          ativa: true,
+        },
       });
 
       // 4. Vincular os bilhetes ao vendedor
       await tx.bilhete.updateMany({
         where: {
           rifaId,
-          numero: { gte: inicio, lte: fim }
+          numero: { gte: inicio, lte: fim },
         },
         data: {
-          vendedorId: pessoaId
-        }
+          vendedorId: pessoaId,
+        },
       });
 
       return alocacao;
     });
   }
 
-  async atualizarBilhete(bilheteId: number, dto: UpdateBilheteDto, vendedorId: number) {
+  async atualizarBilhete(
+    bilheteId: number,
+    dto: UpdateBilheteDto,
+    vendedorId: number,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const bilhete = await tx.bilhete.findUnique({
         where: { id: bilheteId },
-        include: { rifa: true, recebimento: true }
+        include: { rifa: true, recebimento: true },
       });
-      
+
       if (!bilhete) throw new NotFoundException('Bilhete não encontrado');
-      if (bilhete.rifa.status === 'FINALIZADA' || bilhete.rifa.status === 'SORTEADA') {
-        throw new BadRequestException('Não é permitido alterar bilhetes de uma campanha finalizada ou sorteada.');
+      if (
+        bilhete.rifa.status === 'FINALIZADA' ||
+        bilhete.rifa.status === 'SORTEADA'
+      ) {
+        throw new BadRequestException(
+          'Não é permitido alterar bilhetes de uma campanha finalizada ou sorteada.',
+        );
       }
-      if (bilhete.vendedorId !== vendedorId) throw new BadRequestException('Este bilhete não pertence à sua cartela.');
+      if (bilhete.vendedorId !== vendedorId)
+        throw new BadRequestException(
+          'Este bilhete não pertence à sua cartela.',
+        );
 
       if (bilhete.status === 'VENDIDO') {
-        throw new BadRequestException('Este bilhete já está vendido e não pode ser alterado.');
+        throw new BadRequestException(
+          'Este bilhete já está vendido e não pode ser alterado.',
+        );
       }
 
-      if (dto.status === 'VENDIDO' && !dto.comprovante && !bilhete.recebimento?.comprovante) {
-        throw new BadRequestException('É obrigatório anexar um comprovante para marcar como Vendido.');
+      if (
+        dto.status === 'VENDIDO' &&
+        !dto.comprovante &&
+        !bilhete.recebimento?.comprovante
+      ) {
+        throw new BadRequestException(
+          'É obrigatório anexar um comprovante para marcar como Vendido.',
+        );
       }
 
       // Se passou a ser VENDIDO, registrar o Recebimento do Bilhete intermediário (sem poluir a tabela de transações)
@@ -272,8 +317,8 @@ export class RifasService {
             foneCliente: dto.foneCliente ?? bilhete.recebimento?.foneCliente,
             rifaId: bilhete.rifaId,
             vendedorId: vendedorId,
-            dataRecebimento: new Date()
-          }
+            dataRecebimento: new Date(),
+          },
         });
         recebimentoId = recebimento.id;
       }
@@ -283,9 +328,12 @@ export class RifasService {
         data: {
           status: dto.status,
           dataVenda: dto.status === 'VENDIDO' ? new Date() : null,
-          recebimentoId: dto.status === 'LIVRE' ? null : (recebimentoId ?? bilhete.recebimentoId)
+          recebimentoId:
+            dto.status === 'LIVRE'
+              ? null
+              : (recebimentoId ?? bilhete.recebimentoId),
         },
-        include: { recebimento: true }
+        include: { recebimento: true },
       });
 
       // Mapeamento virtual para manter compatibilidade absoluta com o frontend
@@ -293,7 +341,7 @@ export class RifasService {
         ...bilheteAtualizado,
         nomeCliente: bilheteAtualizado.recebimento?.nomeCliente ?? null,
         foneCliente: bilheteAtualizado.recebimento?.foneCliente ?? null,
-        comprovante: bilheteAtualizado.recebimento?.comprovante ?? null
+        comprovante: bilheteAtualizado.recebimento?.comprovante ?? null,
       };
     });
   }
@@ -304,31 +352,46 @@ export class RifasService {
     return this.prisma.$transaction(async (tx) => {
       const bilhetes = await tx.bilhete.findMany({
         where: { id: { in: ids } },
-        include: { rifa: true }
+        include: { rifa: true },
       });
 
-      if (bilhetes.length === 0) throw new BadRequestException('Nenhum bilhete informado.');
-      if (bilhetes[0].rifa.status === 'FINALIZADA' || bilhetes[0].rifa.status === 'SORTEADA') {
-        throw new BadRequestException('Não é permitido alterar bilhetes de uma campanha finalizada ou sorteada.');
+      if (bilhetes.length === 0)
+        throw new BadRequestException('Nenhum bilhete informado.');
+      if (
+        bilhetes[0].rifa.status === 'FINALIZADA' ||
+        bilhetes[0].rifa.status === 'SORTEADA'
+      ) {
+        throw new BadRequestException(
+          'Não é permitido alterar bilhetes de uma campanha finalizada ou sorteada.',
+        );
       }
 
       for (const bilhete of bilhetes) {
         if (bilhete.vendedorId !== vendedorId) {
-          throw new BadRequestException(`O bilhete ${bilhete.numero} não pertence à sua cartela.`);
+          throw new BadRequestException(
+            `O bilhete ${bilhete.numero} não pertence à sua cartela.`,
+          );
         }
         if (bilhete.status === 'VENDIDO') {
-          throw new BadRequestException(`O bilhete ${bilhete.numero} já está vendido e não pode ser alterado.`);
+          throw new BadRequestException(
+            `O bilhete ${bilhete.numero} já está vendido e não pode ser alterado.`,
+          );
         }
       }
 
       // Permitir LIVRE apenas se todos forem RESERVADO (ou já LIVRE)
       if (dados.status === 'LIVRE') {
-        const temVendido = bilhetes.some(b => b.status === 'VENDIDO');
-        if (temVendido) throw new BadRequestException('Não é permitido liberar bilhetes já vendidos.');
+        const temVendido = bilhetes.some((b) => b.status === 'VENDIDO');
+        if (temVendido)
+          throw new BadRequestException(
+            'Não é permitido liberar bilhetes já vendidos.',
+          );
       }
 
       if (dados.status === 'VENDIDO' && !dados.comprovante) {
-        throw new BadRequestException('É obrigatório informar o comprovante para confirmar a venda.');
+        throw new BadRequestException(
+          'É obrigatório informar o comprovante para confirmar a venda.',
+        );
       }
 
       // Se passou a ser VENDIDO, registrar um ÚNICO Recebimento para todo o lote
@@ -343,8 +406,8 @@ export class RifasService {
             foneCliente: dados.foneCliente,
             rifaId: bilhetes[0].rifaId,
             vendedorId: vendedorId,
-            dataRecebimento: new Date()
-          }
+            dataRecebimento: new Date(),
+          },
         });
         recebimentoId = recebimento.id;
       }
@@ -354,8 +417,9 @@ export class RifasService {
         data: {
           status: dados.status,
           dataVenda: dados.status === 'VENDIDO' ? new Date() : null,
-          recebimentoId: dados.status === 'LIVRE' ? null : (recebimentoId ?? undefined)
-        }
+          recebimentoId:
+            dados.status === 'LIVRE' ? null : (recebimentoId ?? undefined),
+        },
       });
 
       return updateResult;
@@ -365,8 +429,13 @@ export class RifasService {
   async atualizar(id: number, dto: any) {
     const rifaExistente = await this.prisma.rifa.findUnique({ where: { id } });
     if (!rifaExistente) throw new NotFoundException('Rifa não encontrada');
-    if (rifaExistente.status === 'FINALIZADA' || rifaExistente.status === 'SORTEADA') {
-      throw new BadRequestException('Não é permitido editar uma campanha finalizada ou sorteada.');
+    if (
+      rifaExistente.status === 'FINALIZADA' ||
+      rifaExistente.status === 'SORTEADA'
+    ) {
+      throw new BadRequestException(
+        'Não é permitido editar uma campanha finalizada ou sorteada.',
+      );
     }
 
     const { premios } = dto;
@@ -394,14 +463,16 @@ export class RifasService {
         where: { id },
         data: {
           ...dadosFormatados,
-          premios: premios ? {
-            deleteMany: {},
-            create: premios.map(p => ({
-              descricao: p.descricao,
-              posicao: p.posicao
-            }))
-          } : undefined
-        }
+          premios: premios
+            ? {
+                deleteMany: {},
+                create: premios.map((p) => ({
+                  descricao: p.descricao,
+                  posicao: p.posicao,
+                })),
+              }
+            : undefined,
+        },
       });
     } catch (err) {
       console.error('ERRO AO ATUALIZAR RIFA:', err);
@@ -410,34 +481,51 @@ export class RifasService {
   }
 
   async ratearArrecadacao(id: number, user: any) {
-    if (user.papel !== 'ADMIN') throw new ForbiddenException('Apenas administradores podem realizar o rateio.');
+    if (user.papel !== 'ADMIN')
+      throw new ForbiddenException(
+        'Apenas administradores podem realizar o rateio.',
+      );
 
     const rifa = await this.prisma.rifa.findUnique({
       where: { id },
-      include: { bilhetes: true, evento: true }
+      include: { bilhetes: true, evento: true },
     });
 
     if (!rifa) throw new NotFoundException('Rifa não encontrada');
     if (rifa.status === 'FINALIZADA' || rifa.status === 'SORTEADA') {
-      throw new BadRequestException('Esta campanha já foi rateada ou finalizada.');
+      throw new BadRequestException(
+        'Esta campanha já foi rateada ou finalizada.',
+      );
     }
-    const isEncerrada = new Date(rifa.dataFim.toISOString().split('T')[0] + 'T23:59:59') < new Date();
+    const isEncerrada =
+      new Date(rifa.dataFim.toISOString().split('T')[0] + 'T23:59:59') <
+      new Date();
     if (!isEncerrada) {
-      throw new BadRequestException('A campanha ainda não atingiu a data limite de vendas.');
+      throw new BadRequestException(
+        'A campanha ainda não atingiu a data limite de vendas.',
+      );
     }
     if (!rifa.evento?.contaId) {
-      throw new BadRequestException('Não há uma conta bancária vinculada ao evento desta rifa para o rateio.');
+      throw new BadRequestException(
+        'Não há uma conta bancária vinculada ao evento desta rifa para o rateio.',
+      );
     }
 
-    const bilhetesVendidos = rifa.bilhetes.filter(b => b.status === 'VENDIDO');
+    const bilhetesVendidos = rifa.bilhetes.filter(
+      (b) => b.status === 'VENDIDO',
+    );
     if (bilhetesVendidos.length === 0) {
       throw new BadRequestException('Nenhum bilhete vendido para ratear.');
     }
 
     const valorArrecadadoTotal = bilhetesVendidos.length * rifa.valorNumero;
     const rateioPessoa = rifa.percentualRateio / 100;
-    const valorParaVendedores = Number((valorArrecadadoTotal * rateioPessoa).toFixed(2));
-    const valorParaConta = Number((valorArrecadadoTotal - valorParaVendedores).toFixed(2));
+    const valorParaVendedores = Number(
+      (valorArrecadadoTotal * rateioPessoa).toFixed(2),
+    );
+    const valorParaConta = Number(
+      (valorArrecadadoTotal - valorParaVendedores).toFixed(2),
+    );
 
     return this.prisma.$transaction(async (tx) => {
       // 1. Registrar transação global para a conta da paróquia (RECEITA)
@@ -450,15 +538,15 @@ export class RifasService {
           contaId: rifa.evento.contaId,
           rifaId: rifa.id,
           eventoId: rifa.eventoId,
-          data: new Date()
-        }
+          data: new Date(),
+        },
       });
 
       // 2. Incrementar saldo da Conta
       if (valorParaConta > 0) {
         await tx.conta.update({
           where: { id: rifa.evento.contaId },
-          data: { saldo: { increment: valorParaConta } }
+          data: { saldo: { increment: valorParaConta } },
         });
       }
 
@@ -466,14 +554,17 @@ export class RifasService {
       const vendasPorPessoa: Record<number, number> = {};
       for (const b of bilhetesVendidos) {
         if (b.vendedorId) {
-          vendasPorPessoa[b.vendedorId] = (vendasPorPessoa[b.vendedorId] || 0) + 1;
+          vendasPorPessoa[b.vendedorId] =
+            (vendasPorPessoa[b.vendedorId] || 0) + 1;
         }
       }
 
       for (const [pessoaIdStr, qtd] of Object.entries(vendasPorPessoa)) {
         const pessoaId = Number(pessoaIdStr);
         // Comissão líquida correspondente ao percentual do rateio do vendedor
-        const comissao = Number((qtd * rifa.valorNumero * rateioPessoa).toFixed(2));
+        const comissao = Number(
+          (qtd * rifa.valorNumero * rateioPessoa).toFixed(2),
+        );
 
         if (comissao > 0) {
           await tx.transacao.create({
@@ -485,8 +576,8 @@ export class RifasService {
               pessoaId: pessoaId,
               rifaId: rifa.id,
               eventoId: rifa.eventoId,
-              data: new Date()
-            }
+              data: new Date(),
+            },
           });
         }
       }
@@ -494,7 +585,7 @@ export class RifasService {
       // 4. Marcar a Rifa como FINALIZADA
       const rifaAtualizada = await tx.rifa.update({
         where: { id },
-        data: { status: 'FINALIZADA' }
+        data: { status: 'FINALIZADA' },
       });
 
       return {
@@ -502,7 +593,7 @@ export class RifasService {
         valorTotal: valorArrecadadoTotal,
         valorConta: valorParaConta,
         valorVendedores: valorParaVendedores,
-        rifa: rifaAtualizada
+        rifa: rifaAtualizada,
       };
     });
   }
@@ -510,38 +601,41 @@ export class RifasService {
   async obterResumo(id: number, user: any) {
     const rifaCheck = await this.prisma.rifa.findUnique({
       where: { id },
-      include: { evento: true }
+      include: { evento: true },
     });
-    
+
     if (!rifaCheck) throw new NotFoundException('Rifa não encontrada');
-    if (user.papel !== 'ADMIN' && rifaCheck.evento?.paroquiaId !== user.paroquiaId) {
+    if (
+      user.papel !== 'ADMIN' &&
+      rifaCheck.evento?.paroquiaId !== user.paroquiaId
+    ) {
       throw new ForbiddenException('Acesso negado');
     }
 
     const bilhetesDb = await this.prisma.bilhete.findMany({
       where: { rifaId: id },
-      include: { vendedor: true, recebimento: true }
+      include: { vendedor: true, recebimento: true },
     });
 
-    const bilhetes = bilhetesDb.map(b => ({
+    const bilhetes = bilhetesDb.map((b) => ({
       ...b,
       nomeCliente: b.recebimento?.nomeCliente ?? null,
       foneCliente: b.recebimento?.foneCliente ?? null,
-      comprovante: b.recebimento?.comprovante ?? null
+      comprovante: b.recebimento?.comprovante ?? null,
     }));
 
     const geral = {
       total: bilhetes.length,
-      livres: bilhetes.filter(b => b.status === 'LIVRE').length,
-      reservados: bilhetes.filter(b => b.status === 'RESERVADO').length,
-      vendidos: bilhetes.filter(b => b.status === 'VENDIDO').length,
+      livres: bilhetes.filter((b) => b.status === 'LIVRE').length,
+      reservados: bilhetes.filter((b) => b.status === 'RESERVADO').length,
+      vendidos: bilhetes.filter((b) => b.status === 'VENDIDO').length,
     };
 
     const porVendedorMap = new Map();
 
-    bilhetes.forEach(b => {
+    bilhetes.forEach((b) => {
       if (!b.vendedorId || !b.vendedor) return;
-      
+
       if (!porVendedorMap.has(b.vendedorId)) {
         porVendedorMap.set(b.vendedorId, {
           nome: b.vendedor.nome,
@@ -549,7 +643,7 @@ export class RifasService {
           livres: 0,
           reservados: 0,
           vendidos: 0,
-          bilhetes: []
+          bilhetes: [],
         });
       }
 
@@ -562,20 +656,22 @@ export class RifasService {
     });
 
     const arrecadado = geral.vendidos * (rifaCheck?.valorNumero || 0);
-    const rateio = Number((arrecadado * ((rifaCheck?.percentualRateio || 100) / 100)).toFixed(2));
+    const rateio = Number(
+      (arrecadado * ((rifaCheck?.percentualRateio || 100) / 100)).toFixed(2),
+    );
     const reserva = Number((arrecadado - rateio).toFixed(2));
 
     const financeiro = {
       arrecadado,
       rateio,
       reserva,
-      percentualRateio: rifaCheck?.percentualRateio || 100
+      percentualRateio: rifaCheck?.percentualRateio || 100,
     };
 
     return {
       geral,
       financeiro,
-      vendedores: Array.from(porVendedorMap.values())
+      vendedores: Array.from(porVendedorMap.values()),
     };
   }
 
@@ -586,19 +682,19 @@ export class RifasService {
     const bilhetesDb = await this.prisma.bilhete.findMany({
       where: { rifaId, vendedorId },
       include: { recebimento: true },
-      orderBy: { numero: 'asc' }
+      orderBy: { numero: 'asc' },
     });
 
-    const bilhetes = bilhetesDb.map(b => ({
+    const bilhetes = bilhetesDb.map((b) => ({
       ...b,
       nomeCliente: b.recebimento?.nomeCliente ?? null,
       foneCliente: b.recebimento?.foneCliente ?? null,
-      comprovante: b.recebimento?.comprovante ?? null
+      comprovante: b.recebimento?.comprovante ?? null,
     }));
 
     const alocacoes = await this.prisma.alocacaoRifa.findMany({
       where: { rifaId, pessoaId: vendedorId },
-      orderBy: { criadoEm: 'asc' }
+      orderBy: { criadoEm: 'asc' },
     });
 
     return { bilhetes, alocacoes };
@@ -607,19 +703,26 @@ export class RifasService {
   async remover(id: number) {
     const rifaExistente = await this.prisma.rifa.findUnique({ where: { id } });
     if (!rifaExistente) throw new NotFoundException('Rifa não encontrada');
-    if (rifaExistente.status === 'FINALIZADA' || rifaExistente.status === 'SORTEADA') {
-      throw new BadRequestException('Não é permitido excluir uma campanha finalizada ou sorteada.');
+    if (
+      rifaExistente.status === 'FINALIZADA' ||
+      rifaExistente.status === 'SORTEADA'
+    ) {
+      throw new BadRequestException(
+        'Não é permitido excluir uma campanha finalizada ou sorteada.',
+      );
     }
 
     const bilhetesComprometidos = await this.prisma.bilhete.findFirst({
       where: {
         rifaId: id,
-        status: { in: ['RESERVADO', 'VENDIDO'] }
-      }
+        status: { in: ['RESERVADO', 'VENDIDO'] },
+      },
     });
 
     if (bilhetesComprometidos) {
-      throw new BadRequestException('Não é possível excluir uma campanha que já possui números reservados ou vendidos.');
+      throw new BadRequestException(
+        'Não é possível excluir uma campanha que já possui números reservados ou vendidos.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -641,7 +744,9 @@ export class RifasService {
       await tx.transacao.deleteMany({});
       await tx.conta.updateMany({ data: { saldo: 0 } });
 
-      return { message: 'Dados de rifas, alocações, transações e saldos foram limpos.' };
+      return {
+        message: 'Dados de rifas, alocações, transações e saldos foram limpos.',
+      };
     });
   }
 }

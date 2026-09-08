@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { PessoasService } from './pessoas.service';
 import { CreatePessoaDto } from './dto/create-pessoa.dto';
 import { UpdatePessoaDto } from './dto/update-pessoa.dto';
@@ -37,7 +48,10 @@ export class PessoasController {
 
   @Patch(':id')
   @RequirePermissions('pessoas', 'escrever')
-  atualizar(@Param('id', ParseIntPipe) id: number, @Body() updatePessoaDto: UpdatePessoaDto) {
+  atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updatePessoaDto: UpdatePessoaDto,
+  ) {
     return this.pessoasService.atualizar(id, updatePessoaDto);
   }
 
@@ -47,4 +61,3 @@ export class PessoasController {
     return this.pessoasService.remover(id);
   }
 }
-

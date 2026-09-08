@@ -7,6 +7,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [LancamentosExtratoController],
   providers: [LancamentosExtratoService],
-  exports: [LancamentosExtratoService]
+  exports: [LancamentosExtratoService],
 })
 export class LancamentosExtratoModule {}

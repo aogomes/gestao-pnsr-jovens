@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -55,7 +59,7 @@ export class UsuariosService {
     const usuarios = await this.prisma.usuario.findMany({
       include: { pessoa: true },
     });
-    return usuarios.map(u => {
+    return usuarios.map((u) => {
       const { senha, ...resultado } = u;
       return {
         ...resultado,
@@ -147,4 +151,3 @@ export class UsuariosService {
     return resultado;
   }
 }
-

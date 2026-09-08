@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { TransacoesService } from './transacoes.service';
 import { CreateTransacaoDto } from './dto/create-transacao.dto';
 import { UpdateTransacaoDto } from './dto/update-transacao.dto';
@@ -37,7 +48,10 @@ export class TransacoesController {
 
   @Patch(':id')
   @RequirePermissions('transacoes', 'escrever')
-  atualizar(@Param('id', ParseIntPipe) id: number, @Body() updateTransacaoDto: UpdateTransacaoDto) {
+  atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateTransacaoDto: UpdateTransacaoDto,
+  ) {
     return this.transacoesService.atualizar(id, updateTransacaoDto);
   }
 
@@ -47,4 +61,3 @@ export class TransacoesController {
     return this.transacoesService.remover(id);
   }
 }
-

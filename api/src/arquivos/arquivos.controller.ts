@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
 import { PermissionsGuard } from '../autenticacao/permissions.guard';
@@ -11,7 +18,7 @@ export class ArquivosController {
   constructor() {
     const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
+
     if (supabaseUrl && supabaseServiceKey) {
       this.supabase = createClient(supabaseUrl, supabaseServiceKey);
     }
@@ -22,14 +29,18 @@ export class ArquivosController {
   async downloadFile(
     @Query('bucket') bucket: string,
     @Query('path') path: string,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     if (!this.supabase) {
-      return res.status(500).json({ message: 'Supabase não configurado no servidor' });
+      return res
+        .status(500)
+        .json({ message: 'Supabase não configurado no servidor' });
     }
 
     if (!bucket || !path) {
-      return res.status(400).json({ message: 'Parâmetros bucket e path são obrigatórios' });
+      return res
+        .status(400)
+        .json({ message: 'Parâmetros bucket e path são obrigatórios' });
     }
 
     try {
@@ -37,19 +48,23 @@ export class ArquivosController {
       const { data, error } = await this.supabase.storage
         .from(bucket)
         .createSignedUrl(path, 60, {
-          download: false // Se true, força o header Content-Disposition: attachment
+          download: false, // Se true, força o header Content-Disposition: attachment
         });
 
       if (error || !data) {
         console.error('Erro ao gerar signed url:', error);
-        return res.status(404).json({ message: 'Arquivo não encontrado ou erro de permissão' });
+        return res
+          .status(404)
+          .json({ message: 'Arquivo não encontrado ou erro de permissão' });
       }
 
       // Redireciona o usuário para a URL assinada recém gerada
       return res.redirect(302, data.signedUrl);
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: 'Erro interno ao processar o arquivo' });
+      return res
+        .status(500)
+        .json({ message: 'Erro interno ao processar o arquivo' });
     }
   }
 }

@@ -7,4 +7,5 @@ export interface PermissionRequirement {
   acao: Acao;
 }
 
-export const RequirePermissions = (modulo: Modulo, acao: Acao) => SetMetadata(PERMISSIONS_KEY, { modulo, acao });
+export const RequirePermissions = (modulo: Modulo, acao: Acao) =>
+  SetMetadata(PERMISSIONS_KEY, { modulo, acao });

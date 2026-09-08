@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProdutoVendaDto } from './dto/create-produto-venda.dto';
 import { UpdateProdutoVendaDto } from './dto/update-produto-venda.dto';
@@ -51,7 +55,7 @@ export class ProdutosVendaService {
 
     if (produto.itensVenda.length > 0) {
       throw new BadRequestException(
-        'Este produto já possui histórico de vendas registradas e não pode ser excluído. Para retirá-lo de circulação, desative-o nas configurações do produto.'
+        'Este produto já possui histórico de vendas registradas e não pode ser excluído. Para retirá-lo de circulação, desative-o nas configurações do produto.',
       );
     }
 

@@ -5,7 +5,7 @@ import { CreatePagamentoDto } from './dto/create-pagamento.dto';
 
 @Injectable()
 export class InscricoesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async criar(createInscricaoDto: CreateInscricaoDto) {
     const evento = await this.prisma.evento.findUnique({
@@ -17,11 +17,15 @@ export class InscricoesService {
     }
 
     if (evento.status !== 'ATIVO') {
-      throw new BadRequestException('Não é possível se inscrever em eventos que não estão ativos.');
+      throw new BadRequestException(
+        'Não é possível se inscrever em eventos que não estão ativos.',
+      );
     }
 
     if (new Date() > new Date(evento.limiteInscricao)) {
-      throw new BadRequestException('A data limite para inscrições já expirou.');
+      throw new BadRequestException(
+        'A data limite para inscrições já expirou.',
+      );
     }
 
     return this.prisma.inscricao.create({ data: createInscricaoDto });
@@ -33,35 +37,38 @@ export class InscricoesService {
       include: {
         pessoa: true,
         evento: true,
-        transacoes: true
+        transacoes: true,
       },
     });
 
     if (inscricoes.length === 0) return [];
 
-    const pessoaIds = [...new Set(inscricoes.map(i => i.pessoaId))];
+    const pessoaIds = [...new Set(inscricoes.map((i) => i.pessoaId))];
 
     const transacoesAgregadas = await this.prisma.transacao.groupBy({
       by: ['pessoaId', 'tipo'],
       where: {
         pessoaId: { in: pessoaIds },
-        ...(eventoId ? { eventoId } : {})
+        ...(eventoId ? { eventoId } : {}),
       },
-      _sum: { valor: true }
+      _sum: { valor: true },
     });
 
     const saldosMap: Record<number, number> = {};
-    pessoaIds.forEach(id => { saldosMap[id] = 0; });
+    pessoaIds.forEach((id) => {
+      saldosMap[id] = 0;
+    });
 
-    transacoesAgregadas.forEach(t => {
+    transacoesAgregadas.forEach((t) => {
       if (t.pessoaId !== null) {
-        if (t.tipo === 'RECEITA') saldosMap[t.pessoaId] += (t._sum.valor || 0);
-        if (t.tipo === 'DESPESA') saldosMap[t.pessoaId] -= (t._sum.valor || 0);
+        if (t.tipo === 'RECEITA') saldosMap[t.pessoaId] += t._sum.valor || 0;
+        if (t.tipo === 'DESPESA') saldosMap[t.pessoaId] -= t._sum.valor || 0;
       }
     });
 
     return inscricoes.map((insc) => {
-      const saldoCalculado = Number(Number(saldosMap[insc.pessoaId]).toFixed(2)) || 0;
+      const saldoCalculado =
+        Number(Number(saldosMap[insc.pessoaId]).toFixed(2)) || 0;
 
       // Sintetizar dinamicamente o array de pagamentos a partir de transacoes
       const pagamentosSintetizados = insc.transacoes
@@ -71,13 +78,13 @@ export class InscricoesService {
           valor: t.tipo === 'DESPESA' ? t.valor : -t.valor,
           tipo: t.tipo,
           descricao: t.descricao,
-          data: t.data
+          data: t.data,
         }));
 
       return {
         ...insc,
         pessoa: { ...insc.pessoa, saldo: saldoCalculado },
-        pagamentos: pagamentosSintetizados
+        pagamentos: pagamentosSintetizados,
       };
     });
   }
@@ -91,7 +98,7 @@ export class InscricoesService {
       // 1. Buscar a inscrição com suas transações e dados do evento
       const inscricao = await tx.inscricao.findUnique({
         where: { id },
-        include: { transacoes: true, evento: true }
+        include: { transacoes: true, evento: true },
       });
 
       if (!inscricao) {
@@ -99,9 +106,13 @@ export class InscricoesService {
       }
 
       // 2. Se o novo status for DESISTENCIA e houver pagamentos de débito da pessoa vinculados, realiza o estorno de partida dobrada
-      if (status === 'DESISTENCIA' && inscricao.transacoes && inscricao.transacoes.length > 0) {
+      if (
+        status === 'DESISTENCIA' &&
+        inscricao.transacoes &&
+        inscricao.transacoes.length > 0
+      ) {
         const pagamentosDebito = inscricao.transacoes.filter(
-          (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA'
+          (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA',
         );
 
         for (const pagamento of pagamentosDebito) {
@@ -115,8 +126,8 @@ export class InscricoesService {
               inscricaoId: id,
               eventoId: inscricao.eventoId,
               origem: 'EVENTOS',
-              data: new Date()
-            }
+              data: new Date(),
+            },
           });
 
           // 2.2. Criar transação financeira de DESPESA (estorno) para a Conta Bancária do Evento
@@ -129,14 +140,14 @@ export class InscricoesService {
               inscricaoId: id,
               eventoId: inscricao.eventoId,
               origem: 'EVENTOS',
-              data: new Date()
-            }
+              data: new Date(),
+            },
           });
 
           // 2.3. Decrementar o saldo físico da Conta correspondente
           await tx.conta.update({
             where: { id: inscricao.evento.contaId },
-            data: { saldo: { decrement: pagamento.valor } }
+            data: { saldo: { decrement: pagamento.valor } },
           });
         }
       }
@@ -144,14 +155,16 @@ export class InscricoesService {
       // 3. Atualizar o status da inscrição
       return tx.inscricao.update({
         where: { id },
-        data: { status }
+        data: { status },
       });
     });
   }
 
   async adicionarPagamento(createPagamentoDto: CreatePagamentoDto) {
     if (createPagamentoDto.metodo !== 'SALDO') {
-      throw new BadRequestException('Os pagamentos de inscrição devem ser realizados exclusivamente via SALDO. Por favor, adicione crédito à pessoa primeiro.');
+      throw new BadRequestException(
+        'Os pagamentos de inscrição devem ser realizados exclusivamente via SALDO. Por favor, adicione crédito à pessoa primeiro.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -161,27 +174,38 @@ export class InscricoesService {
         include: {
           pessoa: {
             include: {
-              transacoes: true
-            }
+              transacoes: true,
+            },
           },
-          evento: true
-        }
+          evento: true,
+        },
       });
 
-      if (!inscricao) throw new BadRequestException('Inscrição não encontrada.');
+      if (!inscricao)
+        throw new BadRequestException('Inscrição não encontrada.');
 
       if (inscricao.status !== 'CONFIRMADO') {
-        throw new BadRequestException('Não é possível realizar pagamentos para inscrições que não estão confirmadas.');
+        throw new BadRequestException(
+          'Não é possível realizar pagamentos para inscrições que não estão confirmadas.',
+        );
       }
 
-      const saldoCalculado = inscricao.pessoa.transacoes.reduce((acc: number, t: any) => {
-        if (t.tipo === 'RECEITA') return acc + t.valor;
-        if (t.tipo === 'DESPESA') return acc - t.valor;
-        return acc;
-      }, 0);
+      const saldoCalculado = inscricao.pessoa.transacoes.reduce(
+        (acc: number, t: any) => {
+          if (t.tipo === 'RECEITA') return acc + t.valor;
+          if (t.tipo === 'DESPESA') return acc - t.valor;
+          return acc;
+        },
+        0,
+      );
 
-      if (Math.round(saldoCalculado * 100) < Math.round(createPagamentoDto.valor * 100)) {
-        throw new BadRequestException(`Saldo insuficiente. Saldo atual: R$ ${saldoCalculado.toFixed(2)}`);
+      if (
+        Math.round(saldoCalculado * 100) <
+        Math.round(createPagamentoDto.valor * 100)
+      ) {
+        throw new BadRequestException(
+          `Saldo insuficiente. Saldo atual: R$ ${saldoCalculado.toFixed(2)}`,
+        );
       }
 
       // 2. Criar a transação financeira (DÉBITO/DESPESA) para a Pessoa
@@ -194,8 +218,8 @@ export class InscricoesService {
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
           origem: 'EVENTOS',
-          data: new Date()
-        }
+          data: new Date(),
+        },
       });
 
       // 3. Criar a transação financeira (RECEITA) para a Conta Bancária do Evento
@@ -208,14 +232,14 @@ export class InscricoesService {
           inscricaoId: inscricao.id,
           eventoId: inscricao.eventoId,
           origem: 'EVENTOS',
-          data: new Date()
-        }
+          data: new Date(),
+        },
       });
 
       // 4. Incrementar o saldo da conta paroquial na base de dados
       await tx.conta.update({
         where: { id: inscricao.evento.contaId },
-        data: { saldo: { increment: createPagamentoDto.valor } }
+        data: { saldo: { increment: createPagamentoDto.valor } },
       });
 
       // Retorna objeto sintetizado para total compatibilidade
@@ -226,16 +250,20 @@ export class InscricoesService {
         metodo: 'SALDO',
         observacao: transacaoPessoa.descricao,
         inscricaoId: inscricao.id,
-        transacaoId: transacaoPessoa.id
+        transacaoId: transacaoPessoa.id,
       };
     });
   }
 
-  async registrarDesistencia(id: number, opcao: string, targetPessoaId?: number) {
+  async registrarDesistencia(
+    id: number,
+    opcao: string,
+    targetPessoaId?: number,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const inscricao = await tx.inscricao.findUnique({
         where: { id },
-        include: { transacoes: true, evento: true, pessoa: true }
+        include: { transacoes: true, evento: true, pessoa: true },
       });
 
       if (!inscricao) {
@@ -243,21 +271,24 @@ export class InscricoesService {
       }
 
       if (inscricao.status !== 'CONFIRMADO') {
-        throw new BadRequestException('Apenas inscrições confirmadas podem ser objeto de desistência.');
+        throw new BadRequestException(
+          'Apenas inscrições confirmadas podem ser objeto de desistência.',
+        );
       }
 
       let pessoaDestinoNome = '';
       if (targetPessoaId) {
         const p = await tx.pessoa.findUnique({ where: { id: targetPessoaId } });
-        if (!p) throw new BadRequestException('Pessoa de destino não encontrada.');
+        if (!p)
+          throw new BadRequestException('Pessoa de destino não encontrada.');
         pessoaDestinoNome = p.nome;
       }
 
       const pagamentosDebito = inscricao.transacoes.filter(
-        (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA'
+        (t) => t.pessoaId === inscricao.pessoaId && t.tipo === 'DESPESA',
       );
       const receitasConta = inscricao.transacoes.filter(
-        (t) => t.contaId && t.tipo === 'RECEITA'
+        (t) => t.contaId && t.tipo === 'RECEITA',
       );
 
       const totalPago = pagamentosDebito.reduce((acc, t) => acc + t.valor, 0);
@@ -268,14 +299,14 @@ export class InscricoesService {
           for (const receita of receitasConta) {
             await tx.conta.update({
               where: { id: receita.contaId! },
-              data: { saldo: { decrement: receita.valor } }
+              data: { saldo: { decrement: receita.valor } },
             });
           }
 
           // 2. Excluir fisicamente todos os pagamentos / recebimentos atrelados à inscrição
           if (inscricao.transacoes.length > 0) {
             await tx.transacao.deleteMany({
-              where: { inscricaoId: id }
+              where: { inscricaoId: id },
             });
           }
 
@@ -289,8 +320,8 @@ export class InscricoesService {
                 pessoaId: inscricao.pessoaId,
                 eventoId: inscricao.eventoId,
                 origem: 'EVENTOS',
-                data: new Date()
-              }
+                data: new Date(),
+              },
             });
 
             await tx.transacao.create({
@@ -301,8 +332,8 @@ export class InscricoesService {
                 pessoaId: targetPessoaId,
                 eventoId: inscricao.eventoId,
                 origem: 'EVENTOS',
-                data: new Date()
-              }
+                data: new Date(),
+              },
             });
           }
         } else if (opcao === 'CAIXA') {
@@ -311,18 +342,21 @@ export class InscricoesService {
           for (const pagamento of pagamentosDebito) {
             await tx.transacao.update({
               where: { id: pagamento.id },
-              data: { 
+              data: {
                 descricao: `${pagamento.descricao} (DEVOLVIDO)`,
-                inscricaoId: null 
-              }
+                inscricaoId: null,
+              },
             });
           }
 
           // 2. Criar uma nova DESPESA na Conta Bancária e decrementar o saldo
           // (Estorno do dinheiro físico)
           // Assumimos que o dinheiro sai da conta onde entrou (pegamos a primeira receita como base ou a conta do evento)
-          const contaIdEstorno = receitasConta.length > 0 ? receitasConta[0].contaId : inscricao.evento.contaId;
-          
+          const contaIdEstorno =
+            receitasConta.length > 0
+              ? receitasConta[0].contaId
+              : inscricao.evento.contaId;
+
           if (contaIdEstorno) {
             await tx.transacao.create({
               data: {
@@ -332,13 +366,13 @@ export class InscricoesService {
                 contaId: contaIdEstorno,
                 eventoId: inscricao.eventoId,
                 origem: 'EVENTOS',
-                data: new Date()
-              }
+                data: new Date(),
+              },
             });
 
             await tx.conta.update({
               where: { id: contaIdEstorno },
-              data: { saldo: { decrement: totalPago } }
+              data: { saldo: { decrement: totalPago } },
             });
           }
         }
@@ -346,9 +380,8 @@ export class InscricoesService {
 
       return tx.inscricao.update({
         where: { id },
-        data: { status: 'DESISTENCIA' }
+        data: { status: 'DESISTENCIA' },
       });
     });
   }
 }
-
