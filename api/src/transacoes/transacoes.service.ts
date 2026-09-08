@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransacaoDto } from './dto/create-transacao.dto';
 import { UpdateTransacaoDto } from './dto/update-transacao.dto';
@@ -6,7 +6,7 @@ import { TipoTransacao } from '@prisma/client';
 
 @Injectable()
 export class TransacoesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async criar(createTransacaoDto: CreateTransacaoDto) {
     const { data: dataTransacao, ...rest } = createTransacaoDto;
@@ -16,9 +16,9 @@ export class TransacoesService {
     };
 
     // Atualiza a descrição com o método se ele existir (Opção 2)
-    if (createTransacaoDto.metodo) {
-      dados.descricao = `${createTransacaoDto.descricao} (${createTransacaoDto.metodo})`;
-    }
+    // if (createTransacaoDto.metodo) {
+    //   dados.descricao = `${createTransacaoDto.descricao} (${createTransacaoDto.metodo})`;
+    // }
 
     return this.prisma.$transaction(async (prisma) => {
       const transacao = await prisma.transacao.create({ data: dados });
@@ -163,5 +163,68 @@ export class TransacoesService {
       where: { id: contaId },
       data: { saldo },
     });
+  }
+
+  async buscarExtrato(contaId?: number, eventoId?: number) {
+    let resolvedContaId = contaId;
+    let evento: any = null;
+
+    if (eventoId) {
+      evento = await this.prisma.evento.findUnique({
+        where: { id: eventoId },
+        include: { conta: true },
+      });
+      if (!resolvedContaId && evento?.contaId) {
+        resolvedContaId = evento.contaId;
+      }
+    }
+
+    if (!resolvedContaId) {
+      throw new BadRequestException(
+        'contaId ou eventoId com conta vinculada é obrigatório',
+      );
+    }
+
+    const conta = await this.prisma.conta.findUnique({
+      where: { id: resolvedContaId },
+    });
+
+    // select * from transacoes t left join eventos e on e."id" = t."eventoId" where e."contaId" = ? or t."contaId" = ?;
+    const transacoes = await this.prisma.transacao.findMany({
+      where: {
+        OR: [
+          { contaId: resolvedContaId },
+          { evento: { contaId: resolvedContaId } },
+        ],
+      },
+      include: {
+        pessoa: true,
+        conta: true,
+        evento: true,
+      },
+      orderBy: { data: 'desc' },
+    });
+
+    let totalReceitas = 0;
+    let totalDespesas = 0;
+
+    for (const t of transacoes) {
+      if (t.tipo === 'RECEITA') {
+        totalReceitas += t.valor;
+      } else if (t.tipo === 'DESPESA' || t.tipo === 'TRANSFERENCIA') {
+        totalDespesas += t.valor;
+      }
+    }
+
+    return {
+      evento,
+      conta,
+      saldoConta: conta?.saldo || 0,
+      totalReceitas,
+      totalDespesas,
+      saldoLiquido: totalReceitas - totalDespesas,
+      totalTransacoes: transacoes.length,
+      transacoes,
+    };
   }
 }

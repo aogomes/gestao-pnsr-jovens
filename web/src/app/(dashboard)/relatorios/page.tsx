@@ -4,18 +4,47 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Loader2, FileText, CalendarDays, Users, Download, X, Search, CheckCircle2, Clock } from 'lucide-react';
+import {
+  Loader2,
+  FileText,
+  CalendarDays,
+  Users,
+  Download,
+  X,
+  Search,
+  CheckCircle2,
+  Clock,
+  Wallet,
+  Scale,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  Receipt,
+} from 'lucide-react';
 
 export default function RelatoriosPage() {
   const [eventos, setEventos] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
+  // Controle de Aba Principal: Inscrições ou Extrato da Conta
+  const [abaAtiva, setAbaAtiva] = useState<'INSCRICOES' | 'EXTRATO'>('INSCRICOES');
+
+  // --- ESTADOS DO RELATÓRIO DE INSCRIÇÕES (MODAL) ---
   const [modalAberto, setModalAberto] = useState(false);
   const [eventoSelecionado, setEventoSelecionado] = useState<any>(null);
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [carregandoInscritos, setCarregandoInscritos] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
   const [busca, setBusca] = useState<string>('');
+
+  // --- ESTADOS DO EXTRATO DA CONTA DO EVENTO ATIVO ---
+  const [eventoExtrato, setEventoExtrato] = useState<any>(null);
+  const [extratoData, setExtratoData] = useState<any>(null);
+  const [carregandoExtrato, setCarregandoExtrato] = useState(false);
+  const [agrupamentoExtrato, setAgrupamentoExtrato] = useState<'PESSOA' | 'TRANSACOES'>('PESSOA');
+  const [filtroTipoExtrato, setFiltroTipoExtrato] = useState<'TODOS' | 'RECEITA' | 'DESPESA'>('TODOS');
+  const [buscaExtrato, setBuscaExtrato] = useState<string>('');
+  const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     buscarEventos();
@@ -26,10 +55,30 @@ export default function RelatoriosPage() {
       const res = await api.get('/eventos');
       const eventosAtivos = res.data.filter((e: any) => e.status === 'ATIVO');
       setEventos(eventosAtivos);
+
+      if (eventosAtivos.length > 0) {
+        carregarExtrato(eventosAtivos[0]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setCarregando(false);
+    }
+  };
+
+  const carregarExtrato = async (evento: any) => {
+    if (!evento) return;
+    setEventoExtrato(evento);
+    setCarregandoExtrato(true);
+    setBuscaExtrato('');
+    setExpandidos({});
+    try {
+      const res = await api.get(`/transacoes/extrato?eventoId=${evento.id}&contaId=${evento.contaId}`);
+      setExtratoData(res.data);
+    } catch (err) {
+      console.error('Erro ao carregar extrato da conta do evento:', err);
+    } finally {
+      setCarregandoExtrato(false);
     }
   };
 
@@ -54,6 +103,21 @@ export default function RelatoriosPage() {
     }
   };
 
+  const toggleExpandido = (id: string) => {
+    setExpandidos((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // --- FORMATAÇÕES UTILITÁRIAS ---
+  const formatarMoeda = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+  };
+
+  const formatarData = (d: string) => {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  };
+
+  // --- FILTROS DE INSCRIÇÕES ---
   const totalConfirmados = inscritos.filter((i) => i.status === 'CONFIRMADO').length;
   const totalPendentes = inscritos.filter((i) => i.status === 'PENDENTE').length;
   const totalDesistencias = inscritos.filter(
@@ -80,12 +144,81 @@ export default function RelatoriosPage() {
     return true;
   });
 
-  const exportarPDF = () => {
+  // --- FILTROS E AGRUPAMENTOS DO EXTRATO DA CONTA ---
+  const transacoesFiltradas = (extratoData?.transacoes || []).filter((t: any) => {
+    if (filtroTipoExtrato === 'RECEITA' && t.tipo !== 'RECEITA') {
+      return false;
+    }
+    if (filtroTipoExtrato === 'DESPESA' && t.tipo !== 'DESPESA' && t.tipo !== 'TRANSFERENCIA') {
+      return false;
+    }
+
+    if (buscaExtrato.trim()) {
+      const termo = buscaExtrato.toLowerCase();
+      const nomePessoa = (t.pessoa?.nome || '').toLowerCase();
+      const nomeConta = (t.conta?.nome || '').toLowerCase();
+      const desc = (t.descricao || '').toLowerCase();
+      const metodo = (t.metodo || '').toLowerCase();
+      return (
+        nomePessoa.includes(termo) ||
+        nomeConta.includes(termo) ||
+        desc.includes(termo) ||
+        metodo.includes(termo)
+      );
+    }
+
+    return true;
+  });
+
+  // Agrupamento por Pessoa (pessoaId)
+  const agrupadoPorPessoa = Object.values(
+    transacoesFiltradas.reduce((acc: Record<string, any>, t: any) => {
+      const key = t.pessoaId ? `p_${t.pessoaId}` : 'sem_pessoa';
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          pessoaId: t.pessoaId,
+          pessoa: t.pessoa || null,
+          nome: t.pessoa?.nome || 'CAIXA',
+          comunidade: t.pessoa?.comunidade || '',
+          telefone: t.pessoa?.telefone || '',
+          receitas: 0,
+          despesas: 0,
+          saldo: 0,
+          transacoes: [],
+        };
+      }
+      if (t.tipo === 'RECEITA') {
+        acc[key].receitas += t.valor;
+      } else if (t.tipo === 'DESPESA' || t.tipo === 'TRANSFERENCIA') {
+        acc[key].despesas += t.valor;
+      }
+      acc[key].saldo = acc[key].receitas - acc[key].despesas;
+      acc[key].transacoes.push(t);
+      return acc;
+    }, {})
+  ).sort((a: any, b: any) => {
+    if (!a.pessoaId && b.pessoaId) return 1;
+    if (a.pessoaId && !b.pessoaId) return -1;
+    return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' });
+  });
+
+  // Totais do Extrato Filtrado
+  const totalReceitasFiltradas = transacoesFiltradas
+    .filter((t: any) => t.tipo === 'RECEITA')
+    .reduce((acc: number, t: any) => acc + t.valor, 0);
+
+  const totalDespesasFiltradas = transacoesFiltradas
+    .filter((t: any) => t.tipo === 'DESPESA' || t.tipo === 'TRANSFERENCIA')
+    .reduce((acc: number, t: any) => acc + t.valor, 0);
+
+  const saldoLiquidoFiltrado = totalReceitasFiltradas - totalDespesasFiltradas;
+
+  // --- EXPORTAR PDF DE INSCRIÇÕES ---
+  const exportarPDFInscricoes = () => {
     if (!eventoSelecionado) return;
 
     const doc = new jsPDF();
-
-    // Título do PDF
     doc.setFontSize(18);
     doc.text(`Relatório de Inscrições`, 14, 22);
 
@@ -108,7 +241,7 @@ export default function RelatoriosPage() {
       36
     );
 
-    const tableColumn = ["Nome", "Telefone", "Comunidade", "Status"];
+    const tableColumn = ['Nome', 'Telefone', 'Comunidade', 'Status'];
     const tableRows: any[] = [];
     const statusCount: Record<string, number> = {};
 
@@ -120,10 +253,9 @@ export default function RelatoriosPage() {
         pessoa?.nome || '-',
         pessoa?.telefone || '-',
         pessoa?.comunidade || '-',
-        statusLabel
+        statusLabel,
       ];
       tableRows.push(rowData);
-
       statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
     });
 
@@ -136,68 +268,79 @@ export default function RelatoriosPage() {
           const status = data.cell.raw;
           data.cell.styles.fontStyle = 'bold';
           if (status === 'CONFIRMADO') {
-            data.cell.styles.textColor = [5, 150, 105]; // emerald-600
+            data.cell.styles.textColor = [5, 150, 105];
           } else if (status === 'DESISTENCIA' || status === 'CANCELADO') {
-            data.cell.styles.textColor = [225, 29, 72]; // rose-600
+            data.cell.styles.textColor = [225, 29, 72];
           } else if (status === 'PENDENTE') {
-            data.cell.styles.textColor = [217, 119, 6]; // amber-600
+            data.cell.styles.textColor = [217, 119, 6];
           } else {
-            data.cell.styles.textColor = [71, 85, 105]; // slate-600
+            data.cell.styles.textColor = [71, 85, 105];
           }
         }
-      }
+      },
     });
 
-    const finalY = (doc as any).lastAutoTable?.finalY || 42;
+    doc.save(`relatorio_inscricoes_${eventoSelecionado.nome.replace(/\s+/g, '_')}.pdf`);
+  };
 
-    // Totalizador por status
-    if (Object.keys(statusCount).length > 0) {
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text("Resumo por Status:", 14, finalY + 12);
+  // --- EXPORTAR PDF DO EXTRATO DA CONTA ---
+  const exportarPDFExtrato = () => {
+    if (!eventoExtrato || !extratoData) return;
 
-      let xPos = 14;
-      let yPos = finalY + 18;
+    const doc = new jsPDF();
 
-      doc.setFontSize(9);
+    doc.setFontSize(18);
+    doc.text(`Extrato Financeiro do Evento`, 14, 20);
 
-      Object.entries(statusCount).forEach(([status, count]) => {
-        let bgColor = [248, 250, 252];
-        let textColor = [71, 85, 105];
-        let borderColor = [226, 232, 240];
+    doc.setFontSize(11);
+    doc.text(`Evento: ${eventoExtrato.nome}`, 14, 28);
+    doc.text(`Fundo de Caixa: ${extratoData.conta?.nome || 'N/A'} (Saldo: ${formatarMoeda(extratoData.saldoConta)})`, 14, 34);
+    doc.text(
+      `Saldo do Extrato: ${formatarMoeda(saldoLiquidoFiltrado)}`,
+      14,
+      40
+    );
 
-        if (status === 'CONFIRMADO') {
-          bgColor = [236, 253, 245]; textColor = [5, 150, 105]; borderColor = [209, 250, 229];
-        } else if (status === 'DESISTENCIA' || status === 'CANCELADO') {
-          bgColor = [255, 241, 242]; textColor = [225, 29, 72]; borderColor = [255, 228, 230];
-        } else if (status === 'PENDENTE') {
-          bgColor = [255, 251, 235]; textColor = [217, 119, 6]; borderColor = [254, 243, 199];
-        }
+    let startY = 48;
 
-        const text = `${status.replace('_', ' ')}: ${count}`;
-        const textWidth = doc.getTextWidth(text);
-        const rectWidth = textWidth + 6;
-        const rectHeight = 6;
+    if (agrupamentoExtrato === 'PESSOA') {
+      const tableColumn = ['Pessoa / Inscrito', 'Comunidade', 'Entradas', 'Saidas', 'Saldo'];
+      const tableRows = agrupadoPorPessoa.map((p: any) => [
+        p.nome,
+        p.comunidade,
+        formatarMoeda(p.receitas),
+        formatarMoeda(p.despesas),
+        formatarMoeda(p.saldo),
+      ]);
 
-        if (xPos + rectWidth > 200) {
-          xPos = 14;
-          yPos += 10;
-        }
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY,
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 4) {
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+    } else {
+      const tableColumn = ['Data', 'Descrição', 'Pessoa', 'Tipo', 'Valor'];
+      const tableRows = transacoesFiltradas.map((t: any) => [
+        formatarData(t.data),
+        t.descricao || '-',
+        t.pessoa?.nome || '-',
+        t.tipo,
+        formatarMoeda(t.valor),
+      ]);
 
-        doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.setLineWidth(0.2);
-        doc.rect(xPos, yPos - 4.5, rectWidth, rectHeight, 'FD');
-
-        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-        doc.text(text, xPos + 3, yPos);
-
-        xPos += rectWidth + 4;
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY,
       });
     }
 
-    doc.save(`relatorio_${eventoSelecionado.nome.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`extrato_${eventoExtrato.nome.replace(/\s+/g, '_')}.pdf`);
   };
 
   if (carregando) {
@@ -210,55 +353,424 @@ export default function RelatoriosPage() {
 
   return (
     <div className="h-full flex flex-col space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      {/* HEADER PRINCIPAL */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">Relatórios</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Visualize e exporte relatórios do sistema</p>
+          <h1 className="text-2xl font-black text-[#1351b4] uppercase tracking-tight">Relatórios do Sistema</h1>
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+            Inscrições de participantes e extrato financeiro da conta do evento
+          </p>
+        </div>
+
+        {/* NAVEGAÇÃO DE ABAS */}
+        <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-lg border border-slate-300/60 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('INSCRICOES')}
+            className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${abaAtiva === 'INSCRICOES'
+              ? 'bg-white text-[#1351b4] shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
+          >
+            <Users className="w-4 h-4" />
+            Inscrições
+          </button>
+          <button
+            type="button"
+            onClick={() => setAbaAtiva('EXTRATO')}
+            className={`px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${abaAtiva === 'EXTRATO'
+              ? 'bg-[#1351b4] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
+          >
+            <Wallet className="w-4 h-4" />
+            Extrato da Conta
+          </button>
         </div>
       </div>
 
       {eventos.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 bg-white border border-slate-200 rounded-sm shadow-sm">
           <CalendarDays className="w-16 h-16 text-slate-200 mb-4" />
-          <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhum evento encontrado</p>
+          <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhum evento ativo encontrado</p>
+        </div>
+      ) : abaAtiva === 'INSCRICOES' ? (
+        /* ============================================================== */
+        /* ABA 1: LISTAGEM DE EVENTOS PARA RELATÓRIO DE INSCRIÇÕES         */
+        /* ============================================================== */
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {eventos.map((evento) => (
+              <div
+                key={evento.id}
+                className="bg-white border border-slate-200 rounded-lg shadow-sm p-6 flex flex-col justify-between hover:shadow-md hover:border-[#1351b4]/40 transition-all group"
+              >
+                <div>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#1351b4] group-hover:bg-[#1351b4] group-hover:text-white transition-colors">
+                      <CalendarDays className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <h3 className="font-bold text-slate-800 text-base leading-tight uppercase truncate">{evento.nome}</h3>
+                      <p className="text-xs text-slate-400 font-medium uppercase mt-0.5 truncate">
+                        Conta: {evento.conta?.nome || 'Não vinculada'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 py-3 text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-emerald-500" />
+                      <span className="font-black text-base">{evento._count?.inscricoes || 0}</span>
+                      <span className="text-xs text-slate-400 font-bold uppercase">Inscritos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => abrirModalEvento(evento)}
+                    className="w-full py-2.5 px-3 bg-slate-50 hover:bg-[#1351b4] text-[#1351b4] hover:text-white rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 border border-slate-200/80 hover:border-[#1351b4]"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Inscrições
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      carregarExtrato(evento);
+                      setAbaAtiva('EXTRATO');
+                    }}
+                    className="w-full py-2.5 px-3 bg-[#1351b4] hover:bg-[#0047b7] text-white rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    Extrato Conta
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {eventos.map((evento) => (
-            <div
-              key={evento.id}
-              onClick={() => abrirModalEvento(evento)}
-              className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 cursor-pointer hover:shadow-md hover:border-[#1351b4]/30 transition-all group"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#1351b4] group-hover:bg-[#1351b4] group-hover:text-white transition-colors">
-                  <CalendarDays className="w-6 h-6" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <h3 className="font-bold text-slate-800 text-lg leading-tight uppercase truncate">{evento.nome}</h3>
-                  <p className="text-xs text-slate-500 font-medium uppercase mt-1 truncate">Relatório de Inscrições</p>
+        /* ============================================================== */
+        /* ABA 2: EXTRATO DA CONTA DO EVENTO ATIVO                        */
+        /* ============================================================== */
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* SELETOR DE EVENTO & AÇÕES */}
+          <div className="bg-white p-4 sm:p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                Evento Ativo:
+              </label>
+              <select
+                value={eventoExtrato?.id || ''}
+                onChange={(e) => {
+                  const ev = eventos.find((ev) => ev.id === Number(e.target.value));
+                  if (ev) carregarExtrato(ev);
+                }}
+                className="py-2 px-3 bg-slate-50 border border-slate-300 rounded-md text-xs font-bold text-slate-700 uppercase focus:outline-none focus:border-[#1351b4]"
+              >
+                {eventos.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.nome} ({ev.conta?.nome || 'Sem Conta'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <button
+                type="button"
+                onClick={exportarPDFExtrato}
+                disabled={!extratoData || transacoesFiltradas.length === 0}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#1351b4] text-white rounded-md text-xs font-bold uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                Exportar Extrato PDF
+              </button>
+            </div>
+          </div>
+
+          {/* CARDS DE RESUMO FINANCEIRO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CARD 1: SALDO NA CONTA-CORRENTE (DESTAQUE) */}
+            <div className="bg-gradient-to-br from-[#1351b4] to-[#0d3880] text-white p-5 rounded-xl shadow-md flex flex-col justify-between relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
+                  Saldo na Conta-Corrente
+                </span>
+                <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white">
+                  <Scale className="w-4 h-4" />
                 </div>
               </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Users className="w-4 h-4 text-emerald-500" />
-                  <span className="font-black text-lg">{evento._count?.inscricoes || 0}</span>
-                  <span className="text-xs text-slate-400 font-bold uppercase">Inscritos</span>
+              <div className="mt-4">
+                <div className="text-2xl sm:text-3xl font-black tracking-tight font-mono text-white">
+                  {formatarMoeda(saldoLiquidoFiltrado)}
                 </div>
-                <FileText className="w-5 h-5 text-slate-300 group-hover:text-[#1351b4] transition-colors" />
+                <div className="text-[11px] font-medium text-blue-200 mt-1">
+                  Saldo do extrato bancário BB
+                </div>
               </div>
             </div>
-          ))}
+
+            {/* CARD 2: FUNDO DE CAIXA */}
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Fundo de Caixa
+                </span>
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                  <Wallet className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="text-2xl sm:text-3xl font-black tracking-tight font-mono text-slate-800">
+                  {formatarMoeda(extratoData?.saldoConta || 0)}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase truncate">
+                  {extratoData?.conta?.nome || 'Conta Não Identificada'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BARRA DE CONTROLE: AGRUPAMENTO, FILTRO TIPO E BUSCA */}
+          <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+            {/* SELEÇÃO DO MODO DE AGRUPAMENTO */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-wider mr-2 hidden sm:inline">
+                Agrupar por:
+              </span>
+              <button
+                type="button"
+                onClick={() => setAgrupamentoExtrato('PESSOA')}
+                className={`px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${agrupamentoExtrato === 'PESSOA'
+                  ? 'bg-[#1351b4] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Por Pessoa ({agrupadoPorPessoa.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAgrupamentoExtrato('TRANSACOES')}
+                className={`px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${agrupamentoExtrato === 'TRANSACOES'
+                  ? 'bg-[#1351b4] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                Extrato Geral ({transacoesFiltradas.length})
+              </button>
+            </div>
+
+            {/* FILTROS DE TIPO & CAMPO DE BUSCA */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+
+              <div className="relative w-full sm:w-60">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar no extrato..."
+                  value={buscaExtrato}
+                  onChange={(e) => setBuscaExtrato(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-[#1351b4] font-medium text-slate-700"
+                />
+                {buscaExtrato && (
+                  <button
+                    type="button"
+                    onClick={() => setBuscaExtrato('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* CONTEÚDO PRINCIPAL DO EXTRATO */}
+          {carregandoExtrato ? (
+            <div className="flex justify-center items-center h-48 bg-white border border-slate-200 rounded-lg">
+              <Loader2 className="w-8 h-8 text-[#1351b4] animate-spin" />
+            </div>
+          ) : transacoesFiltradas.length === 0 ? (
+            <div className="p-12 text-center bg-white border border-slate-200 rounded-lg shadow-sm">
+              <Receipt className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-bold text-sm uppercase tracking-wider">
+                Nenhuma transação encontrada para os filtros selecionados.
+              </p>
+            </div>
+          ) : agrupamentoExtrato === 'PESSOA' ? (
+            /* ============================================================== */
+            /* VISUALIZAÇÃO AGRUPADA POR PESSOA                               */
+            /* ============================================================== */
+            <div className="space-y-3">
+              {agrupadoPorPessoa.map((item: any) => {
+                const isExpanded = !!expandidos[item.id];
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden transition-all"
+                  >
+                    {/* Linha Resumo da Pessoa */}
+                    <div
+                      onClick={() => toggleExpandido(item.id)}
+                      className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-50/80 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1 flex items-center gap-3">
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-800 text-sm uppercase truncate">
+                            {item.nome}
+                          </h4>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                            <span>{item.comunidade}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 sm:gap-6 self-end md:self-auto w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0 border-slate-100">
+                        <div className="text-left md:text-right">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">Entradas</span>
+                          <span className="font-bold text-xs text-emerald-600 font-mono">
+                            + {formatarMoeda(item.receitas)}
+                          </span>
+                        </div>
+
+                        <div className="text-left md:text-right">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">Saídas</span>
+                          <span className="font-bold text-xs text-rose-600 font-mono">
+                            - {formatarMoeda(item.despesas)}
+                          </span>
+                        </div>
+
+                        <div className="text-left md:text-right">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">Saldo Líquido</span>
+                          <span
+                            className={`font-black text-sm font-mono ${item.saldo >= 0 ? 'text-slate-800' : 'text-rose-600'
+                              }`}
+                          >
+                            {formatarMoeda(item.saldo)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-400">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-[10px] font-bold text-slate-600">
+                            {item.transacoes.length} lanç{item.transacoes.length === 1 ? 'amento' : 'amentos'}
+                          </span>
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detalhamento de Transações Expandidas */}
+                    {isExpanded && (
+                      <div className="bg-slate-50/70 border-t border-slate-100 p-3 sm:p-4">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
+                          Transações vinculadas a {item.nome}:
+                        </div>
+                        <div className="space-y-1.5">
+                          {item.transacoes.map((t: any) => (
+                            <div
+                              key={t.id}
+                              className="bg-white p-2.5 rounded border border-slate-200/80 flex items-center justify-between text-xs gap-3"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-[10px] font-mono font-bold text-slate-400 whitespace-nowrap">
+                                  {formatarData(t.data)}
+                                </span>
+                                <span className="font-semibold text-slate-700 truncate">{t.descricao}</span>
+                                {t.metodo && (
+                                  <span className="px-1.5 py-0.2 rounded bg-slate-100 text-[10px] font-bold text-slate-500 uppercase shrink-0">
+                                    {t.metodo}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="shrink-0 font-mono font-bold">
+                                {t.tipo === 'RECEITA' ? (
+                                  <span className="text-emerald-600">+ {formatarMoeda(t.valor)}</span>
+                                ) : (
+                                  <span className="text-rose-600">- {formatarMoeda(t.valor)}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ============================================================== */
+            /* VISUALIZAÇÃO DETALHADA / EXTRATO CORRIDO                       */
+            /* ============================================================== */
+            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#1351b4] text-white text-xs font-bold uppercase tracking-wider">
+                      <th className="px-4 py-3">Data</th>
+                      <th className="px-4 py-3">Descrição</th>
+                      <th className="px-4 py-3">Pessoa</th>
+                      <th className="px-4 py-3">Conta</th>
+                      <th className="px-4 py-3 text-center">Tipo</th>
+                      <th className="px-4 py-3 text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {transacoesFiltradas.map((t: any) => (
+                      <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 text-xs font-mono font-bold text-slate-500 whitespace-nowrap">
+                          {formatarData(t.data)}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-slate-800 max-w-xs truncate">
+                          {t.descricao || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600 max-w-xs truncate">
+                          {t.pessoa?.nome || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">
+                          {t.conta?.nome || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.tipo === 'RECEITA'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}
+                          >
+                            {t.tipo}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-bold text-xs whitespace-nowrap">
+                          {t.tipo === 'RECEITA' ? (
+                            <span className="text-emerald-600">+ {formatarMoeda(t.valor)}</span>
+                          ) : (
+                            <span className="text-rose-600">- {formatarMoeda(t.valor)}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* MODAL DO RELATÓRIO */}
+      {/* ============================================================== */}
+      {/* MODAL DE RELATÓRIO DE INSCRIÇÕES (JÁ EXISTENTE E RESPONSIVO)   */}
+      {/* ============================================================== */}
       {modalAberto && eventoSelecionado && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-4xl rounded-lg sm:rounded-md shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
-
             {/* CABEÇALHO DO MODAL */}
             <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
               <div className="min-w-0 flex-1">
@@ -273,7 +785,7 @@ export default function RelatoriosPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={exportarPDF}
+                  onClick={exportarPDFInscricoes}
                   disabled={inscritosFiltrados.length === 0}
                   className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-[#1351b4] text-white rounded-md sm:rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Exportar PDF filtrado"
@@ -294,7 +806,6 @@ export default function RelatoriosPage() {
 
             {/* BARRA DE FILTROS & BUSCA */}
             <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col sm:flex-row gap-2.5 sm:gap-4 items-stretch sm:items-center justify-between shrink-0 shadow-sm">
-              {/* FILTROS DE STATUS (SCROLL HORIZONTAL NO MOBILE) */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 shrink-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
@@ -307,9 +818,7 @@ export default function RelatoriosPage() {
                   <Users className="w-3.5 h-3.5" />
                   <span>Todos</span>
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'TODOS'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 text-slate-700'
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'TODOS' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                       }`}
                   >
                     {inscritos.length}
@@ -327,9 +836,7 @@ export default function RelatoriosPage() {
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Confirmados</span>
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'CONFIRMADO'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-emerald-200/70 text-emerald-800'
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'CONFIRMADO' ? 'bg-white/20 text-white' : 'bg-emerald-200/70 text-emerald-800'
                       }`}
                   >
                     {totalConfirmados}
@@ -347,9 +854,7 @@ export default function RelatoriosPage() {
                   <Clock className="w-3.5 h-3.5" />
                   <span>Pendentes</span>
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'PENDENTE'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-amber-200/70 text-amber-800'
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'PENDENTE' ? 'bg-white/20 text-white' : 'bg-amber-200/70 text-amber-800'
                       }`}
                   >
                     {totalPendentes}
@@ -367,9 +872,7 @@ export default function RelatoriosPage() {
                   >
                     <span>Desistências</span>
                     <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'DESISTENCIA'
-                        ? 'bg-white/20 text-white'
-                        : 'bg-rose-200/70 text-rose-800'
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'DESISTENCIA' ? 'bg-white/20 text-white' : 'bg-rose-200/70 text-rose-800'
                         }`}
                     >
                       {totalDesistencias}
@@ -378,7 +881,6 @@ export default function RelatoriosPage() {
                 )}
               </div>
 
-              {/* BUSCA POR TEXTO */}
               <div className="relative w-full sm:w-64 shrink-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -427,7 +929,6 @@ export default function RelatoriosPage() {
                 </div>
               ) : (
                 <>
-                  {/* VISUALIZAÇÃO MOBILE (CARDS RESPONSIVOS) */}
                   <div className="block md:hidden space-y-2">
                     {inscritosFiltrados.map((insc, idx) => {
                       let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
@@ -468,8 +969,8 @@ export default function RelatoriosPage() {
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
                             >
-                              {/* <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                              {insc.status?.replace('_', ' ') || '-'} */}
+                              <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                              {insc.status?.replace('_', ' ') || '-'}
                             </span>
                           </div>
                         </div>
@@ -477,7 +978,6 @@ export default function RelatoriosPage() {
                     })}
                   </div>
 
-                  {/* VISUALIZAÇÃO DESKTOP (TABELA) */}
                   <div className="hidden md:block bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
                     <table className="w-full text-sm text-left border-collapse">
                       <thead>
@@ -515,7 +1015,7 @@ export default function RelatoriosPage() {
 
                               <td className="px-5 py-3">
                                 <div className="text-slate-600 text-xs font-medium truncate max-w-xs">
-                                  {insc.pessoa?.comunidade || '-'}
+                                  {insc.pessoa?.comunidade || ''}
                                 </div>
                               </td>
 

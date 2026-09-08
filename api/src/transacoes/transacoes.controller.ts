@@ -40,6 +40,18 @@ export class TransacoesController {
     return this.transacoesService.buscarPaginada(query);
   }
 
+  @Get('extrato')
+  @RequirePermissions('transacoes', 'ler')
+  buscarExtrato(
+    @Query('contaId') contaId?: string,
+    @Query('eventoId') eventoId?: string,
+  ) {
+    return this.transacoesService.buscarExtrato(
+      contaId ? Number(contaId) : undefined,
+      eventoId ? Number(eventoId) : undefined,
+    );
+  }
+
   @Get(':id')
   @RequirePermissions('transacoes', 'ler')
   buscarUma(@Param('id', ParseIntPipe) id: number) {

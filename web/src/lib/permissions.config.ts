@@ -35,6 +35,7 @@ export const rolePermissions: PermissionsMap = {
   },
   GESTOR: {
     'painel': ['ler'],
+    'transacoes': ['ler'],
     // 'contas': ['ler'],
     'trabalhos': ['ler'],
     'eventos': ['ler', 'escrever'],
