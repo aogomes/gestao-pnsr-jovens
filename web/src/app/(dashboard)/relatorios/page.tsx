@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Loader2, FileText, CalendarDays, Users, Download, X } from 'lucide-react';
+import { Loader2, FileText, CalendarDays, Users, Download, X, Search, CheckCircle2, Clock } from 'lucide-react';
 
 export default function RelatoriosPage() {
   const [eventos, setEventos] = useState<any[]>([]);
@@ -14,6 +14,8 @@ export default function RelatoriosPage() {
   const [eventoSelecionado, setEventoSelecionado] = useState<any>(null);
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [carregandoInscritos, setCarregandoInscritos] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [busca, setBusca] = useState<string>('');
 
   useEffect(() => {
     buscarEventos();
@@ -33,6 +35,8 @@ export default function RelatoriosPage() {
 
   const abrirModalEvento = async (evento: any) => {
     setEventoSelecionado(evento);
+    setFiltroStatus('TODOS');
+    setBusca('');
     setModalAberto(true);
     setCarregandoInscritos(true);
     try {
@@ -50,6 +54,32 @@ export default function RelatoriosPage() {
     }
   };
 
+  const totalConfirmados = inscritos.filter((i) => i.status === 'CONFIRMADO').length;
+  const totalPendentes = inscritos.filter((i) => i.status === 'PENDENTE').length;
+  const totalDesistencias = inscritos.filter(
+    (i) => i.status === 'DESISTENCIA' || i.status === 'CANCELADO'
+  ).length;
+
+  const inscritosFiltrados = inscritos.filter((insc) => {
+    if (filtroStatus !== 'TODOS') {
+      if (filtroStatus === 'DESISTENCIA') {
+        if (insc.status !== 'DESISTENCIA' && insc.status !== 'CANCELADO') return false;
+      } else if (insc.status !== filtroStatus) {
+        return false;
+      }
+    }
+
+    if (busca.trim()) {
+      const termo = busca.toLowerCase();
+      const nome = (insc.pessoa?.nome || '').toLowerCase();
+      const tel = (insc.pessoa?.telefone || '').toLowerCase();
+      const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
+      return nome.includes(termo) || tel.includes(termo) || comunidade.includes(termo);
+    }
+
+    return true;
+  });
+
   const exportarPDF = () => {
     if (!eventoSelecionado) return;
 
@@ -59,15 +89,30 @@ export default function RelatoriosPage() {
     doc.setFontSize(18);
     doc.text(`Relatório de Inscrições`, 14, 22);
 
+    const filtroDescricao =
+      filtroStatus === 'TODOS'
+        ? 'Todos'
+        : filtroStatus === 'CONFIRMADO'
+          ? 'Confirmados'
+          : filtroStatus === 'PENDENTE'
+            ? 'Pendentes'
+            : filtroStatus === 'DESISTENCIA'
+              ? 'Desistências'
+              : filtroStatus;
+
     doc.setFontSize(12);
     doc.text(`Evento: ${eventoSelecionado.nome}`, 14, 30);
-    doc.text(`Total de Inscritos: ${inscritos.length}`, 14, 36);
+    doc.text(
+      `Filtro: ${filtroDescricao} | Total: ${inscritosFiltrados.length} inscrito(s)`,
+      14,
+      36
+    );
 
     const tableColumn = ["Nome", "Telefone", "Comunidade", "Status"];
     const tableRows: any[] = [];
     const statusCount: Record<string, number> = {};
 
-    inscritos.forEach((inscricao) => {
+    inscritosFiltrados.forEach((inscricao) => {
       const pessoa = inscricao.pessoa;
       const statusLabel = inscricao.status || 'NÃO DEFINIDO';
 
@@ -211,122 +256,284 @@ export default function RelatoriosPage() {
 
       {/* MODAL DO RELATÓRIO */}
       {modalAberto && eventoSelecionado && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-4xl rounded-lg sm:rounded-md shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
 
-            <div className="px-4 sm:px-6 py-4 sm:py-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <div>
-                <h4 className="text-base sm:text-lg font-black text-[#1351b4] uppercase tracking-tight truncate max-w-[200px] sm:max-w-md">
+            {/* CABEÇALHO DO MODAL */}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm sm:text-base md:text-lg font-black text-[#1351b4] uppercase tracking-tight truncate">
                   {eventoSelecionado.nome}
                 </h4>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 mb-2">Total de {inscritos.length} pessoas</p>
-                {inscritos.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {Object.entries(inscritos.reduce((acc: any, i: any) => {
-                      const s = i.status || 'NÃO DEFINIDO';
-                      acc[s] = (acc[s] || 0) + 1;
-                      return acc;
-                    }, {})).map(([status, qtd]: any) => {
-                      let badgeColor = 'bg-slate-50 text-slate-600 border-slate-200';
-                      if (status === 'CONFIRMADO') badgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                      else if (status === 'DESISTENCIA' || status === 'CANCELADO') badgeColor = 'bg-rose-50 text-rose-600 border-rose-100';
-                      else if (status === 'PENDENTE') badgeColor = 'bg-amber-50 text-amber-600 border-amber-100';
-                      return (
-                        <span key={status} className={`px-1.5 py-0.5 rounded-sm border text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${badgeColor}`}>
-                          {status.replace('_', ' ')}: {qtd}
-                        </span>
-                      )
-                    })}
-                  </div>
-                )}
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
+                  {inscritosFiltrados.length === inscritos.length
+                    ? `Total de ${inscritos.length} pessoa${inscritos.length === 1 ? '' : 's'}`
+                    : `Exibindo ${inscritosFiltrados.length} de ${inscritos.length} pessoa${inscritos.length === 1 ? '' : 's'}`}
+                </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={exportarPDF}
-                  disabled={inscritos.length === 0}
-                  className="flex items-center gap-2 px-2 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  title='Exportar PDF'
+                  disabled={inscritosFiltrados.length === 0}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-[#1351b4] text-white rounded-md sm:rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Exportar PDF filtrado"
                 >
                   <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Exportar PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </button>
-                <button onClick={() => setModalAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-                  <X className="w-6 h-6" />
+                <button
+                  onClick={() => setModalAberto(false)}
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-900 rounded-md sm:rounded-sm hover:bg-slate-200/60 transition-colors"
+                  title="Fechar"
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar p-4 sm:p-6 bg-[#f2f3f7]">
+            {/* BARRA DE FILTROS & BUSCA */}
+            <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col sm:flex-row gap-2.5 sm:gap-4 items-stretch sm:items-center justify-between shrink-0 shadow-sm">
+              {/* FILTROS DE STATUS (SCROLL HORIZONTAL NO MOBILE) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 shrink-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <button
+                  type="button"
+                  onClick={() => setFiltroStatus('TODOS')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'TODOS'
+                    ? 'bg-[#1351b4] text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Todos</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'TODOS'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-200 text-slate-700'
+                      }`}
+                  >
+                    {inscritos.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFiltroStatus('CONFIRMADO')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'CONFIRMADO'
+                    ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/30'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60'
+                    }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Confirmados</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'CONFIRMADO'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-200/70 text-emerald-800'
+                      }`}
+                  >
+                    {totalConfirmados}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFiltroStatus('PENDENTE')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'PENDENTE'
+                    ? 'bg-amber-500 text-white shadow-sm ring-2 ring-amber-500/30'
+                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60'
+                    }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Pendentes</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'PENDENTE'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-amber-200/70 text-amber-800'
+                      }`}
+                  >
+                    {totalPendentes}
+                  </span>
+                </button>
+
+                {totalDesistencias > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFiltroStatus('DESISTENCIA')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'DESISTENCIA'
+                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/30'
+                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60'
+                      }`}
+                  >
+                    <span>Desistências</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'DESISTENCIA'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-rose-200/70 text-rose-800'
+                        }`}
+                    >
+                      {totalDesistencias}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* BUSCA POR TEXTO */}
+              <div className="relative w-full sm:w-64 shrink-0">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar nome, fone..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-md sm:rounded-sm text-xs focus:outline-none focus:bg-white focus:border-[#1351b4] font-medium text-slate-700 placeholder:text-slate-400"
+                />
+                {busca && (
+                  <button
+                    type="button"
+                    onClick={() => setBusca('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* CORPO / LISTA DE INSCRITOS */}
+            <div className="flex-1 overflow-auto custom-scrollbar p-3 sm:p-5 bg-[#f2f3f7]">
               {carregandoInscritos ? (
-                <div className="flex justify-center items-center h-32">
+                <div className="flex justify-center items-center h-40">
                   <Loader2 className="w-8 h-8 text-[#1351b4] animate-spin" />
                 </div>
+              ) : inscritosFiltrados.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center bg-white border border-slate-200 rounded-lg sm:rounded-sm shadow-sm">
+                  <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-bold text-xs sm:text-sm uppercase tracking-wider">
+                    Nenhum inscrito encontrado com os filtros aplicados.
+                  </p>
+                  {(filtroStatus !== 'TODOS' || busca) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiltroStatus('TODOS');
+                        setBusca('');
+                      }}
+                      className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1351b4] rounded-md sm:rounded-sm text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-2"
+                    >
+                      Limpar Filtros
+                    </button>
+                  )}
+                </div>
               ) : (
-                <div className="md:bg-white md:border md:border-slate-200 md:rounded-sm md:shadow-sm md:overflow-hidden">
-                  <table className="w-full text-sm text-left border-separate border-spacing-0 md:border-spacing-0">
-                    <thead className="hidden md:table-header-group">
-                      <tr className="bg-[#1351b4]">
-                        <th className="px-4 py-3 text-sm font-bold text-white border-b border-[#1351b4]">Inscrito</th>
-                        <th className="px-4 py-3 text-sm font-bold text-white border-b border-[#1351b4]">Comunidade</th>
-                        <th className="px-4 py-3 text-sm font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Pago</th>
-                        <th className="w-10 px-2 py-3 text-center text-sm font-bold text-white border-b border-[#1351b4]" title="Status">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y-0 md:divide-y md:divide-slate-100">
-                      {inscritos.length === 0 ? (
-                        <tr>
-                          <td colSpan={3} className="block md:table-cell px-4 py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-widest bg-white border border-slate-200 rounded-sm">
-                            Nenhum inscrito encontrado para este evento.
-                          </td>
+                <>
+                  {/* VISUALIZAÇÃO MOBILE (CARDS RESPONSIVOS) */}
+                  <div className="block md:hidden space-y-2">
+                    {inscritosFiltrados.map((insc, idx) => {
+                      let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
+                      let dotColor = 'bg-slate-400';
+                      if (insc.status === 'CONFIRMADO') {
+                        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        dotColor = 'bg-emerald-500';
+                      } else if (insc.status === 'DESISTENCIA' || insc.status === 'CANCELADO') {
+                        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                        dotColor = 'bg-rose-500';
+                      } else if (insc.status === 'PENDENTE') {
+                        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                        dotColor = 'bg-amber-500';
+                      }
+
+                      return (
+                        <div
+                          key={insc.id || idx}
+                          className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-800 text-xs uppercase truncate">
+                              {insc.pessoa?.nome || '-'}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-slate-500 font-medium">
+                              {insc.pessoa?.comunidade && (
+                                <span className="text-slate-600 truncate">{insc.pessoa.comunidade}</span>
+                              )}
+                              {insc.pessoa?.comunidade && insc.pessoa?.telefone && (
+                                <span className="text-slate-300">•</span>
+                              )}
+                              {insc.pessoa?.telefone && (
+                                <span className="text-slate-400 font-mono text-[10px]">{insc.pessoa.telefone}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
+                            >
+                              {/* <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                              {insc.status?.replace('_', ' ') || '-'} */}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* VISUALIZAÇÃO DESKTOP (TABELA) */}
+                  <div className="hidden md:block bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead>
+                        <tr className="bg-[#1351b4]">
+                          <th className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider">Inscrito</th>
+                          <th className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider">Comunidade</th>
+                          <th className="w-36 px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wider">Status</th>
                         </tr>
-                      ) : (
-                        inscritos.map((insc, idx) => {
-                          let statusColor = 'bg-slate-300';
-                          if (insc.status === 'CONFIRMADO') statusColor = 'bg-emerald-500';
-                          else if (insc.status === 'DESISTENCIA') statusColor = 'bg-rose-500';
-                          else if (insc.status === 'PENDENTE') statusColor = 'bg-amber-500';
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {inscritosFiltrados.map((insc, idx) => {
+                          let badgeColor = 'bg-slate-50 text-slate-600 border-slate-200';
+                          let dotColor = 'bg-slate-400';
+                          if (insc.status === 'CONFIRMADO') {
+                            badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                            dotColor = 'bg-emerald-500';
+                          } else if (insc.status === 'DESISTENCIA' || insc.status === 'CANCELADO') {
+                            badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                            dotColor = 'bg-rose-500';
+                          } else if (insc.status === 'PENDENTE') {
+                            badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                            dotColor = 'bg-amber-500';
+                          }
 
                           return (
-                            <tr key={insc.id || idx} className="block md:table-row bg-white hover:bg-slate-50 transition-colors border border-slate-200 md:border-none rounded-sm md:rounded-none mb-3 md:mb-0 p-4 md:p-0 shadow-sm md:shadow-none">
-
-                              <td className="block md:table-cell md:px-4 md:py-3 mb-2 md:mb-0 border-b border-dashed border-slate-100 md:border-none md:pb-0">
-                                <div className="font-bold text-slate-700 uppercase text-xs truncate max-w-full sm:max-w-[400px]">
+                            <tr key={insc.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="px-5 py-3">
+                                <div className="font-bold text-slate-700 uppercase text-xs truncate max-w-xs">
                                   {insc.pessoa?.nome || '-'}
                                 </div>
-                                <div className="text-slate-400 text-[10px] font-medium">
+                                <div className="text-slate-400 text-[10px] font-medium font-mono">
                                   {insc.pessoa?.telefone || '---'}
                                 </div>
                               </td>
 
-                              <td className="block md:table-cell md:px-4 md:py-3 mb-2 md:mb-0 border-b border-dashed border-slate-100 md:border-none  md:pb-0">
-                                <div className="text-slate-600 text-xs font-medium truncate max-w-full sm:max-w-none">
+                              <td className="px-5 py-3">
+                                <div className="text-slate-600 text-xs font-medium truncate max-w-xs">
                                   {insc.pessoa?.comunidade || '-'}
                                 </div>
                               </td>
 
-                              <td className="block md:table-cell md:px-4 md:py-3 mb-2 md:mb-0 border-b border-dashed border-slate-100 md:border-none md:pb-0">
-                                <div className="text-emerald-600 text-xs font-bold whitespace-nowrap">
-                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                    insc.pagamentos?.reduce((acc: number, p: any) => acc + (p.valor || 0), 0) || 0
-                                  )}
-                                </div>
-                              </td>
-
-                              <td className="block md:table-cell md:px-2 md:py-3 text-left md:text-center align-middle">
-                                <div className="flex items-center gap-2 mt-1 md:mt-0 md:justify-center">
-                                  <div
-                                    className={`w-3 h-3 rounded-full shadow-sm ${statusColor}`}
-                                    title={insc.status?.replace('_', ' ') || '-'}
-                                  />
-                                  <span className="md:hidden text-[10px] font-bold text-slate-500 uppercase">{insc.status?.replace('_', ' ') || '-'}</span>
-                                </div>
+                              <td className="px-4 py-3 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                  {insc.status?.replace('_', ' ') || '-'}
+                                </span>
                               </td>
                             </tr>
                           );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>
