@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { Mail, Lock, KeyRound, Loader2, ArrowRight } from 'lucide-react';
 
-export default function RedefinirSenhaPage() {
+function RedefinirSenhaForm() {
   const [login, setLogin] = useState('');
   const [token, setToken] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
@@ -195,5 +195,19 @@ export default function RedefinirSenhaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RedefinirSenhaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#f2f3f7]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#1351b4]" />
+        </div>
+      }
+    >
+      <RedefinirSenhaForm />
+    </Suspense>
   );
 }
