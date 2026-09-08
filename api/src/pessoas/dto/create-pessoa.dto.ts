@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsInt, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsArray,
+} from 'class-validator';
 
 export class CreatePessoaDto {
   @IsString()
@@ -86,4 +92,3 @@ export class CreatePessoaDto {
   @IsOptional()
   perfis?: string[];
 }
-

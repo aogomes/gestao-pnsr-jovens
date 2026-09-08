@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -11,7 +18,7 @@ export class AutenticacaoService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
-  ) { }
+  ) {}
 
   async login(login: string, senha: string) {
     const usuario = await this.prisma.usuario.findUnique({
@@ -38,7 +45,7 @@ export class AutenticacaoService {
       login: usuario.login,
       papel: usuario.papel,
       pessoaId: usuario.pessoaId,
-      paroquiaId: pessoa?.paroquiaId
+      paroquiaId: pessoa?.paroquiaId,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -53,7 +60,8 @@ export class AutenticacaoService {
   }
 
   async registrar(dados: RegistrarDto) {
-    const { nome, login, senha, confirmarSenha, paroquiaId, comunidade } = dados;
+    const { nome, login, senha, confirmarSenha, paroquiaId, comunidade } =
+      dados;
 
     if (senha !== confirmarSenha) {
       throw new BadRequestException('As senhas não conferem');
@@ -64,7 +72,9 @@ export class AutenticacaoService {
     });
 
     if (usuarioExistente) {
-      throw new ConflictException('Este e-mail já possui cadastro completo no sistema.');
+      throw new ConflictException(
+        'Este e-mail já possui cadastro completo no sistema.',
+      );
     }
 
     const pessoaExistente = await this.prisma.pessoa.findUnique({
@@ -102,7 +112,9 @@ export class AutenticacaoService {
           pessoaId = pessoa.id;
         }
 
-        const codigoVerificacao = Math.floor(100000 + Math.random() * 900000).toString();
+        const codigoVerificacao = Math.floor(
+          100000 + Math.random() * 900000,
+        ).toString();
         const codigoVerificacaoExpira = new Date(Date.now() + 15 * 60000); // 15 minutos
 
         await tx.usuario.create({
@@ -117,10 +129,16 @@ export class AutenticacaoService {
         });
 
         // Envia o e-mail de verificação (pode ser executado assincronamente)
-        this.mailService.sendVerificationCode(login, codigoVerificacao, nome);
+        void this.mailService.sendVerificationCode(
+          login,
+          codigoVerificacao,
+          nome,
+        );
 
         // Log para testes locais:
-        console.log(`[TESTE] Código de verificação para ${login}: ${codigoVerificacao}`);
+        console.log(
+          `[TESTE] Código de verificação para ${login}: ${codigoVerificacao}`,
+        );
       });
       console.log('Transação concluída com sucesso');
     } catch (error) {
@@ -129,7 +147,8 @@ export class AutenticacaoService {
     }
 
     return {
-      message: 'Cadastro realizado com sucesso. Verifique seu e-mail para ativar a conta.',
+      message:
+        'Cadastro realizado com sucesso. Verifique seu e-mail para ativar a conta.',
     };
   }
 
@@ -151,7 +170,10 @@ export class AutenticacaoService {
       throw new BadRequestException('Código inválido');
     }
 
-    if (!usuario.codigoVerificacaoExpira || new Date() > usuario.codigoVerificacaoExpira) {
+    if (
+      !usuario.codigoVerificacaoExpira ||
+      new Date() > usuario.codigoVerificacaoExpira
+    ) {
       throw new BadRequestException('Código expirado');
     }
 
@@ -171,7 +193,7 @@ export class AutenticacaoService {
       login: usuario.login,
       papel: usuario.papel,
       pessoaId: usuario.pessoaId,
-      paroquiaId: pessoa?.paroquiaId
+      paroquiaId: pessoa?.paroquiaId,
     };
     return {
       message: 'E-mail confirmado com sucesso!',
@@ -200,7 +222,9 @@ export class AutenticacaoService {
       throw new BadRequestException('E-mail já está confirmado');
     }
 
-    const codigoVerificacao = Math.floor(100000 + Math.random() * 900000).toString();
+    const codigoVerificacao = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
     const codigoVerificacaoExpira = new Date(Date.now() + 15 * 60000);
 
     await this.prisma.usuario.update({
@@ -211,12 +235,106 @@ export class AutenticacaoService {
       },
     });
 
-    await this.mailService.sendVerificationCode(login, codigoVerificacao, usuario.pessoa?.nome || 'Usuário');
+    await this.mailService.sendVerificationCode(
+      login,
+      codigoVerificacao,
+      usuario.pessoa?.nome || 'Usuário',
+    );
 
     // Log para testes locais:
-    console.log(`[TESTE] Novo código reenviado para ${login}: ${codigoVerificacao}`);
+    console.log(
+      `[TESTE] Novo código reenviado para ${login}: ${codigoVerificacao}`,
+    );
 
     return { message: 'Novo código enviado com sucesso' };
   }
-}
 
+  async solicitarRedefinicaoSenha(login: string) {
+    const loginNormalizado = login?.trim();
+    if (!loginNormalizado) {
+      throw new BadRequestException('E-mail é obrigatório');
+    }
+
+    const usuario = await this.prisma.usuario.findFirst({
+      where: {
+        login: { equals: loginNormalizado, mode: 'insensitive' },
+      },
+      include: { pessoa: true },
+    });
+
+    if (!usuario) {
+      // Retornar sucesso mesmo que não exista para evitar enumerar e-mails
+      return {
+        message: 'Se o e-mail existir, um código de redefinição será enviado.',
+      };
+    }
+
+    const resetSenhaToken = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    const resetSenhaExpira = new Date(Date.now() + 15 * 60000);
+
+    await this.prisma.usuario.update({
+      where: { id: usuario.id },
+      data: {
+        resetSenhaToken,
+        resetSenhaExpira,
+      },
+    });
+
+    await this.mailService.sendPasswordResetEmail(
+      usuario.login,
+      resetSenhaToken,
+      usuario.pessoa?.nome || 'Usuário',
+    );
+
+    console.log(
+      `[TESTE] Código de redefinição para ${usuario.login}: ${resetSenhaToken}`,
+    );
+
+    return {
+      message: 'Se o e-mail existir, um código de redefinição será enviado.',
+    };
+  }
+
+  async redefinirSenha(login: string, token: string, novaSenha: string) {
+    const loginNormalizado = login?.trim();
+    const tokenNormalizado = token?.trim();
+
+    if (!loginNormalizado || !tokenNormalizado || !novaSenha) {
+      throw new BadRequestException('Dados incompletos para redefinição');
+    }
+
+    const usuario = await this.prisma.usuario.findFirst({
+      where: {
+        login: { equals: loginNormalizado, mode: 'insensitive' },
+      },
+    });
+
+    if (!usuario) {
+      throw new BadRequestException('Usuário não encontrado');
+    }
+
+    if (usuario.resetSenhaToken !== tokenNormalizado) {
+      throw new BadRequestException('Código de redefinição inválido');
+    }
+
+    if (!usuario.resetSenhaExpira || new Date() > usuario.resetSenhaExpira) {
+      throw new BadRequestException('Código de redefinição expirado');
+    }
+
+    const salt = await bcrypt.genSalt();
+    const senhaCriptografada = await bcrypt.hash(novaSenha, salt);
+
+    await this.prisma.usuario.update({
+      where: { id: usuario.id },
+      data: {
+        senha: senhaCriptografada,
+        resetSenhaToken: null,
+        resetSenhaExpira: null,
+      },
+    });
+
+    return { message: 'Senha redefinida com sucesso' };
+  }
+}

@@ -6,12 +6,13 @@ export class CreateTransacaoDto {
   valor: number;
 
   @IsEnum(['RECEITA', 'DESPESA', 'TRANSFERENCIA'], {
-    message: 'tipo deve ser RECEITA, DESPESA ou TRANSFERENCIA'
+    message: 'tipo deve ser RECEITA, DESPESA ou TRANSFERENCIA',
   })
   tipo: TipoTransacao;
 
   @IsEnum(['RIFA', 'DEPOSITO', 'TRABALHO', 'PAGAMENTO', 'CONTAS', 'EVENTOS'], {
-    message: 'origem deve ser RIFA, DEPOSITO, TRABALHO, PAGAMENTO, CONTAS ou EVENTOS'
+    message:
+      'origem deve ser RIFA, DEPOSITO, TRABALHO, PAGAMENTO, CONTAS ou EVENTOS',
   })
   @IsOptional()
   origem?: OrigemTransacao;
@@ -43,4 +44,3 @@ export class CreateTransacaoDto {
   @IsOptional()
   inscricaoId?: number;
 }
-

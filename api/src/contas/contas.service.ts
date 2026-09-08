@@ -20,8 +20,8 @@ export class ContasService {
             tipo: TipoTransacao.RECEITA,
             descricao: 'Saldo Inicial da Conta',
             contaId: conta.id,
-            data: new Date()
-          }
+            data: new Date(),
+          },
         });
       }
 
@@ -35,10 +35,10 @@ export class ContasService {
       include: {
         paroquia: true,
         transacoes: {
-          orderBy: { data: 'desc' }
+          orderBy: { data: 'desc' },
         },
-        lancamentosExtrato: true
-      }
+        lancamentosExtrato: true,
+      },
     });
 
     if (!conta) {
@@ -49,9 +49,10 @@ export class ContasService {
       return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
     }, 0);
 
-    saldoCalculado += conta.lancamentosExtrato?.reduce((acc: number, l: any) => {
-      return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
-    }, 0) || 0;
+    saldoCalculado +=
+      conta.lancamentosExtrato?.reduce((acc: number, l: any) => {
+        return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+      }, 0) || 0;
 
     return { ...conta, saldo: saldoCalculado };
   }
@@ -62,43 +63,45 @@ export class ContasService {
       include: {
         paroquia: true,
         transacoes: {
-          orderBy: { data: 'desc' }
+          orderBy: { data: 'desc' },
         },
-        lancamentosExtrato: true
+        lancamentosExtrato: true,
       },
       orderBy: { nome: 'asc' },
     });
 
-    return contas.map(c => {
+    return contas.map((c) => {
       let saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
-      saldoCalculado += c.lancamentosExtrato?.reduce((acc: number, l: any) => {
-        return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
-      }, 0) || 0;
+      saldoCalculado +=
+        c.lancamentosExtrato?.reduce((acc: number, l: any) => {
+          return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+        }, 0) || 0;
       return { ...c, saldo: saldoCalculado };
     });
   }
 
   async listarTodas() {
     const contas = await this.prisma.conta.findMany({
-      include: { 
+      include: {
         paroquia: true,
         transacoes: {
-          orderBy: { data: 'desc' }
+          orderBy: { data: 'desc' },
         },
-        lancamentosExtrato: true
+        lancamentosExtrato: true,
       },
       orderBy: { nome: 'asc' },
     });
 
-    return contas.map(c => {
+    return contas.map((c) => {
       let saldoCalculado = c.transacoes.reduce((acc: number, t: any) => {
         return t.tipo === 'RECEITA' ? acc + t.valor : acc - t.valor;
       }, 0);
-      saldoCalculado += c.lancamentosExtrato?.reduce((acc: number, l: any) => {
-        return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
-      }, 0) || 0;
+      saldoCalculado +=
+        c.lancamentosExtrato?.reduce((acc: number, l: any) => {
+          return l.tipo === 'RECEITA' ? acc + l.valor : acc - l.valor;
+        }, 0) || 0;
       return { ...c, saldo: saldoCalculado };
     });
   }

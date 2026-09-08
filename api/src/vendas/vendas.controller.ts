@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { VendasService } from './vendas.service';
 import { CreateVendaDto } from './dto/create-venda.dto';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
@@ -18,7 +27,10 @@ export class VendasController {
 
   @Post('trabalho/:trabalhoId/produtos')
   @RequirePermissions('vendas', 'escrever')
-  configurarProdutos(@Param('trabalhoId') trabalhoId: string, @Body() dto: { produtosIds: number[] }) {
+  configurarProdutos(
+    @Param('trabalhoId') trabalhoId: string,
+    @Body() dto: { produtosIds: number[] },
+  ) {
     return this.service.configurarProdutos(+trabalhoId, dto.produtosIds);
   }
 

@@ -216,6 +216,17 @@ export default function LoginPage() {
                     required
                   />
                 </div>
+                {!isRegistro && (
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={() => router.push('/esqueci-senha')}
+                      className="text-[10px] font-bold text-[#1351b4] hover:underline uppercase tracking-widest"
+                    >
+                      Esqueci minha senha?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {isRegistro && (

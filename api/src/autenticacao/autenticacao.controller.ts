@@ -26,5 +26,22 @@ export class AutenticacaoController {
   async reenviarCodigo(@Body() body: { login: string }) {
     return this.autenticacaoService.reenviarCodigo(body.login);
   }
-}
 
+  @HttpCode(HttpStatus.OK)
+  @Post('esqueci-senha')
+  async esqueciSenha(@Body() body: { login: string }) {
+    return this.autenticacaoService.solicitarRedefinicaoSenha(body.login);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('redefinir-senha')
+  async redefinirSenha(
+    @Body() body: { login: string; token: string; novaSenha: string },
+  ) {
+    return this.autenticacaoService.redefinirSenha(
+      body.login,
+      body.token,
+      body.novaSenha,
+    );
+  }
+}

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVendaDto } from './dto/create-venda.dto';
 import { StatusRecebimentoTrabalho } from '@prisma/client';
@@ -8,7 +12,14 @@ export class VendasService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateVendaDto) {
-    const { trabalhoId, itens, descricao, telefone, metodoPagamento, statusPagamento } = dto;
+    const {
+      trabalhoId,
+      itens,
+      descricao,
+      telefone,
+      metodoPagamento,
+      statusPagamento,
+    } = dto;
 
     // Verificar se o trabalho existe
     const trabalho = await this.prisma.trabalho.findUnique({
@@ -19,11 +30,15 @@ export class VendasService {
     }
 
     if (trabalho.status !== 'ABERTO') {
-      throw new BadRequestException('Não é possível adicionar vendas a um turno de trabalho que já foi fechado ou concluído.');
+      throw new BadRequestException(
+        'Não é possível adicionar vendas a um turno de trabalho que já foi fechado ou concluído.',
+      );
     }
 
     if (itens.length === 0) {
-      throw new BadRequestException('A venda deve conter pelo menos um produto.');
+      throw new BadRequestException(
+        'A venda deve conter pelo menos um produto.',
+      );
     }
 
     // Buscar todos os produtos informados para validar e obter os preços unitários
@@ -33,7 +48,9 @@ export class VendasService {
     });
 
     if (produtosDb.length !== Array.from(new Set(produtosIds)).length) {
-      throw new BadRequestException('Um ou mais produtos informados não foram encontrados.');
+      throw new BadRequestException(
+        'Um ou mais produtos informados não foram encontrados.',
+      );
     }
 
     const mapProdutos = new Map(produtosDb.map((p) => [p.id, p]));
@@ -45,9 +62,11 @@ export class VendasService {
     for (const item of itens) {
       const produto = mapProdutos.get(item.produtoId);
       if (!produto) continue;
-      
+
       if (!produto.ativo) {
-        throw new BadRequestException(`O produto "${produto.nome}" está desativado e não pode ser vendido.`);
+        throw new BadRequestException(
+          `O produto "${produto.nome}" está desativado e não pode ser vendido.`,
+        );
       }
 
       const valorUnitario = produto.valor;
@@ -114,7 +133,14 @@ export class VendasService {
   }
 
   async update(id: number, dto: CreateVendaDto) {
-    const { trabalhoId, itens, descricao, telefone, metodoPagamento, statusPagamento } = dto;
+    const {
+      trabalhoId,
+      itens,
+      descricao,
+      telefone,
+      metodoPagamento,
+      statusPagamento,
+    } = dto;
 
     const vendaExistente = await this.prisma.venda.findUnique({
       where: { id },
@@ -133,11 +159,15 @@ export class VendasService {
     }
 
     if (trabalho.status !== 'ABERTO') {
-      throw new BadRequestException('Não é possível editar vendas de um turno que já foi fechado ou concluído.');
+      throw new BadRequestException(
+        'Não é possível editar vendas de um turno que já foi fechado ou concluído.',
+      );
     }
 
     if (itens.length === 0) {
-      throw new BadRequestException('A venda deve conter pelo menos um produto.');
+      throw new BadRequestException(
+        'A venda deve conter pelo menos um produto.',
+      );
     }
 
     const produtosIds = itens.map((item) => item.produtoId);
@@ -146,7 +176,9 @@ export class VendasService {
     });
 
     if (produtosDb.length !== Array.from(new Set(produtosIds)).length) {
-      throw new BadRequestException('Um ou mais produtos informados não foram encontrados.');
+      throw new BadRequestException(
+        'Um ou mais produtos informados não foram encontrados.',
+      );
     }
 
     const mapProdutos = new Map(produtosDb.map((p) => [p.id, p]));
@@ -157,7 +189,7 @@ export class VendasService {
     for (const item of itens) {
       const produto = mapProdutos.get(item.produtoId);
       if (!produto) continue;
-      
+
       const valorUnitario = produto.valor;
       const valorTotalItem = valorUnitario * item.quantidade;
 
@@ -227,7 +259,9 @@ export class VendasService {
     }
 
     if (venda.trabalho.status !== 'ABERTO') {
-      throw new BadRequestException('Não é possível excluir vendas de um turno que já foi fechado ou concluído.');
+      throw new BadRequestException(
+        'Não é possível excluir vendas de um turno que já foi fechado ou concluído.',
+      );
     }
 
     return this.prisma.$transaction(async (prisma) => {
@@ -257,7 +291,9 @@ export class VendasService {
     }
 
     if (trabalho.status !== 'ABERTO') {
-      throw new BadRequestException('Apenas turnos em aberto podem ser fechados.');
+      throw new BadRequestException(
+        'Apenas turnos em aberto podem ser fechados.',
+      );
     }
 
     // Como os recebimentos já são criados individualmente em tempo real no ato da venda,
@@ -267,7 +303,6 @@ export class VendasService {
       data: { status: 'EM_ANDAMENTO' },
     });
   }
-
 
   async configurarProdutos(trabalhoId: number, produtosIds: number[]) {
     return this.prisma.$transaction(async (prisma) => {

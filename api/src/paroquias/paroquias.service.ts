@@ -20,11 +20,13 @@ export class ParoquiasService {
   }
 
   atualizar(id: number, updateParoquiaDto: UpdateParoquiaDto) {
-    return this.prisma.paroquia.update({ where: { id }, data: updateParoquiaDto });
+    return this.prisma.paroquia.update({
+      where: { id },
+      data: updateParoquiaDto,
+    });
   }
 
   remover(id: number) {
     return this.prisma.paroquia.delete({ where: { id } });
   }
 }
-

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ParoquiasService } from './paroquias.service';
 import { CreateParoquiaDto } from './dto/create-paroquia.dto';
 import { UpdateParoquiaDto } from './dto/update-paroquia.dto';
@@ -23,7 +32,10 @@ export class ParoquiasController {
   }
 
   @Patch(':id')
-  atualizar(@Param('id', ParseIntPipe) id: number, @Body() updateParoquiaDto: UpdateParoquiaDto) {
+  atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateParoquiaDto: UpdateParoquiaDto,
+  ) {
     return this.paroquiasService.atualizar(id, updateParoquiaDto);
   }
 
@@ -32,4 +44,3 @@ export class ParoquiasController {
     return this.paroquiasService.remover(id);
   }
 }
-

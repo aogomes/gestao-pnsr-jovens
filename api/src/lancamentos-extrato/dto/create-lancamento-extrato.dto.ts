@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsEnum,
+  IsOptional,
+} from 'class-validator';
 import { TipoTransacao } from '@prisma/client';
 
 export class CreateLancamentoExtratoDto {

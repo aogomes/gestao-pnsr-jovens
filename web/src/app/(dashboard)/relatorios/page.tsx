@@ -70,7 +70,7 @@ export default function RelatoriosPage() {
     inscritos.forEach((inscricao) => {
       const pessoa = inscricao.pessoa;
       const statusLabel = inscricao.status || 'NÃO DEFINIDO';
-      
+
       const rowData = [
         pessoa?.nome || '-',
         pessoa?.telefone || '-',
@@ -78,7 +78,7 @@ export default function RelatoriosPage() {
         statusLabel
       ];
       tableRows.push(rowData);
-      
+
       statusCount[statusLabel] = (statusCount[statusLabel] || 0) + 1;
     });
 
@@ -104,50 +104,50 @@ export default function RelatoriosPage() {
     });
 
     const finalY = (doc as any).lastAutoTable?.finalY || 42;
-    
+
     // Totalizador por status
     if (Object.keys(statusCount).length > 0) {
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
       doc.text("Resumo por Status:", 14, finalY + 12);
-      
+
       let xPos = 14;
       let yPos = finalY + 18;
-      
+
       doc.setFontSize(9);
-      
+
       Object.entries(statusCount).forEach(([status, count]) => {
         let bgColor = [248, 250, 252];
         let textColor = [71, 85, 105];
         let borderColor = [226, 232, 240];
 
         if (status === 'CONFIRMADO') {
-           bgColor = [236, 253, 245]; textColor = [5, 150, 105]; borderColor = [209, 250, 229];
+          bgColor = [236, 253, 245]; textColor = [5, 150, 105]; borderColor = [209, 250, 229];
         } else if (status === 'DESISTENCIA' || status === 'CANCELADO') {
-           bgColor = [255, 241, 242]; textColor = [225, 29, 72]; borderColor = [255, 228, 230];
+          bgColor = [255, 241, 242]; textColor = [225, 29, 72]; borderColor = [255, 228, 230];
         } else if (status === 'PENDENTE') {
-           bgColor = [255, 251, 235]; textColor = [217, 119, 6]; borderColor = [254, 243, 199];
+          bgColor = [255, 251, 235]; textColor = [217, 119, 6]; borderColor = [254, 243, 199];
         }
 
         const text = `${status.replace('_', ' ')}: ${count}`;
         const textWidth = doc.getTextWidth(text);
         const rectWidth = textWidth + 6;
         const rectHeight = 6;
-        
+
         if (xPos + rectWidth > 200) {
-           xPos = 14;
-           yPos += 10;
+          xPos = 14;
+          yPos += 10;
         }
 
         doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
         doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
         doc.setLineWidth(0.2);
         doc.rect(xPos, yPos - 4.5, rectWidth, rectHeight, 'FD');
-        
+
         doc.setTextColor(textColor[0], textColor[1], textColor[2]);
         doc.text(text, xPos + 3, yPos);
-        
+
         xPos += rectWidth + 4;
       });
     }
@@ -227,15 +227,15 @@ export default function RelatoriosPage() {
                       acc[s] = (acc[s] || 0) + 1;
                       return acc;
                     }, {})).map(([status, qtd]: any) => {
-                       let badgeColor = 'bg-slate-50 text-slate-600 border-slate-200';
-                       if (status === 'CONFIRMADO') badgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                       else if (status === 'DESISTENCIA' || status === 'CANCELADO') badgeColor = 'bg-rose-50 text-rose-600 border-rose-100';
-                       else if (status === 'PENDENTE') badgeColor = 'bg-amber-50 text-amber-600 border-amber-100';
-                       return (
-                         <span key={status} className={`px-1.5 py-0.5 rounded-sm border text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${badgeColor}`}>
-                           {status.replace('_', ' ')}: {qtd}
-                         </span>
-                       )
+                      let badgeColor = 'bg-slate-50 text-slate-600 border-slate-200';
+                      if (status === 'CONFIRMADO') badgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                      else if (status === 'DESISTENCIA' || status === 'CANCELADO') badgeColor = 'bg-rose-50 text-rose-600 border-rose-100';
+                      else if (status === 'PENDENTE') badgeColor = 'bg-amber-50 text-amber-600 border-amber-100';
+                      return (
+                        <span key={status} className={`px-1.5 py-0.5 rounded-sm border text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${badgeColor}`}>
+                          {status.replace('_', ' ')}: {qtd}
+                        </span>
+                      )
                     })}
                   </div>
                 )}

@@ -19,6 +19,8 @@ model Usuario {
   emailConfirmado Boolean   @default(false)
   codigoVerificacao String?
   codigoVerificacaoExpira DateTime?
+  resetSenhaToken String?
+  resetSenhaExpira DateTime?
 
   @@map("usuarios")
 }

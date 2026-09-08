@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsNumber, IsDateString, IsEnum, IsOptional, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsInt,
+} from 'class-validator';
 import { StatusEvento } from '@prisma/client';
 
 export class CreateEventoDto {
@@ -53,4 +61,3 @@ export class CreateEventoDto {
   @IsOptional()
   dataLimiteSinal?: string;
 }
-

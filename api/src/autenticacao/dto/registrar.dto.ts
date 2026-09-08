@@ -1,4 +1,10 @@
-import { IsString, IsEmail, MinLength, IsInt, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  MinLength,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
 
 export class RegistrarDto {
   @IsString()
@@ -23,4 +29,3 @@ export class RegistrarDto {
   @IsString()
   comunidade?: string;
 }
-

@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { ContasService } from './contas.service';
 import { CreateContaDto } from './dto/create-conta.dto';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
@@ -18,11 +30,17 @@ export class ContasController {
 
   @Get()
   @RequirePermissions('contas', 'ler')
-  listar(@Request() req, @Query('paroquiaId', new ParseIntPipe({ optional: true })) paroquiaId?: number) {
+  listar(
+    @Request() req,
+    @Query('paroquiaId', new ParseIntPipe({ optional: true }))
+    paroquiaId?: number,
+  ) {
     if (req.user.papel === 'ADMIN') {
       return this.contasService.listarTodas();
     }
-    return this.contasService.listarPorParoquia(paroquiaId || req.user.paroquiaId);
+    return this.contasService.listarPorParoquia(
+      paroquiaId || req.user.paroquiaId,
+    );
   }
 
   @Get(':id')
