@@ -32,7 +32,17 @@ export class EventosService {
       include: {
         paroquia: true,
         conta: true,
-        _count: { select: { inscricoes: true } },
+        _count: {
+          select: {
+            inscricoes: {
+              where: {
+                status: {
+                  in: ['CONFIRMADO', 'PENDENTE', 'EM_ANALISE'],
+                },
+              },
+            },
+          },
+        },
       },
     });
   }

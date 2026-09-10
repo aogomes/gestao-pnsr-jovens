@@ -250,6 +250,7 @@ export default function InscricoesPage() {
 
       return [
         insc.pessoa.nome || '-',
+        insc.pessoa.paroquia?.nome || '-',
         insc.pessoa.comunidade || '-',
         insc.pessoa.telefone || '-',
         insc.pessoa.email || '-',
@@ -264,7 +265,7 @@ export default function InscricoesPage() {
 
     autoTable(doc, {
       startY: 30,
-      head: [['Nome Completo', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
+      head: [['Nome Completo', 'Paróquia', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [19, 81, 180] },
@@ -305,6 +306,54 @@ export default function InscricoesPage() {
       const pago = insc.pagamentos?.reduce((sum: number, p: any) => sum + p.valor, 0) || 0;
       return acc + pago;
     }, 0);
+
+  const inscricoesFiltradas = inscricoes
+    .filter((insc) => {
+      const termo = termoBusca.toLowerCase();
+      const nome = (insc.pessoa?.nome || '').toLowerCase();
+      const paroquia = (insc.pessoa?.paroquia?.nome || '').toLowerCase();
+      const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
+      return nome.includes(termo) || paroquia.includes(termo) || comunidade.includes(termo);
+    })
+    .sort((a, b) => {
+      let valA = '';
+      let valB = '';
+
+      if (ordenacao.coluna === 'nome') {
+        valA = a.pessoa?.nome || '';
+        valB = b.pessoa?.nome || '';
+      } else if (ordenacao.coluna === 'paroquia') {
+        valA = a.pessoa?.paroquia?.nome || '';
+        valB = b.pessoa?.paroquia?.nome || '';
+      } else if (ordenacao.coluna === 'comunidade') {
+        valA = a.pessoa?.comunidade || '';
+        valB = b.pessoa?.comunidade || '';
+      } else if (ordenacao.coluna === 'custeio') {
+        valA = a.intencaoPagamento || '';
+        valB = b.intencaoPagamento || '';
+      }
+
+      const compare = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' });
+      return ordenacao.direcao === 'asc' ? compare : -compare;
+    });
+
+  const handleStatusChange = (inscricao: any, novoStatus: string, originalElement?: HTMLSelectElement) => {
+    if (novoStatus === 'DESISTENCIA') {
+      const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+      if (totalPago > 0) {
+        if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao desistir, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
+          if (originalElement) originalElement.value = inscricao.status;
+          return;
+        }
+      } else {
+        if (!confirm(`Tem certeza que deseja cancelar a inscrição de ${inscricao.pessoa.nome}?`)) {
+          if (originalElement) originalElement.value = inscricao.status;
+          return;
+        }
+      }
+    }
+    atualizarStatus(inscricao.id, novoStatus);
+  };
 
   if (carregando) {
     return (
@@ -373,7 +422,7 @@ export default function InscricoesPage() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Buscar por nome..."
+                placeholder="Buscar por nome, paróquia, comunidade..."
                 value={termoBusca}
                 onChange={(e) => setTermoBusca(e.target.value)}
                 className="pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full md:w-70 shadow-sm"
@@ -399,220 +448,384 @@ export default function InscricoesPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-[400px]">
-          <table className="w-full text-sm text-left border-separate border-spacing-0">
-            <thead>
-              <tr className="bg-[#1351b4]">
-                <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('nome')}>
-                  Nome Completo {renderIconeOrdenacao('nome')}
-                </th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('comunidade')}>
-                  Comunidade {renderIconeOrdenacao('comunidade')}
-                </th>
-                {/* <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] hidden md:table-cell cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('custeio')}>
-                  Custeio {renderIconeOrdenacao('custeio')}
-                </th> */}
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right hidden sm:table-cell">Saldo</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center hidden sm:table-cell">Status</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {carregandoInscricoes ? (
-                <tr>
-                  <td colSpan={6} className="px-8 py-24 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-12 h-12 animate-spin text-[#1351b4] opacity-20" />
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Carregando dados...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : inscricoes.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
-                    <div className="flex flex-col items-center gap-4 opacity-20">
-                      <AlertCircle className="w-16 h-16" />
-                      <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição neste evento</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                (() => {
-                  let inscricoesFiltradas = inscricoes
-                    .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()));
+          {carregandoInscricoes ? (
+            <div className="px-8 py-24 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-[#1351b4] opacity-20" />
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Carregando dados...</span>
+              </div>
+            </div>
+          ) : inscricoes.length === 0 ? (
+            <div className="px-8 py-32 text-center text-slate-300">
+              <div className="flex flex-col items-center gap-4 opacity-20">
+                <AlertCircle className="w-16 h-16" />
+                <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição neste evento</span>
+              </div>
+            </div>
+          ) : inscricoesFiltradas.length === 0 ? (
+            <div className="px-8 py-32 text-center text-slate-300">
+              <div className="flex flex-col items-center gap-4 opacity-20">
+                <AlertCircle className="w-16 h-16" />
+                <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada na busca</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ============================================================== */}
+              {/* VISUALIZAÇÃO MOBILE: CARDS (CAIXINHAS)                         */}
+              {/* ============================================================== */}
+              <div className="block md:hidden p-3 space-y-3 bg-[#f8fafc]">
+                {/* Barra rápida de ordenação no mobile */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-lg text-xs">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Ordenar:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {(['nome', 'paroquia', 'comunidade'] as const).map((col) => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => toggleOrdenacao(col)}
+                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors flex items-center gap-1 ${
+                          ordenacao.coluna === col
+                            ? 'bg-[#1351b4] text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span>
+                          {col === 'nome' ? 'Nome' : col === 'paroquia' ? 'Paróquia' : 'Comunidade'}
+                        </span>
+                        {ordenacao.coluna === col &&
+                          (ordenacao.direcao === 'asc' ? (
+                            <ArrowUp className="w-3 h-3 text-white" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3 text-white" />
+                          ))}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                  inscricoesFiltradas.sort((a, b) => {
-                    let valA = '';
-                    let valB = '';
+                {/* Lista de Caixinhas */}
+                {inscricoesFiltradas.map((inscricao) => {
+                  const saldo = inscricao.pessoa?.saldo || 0;
+                  const totalPagoCru = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                  const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
 
-                    if (ordenacao.coluna === 'nome') {
-                      valA = a.pessoa.nome || '';
-                      valB = b.pessoa.nome || '';
-                    } else if (ordenacao.coluna === 'comunidade') {
-                      valA = a.pessoa.comunidade || '';
-                      valB = b.pessoa.comunidade || '';
-                    } else if (ordenacao.coluna === 'custeio') {
-                      valA = a.intencaoPagamento || '';
-                      valB = b.intencaoPagamento || '';
-                    }
-
-                    const compare = valA.localeCompare(valB);
-                    return ordenacao.direcao === 'asc' ? compare : -compare;
-                  });
-
-                  if (inscricoesFiltradas.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan={6} className="px-8 py-32 text-center text-slate-300">
-                          <div className="flex flex-col items-center gap-4 opacity-20">
-                            <AlertCircle className="w-16 h-16" />
-                            <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada na busca</span>
+                  return (
+                    <div
+                      key={inscricao.id}
+                      className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm space-y-2.5 relative"
+                    >
+                      {/* Topo do Card: Código, Nome, Email/Telefone e Menu 3-dots */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-md bg-blue-50 text-[#1351b4] font-black text-xs flex items-center justify-center shrink-0 border border-blue-100">
+                            {inscricao.pessoa?.id ? inscricao.pessoa.id.toString().padStart(3, '0') : '---'}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return inscricoesFiltradas.map((inscricao) => {
-                    const saldo = inscricao.pessoa.saldo || 0;
-                    const totalPagoCru = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
-                    const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
-
-                    return (
-                      <tr key={inscricao.id} className="hover:bg-slate-50 transition-all duration-200 bg-white group">
-                        <td className="pl-6 pr-2 py-1 border-b border-slate-100 w-[1%] whitespace-nowrap">
-                          <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
-                            {inscricao.pessoa.id.toString().padStart(3, '0')}
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-800 text-xs uppercase leading-tight truncate">
+                              {inscricao.pessoa?.nome || '-'}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                              {inscricao.pessoa?.email || inscricao.pessoa?.telefone || 'Sem contato'}
+                            </p>
                           </div>
-                        </td>
-                        <td className="px-1 py-1 border-b border-slate-100">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[12px] uppercase text-sm leading-tight">{inscricao.pessoa.nome}</span>
-                            <span className="text-xs text-slate-400 mt-0.5">{inscricao.pessoa.email || 'sem-email@informado.com'}</span>
-                          </div>
-                        </td>
-                        <td className="px-2 py-1 border-b border-slate-100 hidden md:table-cell">
-                          {inscricao.pessoa.comunidade ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200">
+                        </div>
+
+                        {/* Menu 3-dots Mobile */}
+                        <div className="relative shrink-0" data-dropdown="true">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-[#1351b4] rounded-md transition-colors"
+                            title="Opções"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                          {menuAcaoAbertoId === inscricao.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setMenuAcaoAbertoId(null)}
+                              />
+                              <div
+                                className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => { setMenuAcaoAbertoId(null); abrirModalVisualizacao(inscricao); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                                >
+                                  <Eye className="w-4 h-4" /> Dados pessoais
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 rounded-sm text-left"
+                                >
+                                  <DollarSign className="w-4 h-4" /> Pagamentos
+                                </button>
+
+                                {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuAcaoAbertoId(null);
+                                      setInscricaoParaDesistencia(inscricao);
+                                      setModalDesistenciaAberto(true);
+                                    }}
+                                    className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                                  >
+                                    <UserMinus className="w-4 h-4" /> Desistência
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
+                                  className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                >
+                                  <Trash2 className="w-4 h-4" /> Excluir Inscrição
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Paróquia e Comunidade */}
+                      {(inscricao.pessoa?.paroquia?.nome || inscricao.pessoa?.comunidade) && (
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pt-2 border-t border-slate-100">
+                          {inscricao.pessoa?.paroquia?.nome && (
+                            <span className="font-bold text-slate-700 truncate">
+                              {inscricao.pessoa.paroquia.nome}
+                            </span>
+                          )}
+                          {inscricao.pessoa?.paroquia?.nome && inscricao.pessoa?.comunidade && (
+                            <span className="text-slate-300">•</span>
+                          )}
+                          {inscricao.pessoa?.comunidade && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 truncate">
                               {inscricao.pessoa.comunidade}
                             </span>
-                          ) : (
-                            <span className="text-xs text-slate-300">-</span>
                           )}
-                        </td>
-                        {/* <td className="px-0 py-1 border-b border-slate-100 hidden md:table-cell">
-                          {inscricao.intencaoPagamento ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black text-slate-500">
-                              {inscricao.intencaoPagamento}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-300">-</span>
-                          )}
-                        </td> */}
+                        </div>
+                      )}
 
-                        <td className="px-2 py-1 border-b border-slate-100 text-right hidden sm:table-cell">
-                          <span className={`text-[12px] font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                      {/* Status da Inscrição */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Status
+                        </span>
+                        <select
+                          value={inscricao.status}
+                          onChange={(e) => handleStatusChange(inscricao, e.target.value, e.target)}
+                          className={`px-2.5 py-1 rounded-md text-xs font-bold border shadow-sm outline-none cursor-pointer ${
+                            inscricao.status === 'CONFIRMADO'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : inscricao.status === 'DESISTENCIA'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : inscricao.status === 'EM_ANALISE'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}
+                        >
+                          <option value="PENDENTE">Pendente</option>
+                          <option value="CONFIRMADO">Confirmado</option>
+                          <option value="EM_ANALISE">Em Análise</option>
+                          <option value="DESISTENCIA">Desistência</option>
+                        </select>
+                      </div>
+
+                      {/* Linha de valores: Saldo da Pessoa e Valor Pago */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Saldo:
+                          </span>
+                          <span
+                            className={`text-xs font-black font-mono ${
+                              saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}
+                          >
                             {formatarMoeda(saldo)}
                           </span>
-                        </td>
-                        <td className="px-2 py-1 border-b border-slate-100 text-right">
-                          <span className={`text-[12px] font-bold ${totalPago > 0 ? 'text-emerald-600' : totalPago < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Pago:
+                          </span>
+                          <span
+                            className={`text-xs font-black font-mono px-2 py-0.5 rounded border ${
+                              totalPago > 0
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-slate-50 text-slate-400 border-slate-200'
+                            }`}
+                          >
                             {formatarMoeda(totalPago)}
                           </span>
-                        </td>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                        <td className="px-2 py-1 border-b border-slate-100 text-center hidden sm:table-cell">
-                          <select
-                            value={inscricao.status}
-                            onChange={(e) => {
-                              const novoStatus = e.target.value;
-                              if (novoStatus === 'DESISTENCIA') {
-                                const totalPago = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
-                                if (totalPago > 0) {
-                                  if (!confirm(`Esta inscrição possui R$ ${totalPago.toFixed(2)} pagos. Ao desistir, todo esse valor será automaticamente estornado para o saldo de ${inscricao.pessoa.nome}. Deseja prosseguir?`)) {
-                                    e.target.value = inscricao.status;
-                                    return;
-                                  }
-                                } else {
-                                  if (!confirm(`Tem certeza que deseja cancelar a inscrição de ${inscricao.pessoa.nome}?`)) {
-                                    e.target.value = inscricao.status;
-                                    return;
-                                  }
-                                }
-                              }
-                              atualizarStatus(inscricao.id, novoStatus);
-                            }}
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                              inscricao.status === 'DESISTENCIA' ? 'bg-rose-50 text-rose-600 border-rose-200' :
-                                inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
-                                  'bg-white text-slate-600 border-slate-200'
-                              }`}
-                          >
-                            <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
-                            <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
-                            <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
-                            <option value="DESISTENCIA" className="text-rose-600 bg-white">Desistência</option>
-                          </select>
-                        </td>
+              {/* ============================================================== */}
+              {/* VISUALIZAÇÃO DESKTOP: TABELA COMPLETA                          */}
+              {/* ============================================================== */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm text-left border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-[#1351b4]">
+                      <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('nome')}>
+                        Nome Completo {renderIconeOrdenacao('nome')}
+                      </th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('paroquia')}>
+                        Paróquia {renderIconeOrdenacao('paroquia')}
+                      </th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] cursor-pointer hover:bg-[#0f449a] transition-colors" onClick={() => toggleOrdenacao('comunidade')}>
+                        Comunidade {renderIconeOrdenacao('comunidade')}
+                      </th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Saldo</th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Pago</th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Status</th>
+                      <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {inscricoesFiltradas.map((inscricao) => {
+                      const saldo = inscricao.pessoa?.saldo || 0;
+                      const totalPagoCru = inscricao.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+                      const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
 
-                        <td className="px-2 py-1 border-b border-slate-100">
-                          <div className="relative flex items-center justify-center">
-                            {/* 3-dots Menu */}
-                            <div>
-                              <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4] rounded-sm transition-colors">
-                                <MoreVertical className="w-5 h-5" />
-                              </button>
-                              {menuAcaoAbertoId === inscricao.id && (
-                                <>
-                                  <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
-                                  <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
-                                    <button
-                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalVisualizacao(inscricao); }}
-                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
-                                    >
-                                      <Eye className="w-4 h-4" /> Dados pessoais
-                                    </button>
-
-                                    <button
-                                      onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
-                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 rounded-sm text-left"
-                                    >
-                                      <DollarSign className="w-4 h-4" /> Pagamentos
-                                    </button>
-
-                                    {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
-                                      <button
-                                        onClick={() => {
-                                          setMenuAcaoAbertoId(null);
-                                          setInscricaoParaDesistencia(inscricao);
-                                          setModalDesistenciaAberto(true);
-                                        }}
-                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
-                                      >
-                                        <UserMinus className="w-4 h-4" /> Desistência
-                                      </button>
-                                    )}
-
-                                    <button
-                                      onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
-                                      className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
-                                    >
-                                      <Trash2 className="w-4 h-4" /> Excluir Inscrição
-                                    </button>
-                                  </div>
-                                </>
-                              )}
+                      return (
+                        <tr key={inscricao.id} className="hover:bg-slate-50 transition-all duration-200 bg-white group">
+                          <td className="pl-6 pr-2 py-1 border-b border-slate-100 w-[1%] whitespace-nowrap">
+                            <div className="w-10 h-8 rounded-sm flex items-center justify-center text-sm font-bold text-slate-600 group-hover:bg-[#1351b4] group-hover:text-white group-hover:scale-110 transition-all">
+                              {inscricao.pessoa?.id ? inscricao.pessoa.id.toString().padStart(3, '0') : '---'}
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  });
-                })()
-              )}
-            </tbody>
-          </table>
+                          </td>
+                          <td className="px-1 py-1 border-b border-slate-100">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-[12px] uppercase text-sm leading-tight">{inscricao.pessoa?.nome || '-'}</span>
+                              <span className="text-xs text-slate-400 mt-0.5">{inscricao.pessoa?.email || 'sem-email@informado.com'}</span>
+                            </div>
+                          </td>
+                          <td className="px-2 py-1 border-b border-slate-100">
+                            {inscricao.pessoa?.paroquia?.nome ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-slate-100 text-slate-700 uppercase tracking-widest border border-slate-200">
+                                {inscricao.pessoa.paroquia.nome}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1 border-b border-slate-100">
+                            {inscricao.pessoa?.comunidade ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200">
+                                {inscricao.pessoa.comunidade}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-300">-</span>
+                            )}
+                          </td>
+
+                          <td className="px-2 py-1 border-b border-slate-100 text-right">
+                            <span className={`text-[12px] font-bold ${saldo > 0 ? 'text-emerald-600' : saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                              {formatarMoeda(saldo)}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1 border-b border-slate-100 text-right">
+                            <span className={`text-[12px] font-bold ${totalPago > 0 ? 'text-emerald-600' : totalPago < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
+                              {formatarMoeda(totalPago)}
+                            </span>
+                          </td>
+
+                          <td className="px-2 py-1 border-b border-slate-100 text-center">
+                            <select
+                              value={inscricao.status}
+                              onChange={(e) => handleStatusChange(inscricao, e.target.value, e.target)}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-sm outline-none cursor-pointer appearance-none ${inscricao.status === 'CONFIRMADO' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                inscricao.status === 'DESISTENCIA' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                                  inscricao.status === 'EM_ANALISE' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
+                                    'bg-white text-slate-600 border-slate-200'
+                                }`}
+                            >
+                              <option value="PENDENTE" className="text-slate-600 bg-white">Pendente</option>
+                              <option value="CONFIRMADO" className="text-emerald-600 bg-white">Confirmado</option>
+                              <option value="EM_ANALISE" className="text-indigo-600 bg-white">Em Análise</option>
+                              <option value="DESISTENCIA" className="text-rose-600 bg-white">Desistência</option>
+                            </select>
+                          </td>
+
+                          <td className="px-2 py-1 border-b border-slate-100">
+                            <div className="relative flex items-center justify-center">
+                              {/* 3-dots Menu */}
+                              <div>
+                                <button onClick={() => setMenuAcaoAbertoId(menuAcaoAbertoId === inscricao.id ? null : inscricao.id)} className="p-2 text-slate-400 hover:text-[#1351b4] rounded-sm transition-colors">
+                                  <MoreVertical className="w-5 h-5" />
+                                </button>
+                                {menuAcaoAbertoId === inscricao.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setMenuAcaoAbertoId(null)} />
+                                    <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44">
+                                      <button
+                                        onClick={() => { setMenuAcaoAbertoId(null); abrirModalVisualizacao(inscricao); }}
+                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                                      >
+                                        <Eye className="w-4 h-4" /> Dados pessoais
+                                      </button>
+
+                                      <button
+                                        onClick={() => { setMenuAcaoAbertoId(null); abrirModalPagamento(inscricao); }}
+                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-emerald-600 rounded-sm text-left"
+                                      >
+                                        <DollarSign className="w-4 h-4" /> Pagamentos
+                                      </button>
+
+                                      {inscricao.status === 'CONFIRMADO' && totalPago > 0 && (
+                                        <button
+                                          onClick={() => {
+                                            setMenuAcaoAbertoId(null);
+                                            setInscricaoParaDesistencia(inscricao);
+                                            setModalDesistenciaAberto(true);
+                                          }}
+                                          className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                                        >
+                                          <UserMinus className="w-4 h-4" /> Desistência
+                                        </button>
+                                      )}
+
+                                      <button
+                                        onClick={() => { setMenuAcaoAbertoId(null); confirmarExclusao(inscricao.id); }}
+                                        className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                                      >
+                                        <Trash2 className="w-4 h-4" /> Excluir Inscrição
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -935,6 +1148,10 @@ export default function InscricoesPage() {
                   <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Telefone</span>
                     <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.telefone || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Paróquia</span>
+                    <span className="text-sm font-bold text-slate-700">{inscricaoParaVisualizar.pessoa.paroquia?.nome || 'Sem Paróquia Vinculada'}</span>
                   </div>
                   <div>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Grupo / Comunidade</span>

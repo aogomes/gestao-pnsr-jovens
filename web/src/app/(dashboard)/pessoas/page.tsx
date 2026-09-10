@@ -191,7 +191,9 @@ export default function PessoasPage() {
 
   const pessoasFiltradas = pessoas.filter(p =>
     (p.nome?.toLowerCase().includes(termoBusca.toLowerCase())) ||
-    (p.documento && p.documento.includes(termoBusca))
+    (p.documento && p.documento.includes(termoBusca)) ||
+    (p.comunidade && p.comunidade.toLowerCase().includes(termoBusca.toLowerCase())) ||
+    (p.paroquia?.nome && p.paroquia.nome.toLowerCase().includes(termoBusca.toLowerCase()))
   );
 
   const formatarMoeda = (val: number) =>
@@ -238,47 +240,212 @@ export default function PessoasPage() {
         </div>
       </div>
 
-      {/* CONTAINER PRINCIPAL DA TABELA */}
+      {/* CONTAINER PRINCIPAL DA TABELA / LISTA */}
       <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{pessoasFiltradas.length} pessoa{pessoasFiltradas.length !== 1 ? 's' : ''} encontrada{pessoasFiltradas.length !== 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-50/30">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {pessoasFiltradas.length} pessoa{pessoasFiltradas.length !== 1 ? 's' : ''} encontrada{pessoasFiltradas.length !== 1 ? 's' : ''}
+          </span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:flex-initial">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Buscar por nome..."
+                placeholder="Buscar por nome, paróquia, comunidade..."
                 value={termoBusca}
                 onChange={(e) => setTermoBusca(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full sm:w-64 shadow-sm"
               />
             </div>
             <button
               onClick={abrirModalExtratoGeral}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4]/10 text-[#1351b4] border border-[#1351b4]/10 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#1351b4]/20 transition-all shadow-sm group"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 bg-[#1351b4]/10 text-[#1351b4] border border-[#1351b4]/10 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#1351b4]/20 transition-all shadow-sm group"
             >
               <ArrowRightLeft className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-              Extrato Geral
+              <span>Extrato Geral</span>
             </button>
             {podeEditar && (
               <button
                 onClick={() => abrirModal()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
               >
                 <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                Nova Pessoa
+                <span>Nova Pessoa</span>
               </button>
             )}
           </div>
         </div>
-        <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
+
+        {/* ============================================================== */}
+        {/* VISUALIZAÇÃO MOBILE: CARDS (CAIXINHAS)                         */}
+        {/* ============================================================== */}
+        <div className="block md:hidden p-3 space-y-3 bg-slate-50/60 overflow-y-auto flex-1 custom-scrollbar">
+          {pessoasFiltradas.length === 0 ? (
+            <div className="p-8 text-center bg-white border border-slate-200 rounded-lg shadow-sm">
+              <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">
+                Nenhum registro encontrado
+              </p>
+            </div>
+          ) : (
+            pessoasFiltradas.map((pessoa) => (
+              <div
+                key={`mob-${pessoa.id}`}
+                className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2.5 transition-all hover:shadow-md"
+              >
+                {/* Topo da caixinha: Código, Nome e Menu (SEM o saldo ao lado, liberando 100% do espaço para o nome) */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className="w-8 h-7 rounded bg-[#1351b4]/10 text-[#1351b4] text-[11px] font-black flex items-center justify-center shrink-0">
+                      {pessoa.id.toString().padStart(3, '0')}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-slate-800 text-xs sm:text-sm uppercase break-words leading-tight">
+                        {pessoa.nome}
+                      </h3>
+                      {pessoa.email && (
+                        <p className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{pessoa.email}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Menu 3-dots Mobile no canto superior */}
+                  <div className="relative shrink-0" data-dropdown="true">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMenuAbertoId(menuAbertoId === pessoa.id ? null : pessoa.id);
+                      }}
+                      className="p-1 text-slate-400 hover:text-[#1351b4] rounded-md transition-colors"
+                      title="Opções"
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    {menuAbertoId === pessoa.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setMenuAbertoId(null)}
+                        />
+                        <div
+                          className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-44"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMenuAbertoId(null);
+                              abrirModalExtrato(pessoa);
+                            }}
+                            className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1351b4] rounded-sm text-left"
+                          >
+                            <ArrowRightLeft className="w-4 h-4" /> Extrato
+                          </button>
+                          {podeEditar && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuAbertoId(null);
+                                  abrirModal(pessoa);
+                                }}
+                                className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-600 rounded-sm text-left"
+                              >
+                                <Pencil className="w-4 h-4" /> Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuAbertoId(null);
+                                  confirmarExclusao(pessoa.id);
+                                }}
+                                className="flex items-center gap-2 p-2.5 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-sm text-left"
+                              >
+                                <Trash2 className="w-4 h-4" /> Excluir
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Paróquia e Comunidade juntas (sem ícone de paróquia) */}
+                {(pessoa.paroquia?.nome || pessoa.comunidade) && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs pt-2 border-t border-slate-100">
+                    {pessoa.paroquia?.nome && (
+                      <span className="font-bold text-slate-700">
+                        {pessoa.paroquia.nome}
+                      </span>
+                    )}
+                    {pessoa.paroquia?.nome && pessoa.comunidade && (
+                      <span className="text-slate-300">•</span>
+                    )}
+                    {pessoa.comunidade && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {pessoa.comunidade}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Data de Nascimento e Telefone */}
+                <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600 pt-0.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-semibold truncate">
+                      {pessoa.dataNascimento ? formatarData(pessoa.dataNascimento) : 'Sem data nasc.'}
+                    </span>
+                  </div>
+
+                  {pessoa.telefone && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="font-mono text-[10px] truncate">
+                        {pessoa.telefone}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Linha final: Saldo por último */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-0.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Saldo
+                  </span>
+                  <span
+                    className={`text-xs font-black font-mono px-2.5 py-1 rounded-md border ${pessoa.saldo >= 0
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                  >
+                    {formatarMoeda(pessoa.saldo)}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ============================================================== */}
+        {/* VISUALIZAÇÃO DESKTOP: TABELA COMPLETA                          */}
+        {/* ============================================================== */}
+        <div className="hidden md:block overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left border-separate border-spacing-0">
             <thead>
               <tr className="bg-[#1351b4]">
                 <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] w-[1%] whitespace-nowrap">Código</th>
-                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Nome</th>
-                {/* <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th> */}
-                <th className="hidden md:table-cell px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Telefone</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] max-w-[340px] w-120">Nome</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] whitespace-nowrap">Data Nasc.</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Comunidade</th>
+                <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Telefone</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-right">Saldo</th>
                 <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
               </tr>
@@ -286,7 +453,7 @@ export default function PessoasPage() {
             <tbody className="divide-y divide-slate-100">
               {pessoasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-32 text-center text-slate-300">
+                  <td colSpan={8} className="px-8 py-32 text-center text-slate-300">
                     <div className="flex flex-col items-center gap-4 opacity-20">
                       <Users className="w-16 h-16" />
                       <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhum registro encontrado</span>
@@ -301,35 +468,43 @@ export default function PessoasPage() {
                         {pessoa.id.toString().padStart(3, '0')}
                       </div>
                     </td>
-                    <td className="px-2 py-1 border-b border-slate-100">
-                      <div className="flex items-center gap-4">
-                        {/* <div className="w-10 h-10 shrink-0 rounded-sm bg-slate-50 flex items-center justify-center text-[#1351b4] text-xs font-black border border-slate-200 group-hover:scale-110 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                          {pessoa.id.toString().padStart(3, '0')}
-                        </div> */}
-                        <div className="flex flex-col">
-                          <span className="font-bold text-[12px] uppercase text-slate-700 leading-tight">{pessoa.nome}</span>
-                          <span className="text-xs text-slate-400 mt-0.5">{pessoa.email || 'E-mail não cadastrado'}</span>
-                        </div>
-                      </div>
-                    </td>
-                    {/* <td className="border-b border-slate-100 hidden md:table-cell px-2 py-1">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg w-fit">
-                        <Church className="w-3.5 h-3.5 text-[#1351b4]" />
-                        <span className="text-slate-500 font-black text-[9px] tracking-tighter">
-                          {pessoa.paroquia?.nome || '-'}
+                    <td className="px-2 py-1 border-b border-slate-100 max-w-[200px] w-48">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[12px] uppercase text-slate-700 leading-tight truncate" title={pessoa.nome}>
+                          {pessoa.nome}
+                        </span>
+                        <span className="text-xs text-slate-400 mt-0.5 truncate" title={pessoa.email || ''}>
+                          {pessoa.email || 'E-mail não cadastrado'}
                         </span>
                       </div>
-                    </td> */}
-                    <td className="border-b border-slate-100 hidden md:table-cell px-2 py-1">
-                      <div className="flex flex-col">
-                        {/* <span className="font-bold text-[12px] text-slate-500 tracking-widest leading-tight">{pessoa.documento || '---.---.--- --'}</span> */}
-                        <span className="text-xs text-slate-400 mt-0.5">{pessoa.telefone || 'Telefone não cadastrado'}</span>
+                    </td>
+                    <td className="border-b border-slate-100 px-2 py-1 whitespace-nowrap">
+                      <span className="text-xs text-slate-600 font-mono font-medium">
+                        {pessoa.dataNascimento ? formatarData(pessoa.dataNascimento) : '-'}
+                      </span>
+                    </td>
+                    <td className="border-b border-slate-100 px-2 py-1 max-w-[200px]">
+                      <div className="text-xs font-semibold text-slate-700 truncate" title={pessoa.paroquia?.nome || '-'}>
+                        {pessoa.paroquia?.nome || '-'}
                       </div>
                     </td>
-                    <td className="px-2 py-1 border-b border-slate-100">
+                    <td className="border-b border-slate-100 px-2 py-1 max-w-[180px]">
+                      {pessoa.comunidade ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-slate-100 text-slate-600 uppercase tracking-wider border border-slate-200 truncate">
+                          {pessoa.comunidade}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-300">-</span>
+                      )}
+                    </td>
+                    <td className="border-b border-slate-100 px-2 py-1 whitespace-nowrap">
+                      <span className="text-xs text-slate-500 font-mono">
+                        {pessoa.telefone || '-'}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1 border-b border-slate-100 whitespace-nowrap">
                       <div className={`flex flex-col ${pessoa.saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         <div className="flex items-center justify-end gap-1">
-                          {/* <TrendingUp className={`w-3.5 h-3.5 ${pessoa.saldo < 0 ? 'rotate-180' : ''}`} /> */}
                           <span className={`text-[12px] font-bold ${pessoa.saldo > 0 ? 'text-emerald-600' : pessoa.saldo < 0 ? 'text-rose-600' : 'text-slate-200'}`}>
                             {formatarMoeda(pessoa.saldo)}
                           </span>

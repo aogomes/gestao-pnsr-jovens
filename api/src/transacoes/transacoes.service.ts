@@ -198,7 +198,11 @@ export class TransacoesService {
         ],
       },
       include: {
-        pessoa: true,
+        pessoa: {
+          include: {
+            paroquia: true,
+          },
+        },
         conta: true,
         evento: true,
       },
