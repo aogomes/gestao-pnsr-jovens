@@ -35,7 +35,11 @@ export class InscricoesService {
     const inscricoes = await this.prisma.inscricao.findMany({
       where: eventoId ? { eventoId } : {},
       include: {
-        pessoa: true,
+        pessoa: {
+          include: {
+            paroquia: true,
+          },
+        },
         evento: true,
         transacoes: true,
       },

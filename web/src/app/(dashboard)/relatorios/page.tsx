@@ -14,12 +14,16 @@ import {
   Search,
   CheckCircle2,
   Clock,
+  AlertCircle,
   Wallet,
   Scale,
   ChevronDown,
   ChevronUp,
   ArrowRight,
   Receipt,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 export default function RelatoriosPage() {
@@ -36,6 +40,13 @@ export default function RelatoriosPage() {
   const [carregandoInscritos, setCarregandoInscritos] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
   const [busca, setBusca] = useState<string>('');
+  const [ordenacao, setOrdenacao] = useState<{
+    coluna: 'nome' | 'paroquia' | 'comunidade' | 'status';
+    direcao: 'asc' | 'desc';
+  }>({
+    coluna: 'nome',
+    direcao: 'asc',
+  });
 
   // --- ESTADOS DO EXTRATO DA CONTA DO EVENTO ATIVO ---
   const [eventoExtrato, setEventoExtrato] = useState<any>(null);
@@ -86,11 +97,16 @@ export default function RelatoriosPage() {
     setEventoSelecionado(evento);
     setFiltroStatus('TODOS');
     setBusca('');
+    setOrdenacao({ coluna: 'nome', direcao: 'asc' });
     setModalAberto(true);
     setCarregandoInscritos(true);
     try {
       const res = await api.get(`/inscricoes?eventoId=${evento.id}`);
-      const ordenados = res.data.sort((a: any, b: any) => {
+      const permitidos = ['CONFIRMADO', 'PENDENTE', 'EM_ANALISE'];
+      const filtrados = (res.data || []).filter((i: any) =>
+        permitidos.includes(i.status)
+      );
+      const ordenados = filtrados.sort((a: any, b: any) => {
         const nomeA = a.pessoa?.nome || '';
         const nomeB = b.pessoa?.nome || '';
         return nomeA.localeCompare(nomeB);
@@ -107,6 +123,25 @@ export default function RelatoriosPage() {
     setExpandidos((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const toggleOrdenacao = (coluna: 'nome' | 'paroquia' | 'comunidade' | 'status') => {
+    if (ordenacao.coluna === coluna) {
+      setOrdenacao({ coluna, direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setOrdenacao({ coluna, direcao: 'asc' });
+    }
+  };
+
+  const renderIconeOrdenacao = (coluna: 'nome' | 'paroquia' | 'comunidade' | 'status') => {
+    if (ordenacao.coluna !== coluna) {
+      return <ArrowUpDown className="w-3.5 h-3.5 opacity-40 shrink-0" />;
+    }
+    return ordenacao.direcao === 'asc' ? (
+      <ArrowUp className="w-3.5 h-3.5 text-white shrink-0" />
+    ) : (
+      <ArrowDown className="w-3.5 h-3.5 text-white shrink-0" />
+    );
+  };
+
   // --- FORMATAÇÕES UTILITÁRIAS ---
   const formatarMoeda = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
@@ -120,29 +155,51 @@ export default function RelatoriosPage() {
   // --- FILTROS DE INSCRIÇÕES ---
   const totalConfirmados = inscritos.filter((i) => i.status === 'CONFIRMADO').length;
   const totalPendentes = inscritos.filter((i) => i.status === 'PENDENTE').length;
-  const totalDesistencias = inscritos.filter(
-    (i) => i.status === 'DESISTENCIA' || i.status === 'CANCELADO'
-  ).length;
+  const totalEmAnalise = inscritos.filter((i) => i.status === 'EM_ANALISE').length;
 
-  const inscritosFiltrados = inscritos.filter((insc) => {
-    if (filtroStatus !== 'TODOS') {
-      if (filtroStatus === 'DESISTENCIA') {
-        if (insc.status !== 'DESISTENCIA' && insc.status !== 'CANCELADO') return false;
-      } else if (insc.status !== filtroStatus) {
+  const inscritosFiltrados = inscritos
+    .filter((insc) => {
+      if (filtroStatus !== 'TODOS' && insc.status !== filtroStatus) {
         return false;
       }
-    }
 
-    if (busca.trim()) {
-      const termo = busca.toLowerCase();
-      const nome = (insc.pessoa?.nome || '').toLowerCase();
-      const tel = (insc.pessoa?.telefone || '').toLowerCase();
-      const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
-      return nome.includes(termo) || tel.includes(termo) || comunidade.includes(termo);
-    }
+      if (busca.trim()) {
+        const termo = busca.toLowerCase();
+        const nome = (insc.pessoa?.nome || '').toLowerCase();
+        const tel = (insc.pessoa?.telefone || '').toLowerCase();
+        const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
+        const paroquia = (insc.pessoa?.paroquia?.nome || '').toLowerCase();
+        return (
+          nome.includes(termo) ||
+          tel.includes(termo) ||
+          comunidade.includes(termo) ||
+          paroquia.includes(termo)
+        );
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      let valA = '';
+      let valB = '';
+
+      if (ordenacao.coluna === 'nome') {
+        valA = a.pessoa?.nome || '';
+        valB = b.pessoa?.nome || '';
+      } else if (ordenacao.coluna === 'paroquia') {
+        valA = a.pessoa?.paroquia?.nome || '';
+        valB = b.pessoa?.paroquia?.nome || '';
+      } else if (ordenacao.coluna === 'comunidade') {
+        valA = a.pessoa?.comunidade || '';
+        valB = b.pessoa?.comunidade || '';
+      } else if (ordenacao.coluna === 'status') {
+        valA = a.status || '';
+        valB = b.status || '';
+      }
+
+      const comp = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' });
+      return ordenacao.direcao === 'asc' ? comp : -comp;
+    });
 
   // --- FILTROS E AGRUPAMENTOS DO EXTRATO DA CONTA ---
   const transacoesFiltradas = (extratoData?.transacoes || []).filter((t: any) => {
@@ -156,11 +213,15 @@ export default function RelatoriosPage() {
     if (buscaExtrato.trim()) {
       const termo = buscaExtrato.toLowerCase();
       const nomePessoa = (t.pessoa?.nome || '').toLowerCase();
+      const paroquia = (t.pessoa?.paroquia?.nome || '').toLowerCase();
+      const comunidade = (t.pessoa?.comunidade || '').toLowerCase();
       const nomeConta = (t.conta?.nome || '').toLowerCase();
       const desc = (t.descricao || '').toLowerCase();
       const metodo = (t.metodo || '').toLowerCase();
       return (
         nomePessoa.includes(termo) ||
+        paroquia.includes(termo) ||
+        comunidade.includes(termo) ||
         nomeConta.includes(termo) ||
         desc.includes(termo) ||
         metodo.includes(termo)
@@ -180,6 +241,7 @@ export default function RelatoriosPage() {
           pessoaId: t.pessoaId,
           pessoa: t.pessoa || null,
           nome: t.pessoa?.nome || 'CAIXA',
+          paroquia: t.pessoa?.paroquia?.nome || '',
           comunidade: t.pessoa?.comunidade || '',
           telefone: t.pessoa?.telefone || '',
           receitas: 0,
@@ -229,8 +291,8 @@ export default function RelatoriosPage() {
           ? 'Confirmados'
           : filtroStatus === 'PENDENTE'
             ? 'Pendentes'
-            : filtroStatus === 'DESISTENCIA'
-              ? 'Desistências'
+            : filtroStatus === 'EM_ANALISE'
+              ? 'Em Análise'
               : filtroStatus;
 
     doc.setFontSize(12);
@@ -241,17 +303,21 @@ export default function RelatoriosPage() {
       36
     );
 
-    const tableColumn = ['Nome', 'Telefone', 'Comunidade', 'Status'];
+    const tableColumn = ['Nome', 'Data Nasc.', 'Paróquia', 'Comunidade', 'Status'];
     const tableRows: any[] = [];
     const statusCount: Record<string, number> = {};
 
     inscritosFiltrados.forEach((inscricao) => {
       const pessoa = inscricao.pessoa;
-      const statusLabel = inscricao.status || 'NÃO DEFINIDO';
+      let statusLabel = inscricao.status || 'NÃO DEFINIDO';
+      if (inscricao.status === 'CONFIRMADO') statusLabel = 'Confirmado';
+      else if (inscricao.status === 'PENDENTE') statusLabel = 'Pendente';
+      else if (inscricao.status === 'EM_ANALISE') statusLabel = 'Em Análise';
 
       const rowData = [
         pessoa?.nome || '-',
-        pessoa?.telefone || '-',
+        pessoa?.dataNascimento ? formatarData(pessoa.dataNascimento) : '-',
+        pessoa?.paroquia?.nome || '-',
         pessoa?.comunidade || '-',
         statusLabel,
       ];
@@ -264,15 +330,15 @@ export default function RelatoriosPage() {
       body: tableRows,
       startY: 42,
       didParseCell: (data: any) => {
-        if (data.section === 'body' && data.column.index === 3) {
+        if (data.section === 'body' && data.column.index === 4) {
           const status = data.cell.raw;
           data.cell.styles.fontStyle = 'bold';
-          if (status === 'CONFIRMADO') {
+          if (status === 'Confirmado' || status === 'CONFIRMADO') {
             data.cell.styles.textColor = [5, 150, 105];
-          } else if (status === 'DESISTENCIA' || status === 'CANCELADO') {
-            data.cell.styles.textColor = [225, 29, 72];
-          } else if (status === 'PENDENTE') {
+          } else if (status === 'Pendente' || status === 'PENDENTE') {
             data.cell.styles.textColor = [217, 119, 6];
+          } else if (status === 'Em Análise' || status === 'EM_ANALISE') {
+            data.cell.styles.textColor = [79, 70, 229];
           } else {
             data.cell.styles.textColor = [71, 85, 105];
           }
@@ -304,10 +370,11 @@ export default function RelatoriosPage() {
     let startY = 48;
 
     if (agrupamentoExtrato === 'PESSOA') {
-      const tableColumn = ['Pessoa / Inscrito', 'Comunidade', 'Entradas', 'Saidas', 'Saldo'];
+      const tableColumn = ['Pessoa / Inscrito', 'Paróquia', 'Comunidade', 'Entradas', 'Saidas', 'Saldo'];
       const tableRows = agrupadoPorPessoa.map((p: any) => [
         p.nome,
-        p.comunidade,
+        p.paroquia || '-',
+        p.comunidade || '-',
         formatarMoeda(p.receitas),
         formatarMoeda(p.despesas),
         formatarMoeda(p.saldo),
@@ -318,17 +385,18 @@ export default function RelatoriosPage() {
         body: tableRows,
         startY,
         didParseCell: (data: any) => {
-          if (data.section === 'body' && data.column.index === 4) {
+          if (data.section === 'body' && data.column.index === 5) {
             data.cell.styles.fontStyle = 'bold';
           }
         },
       });
     } else {
-      const tableColumn = ['Data', 'Descrição', 'Pessoa', 'Tipo', 'Valor'];
+      const tableColumn = ['Data', 'Descrição', 'Pessoa', 'Paróquia', 'Tipo', 'Valor'];
       const tableRows = transacoesFiltradas.map((t: any) => [
         formatarData(t.data),
         t.descricao || '-',
         t.pessoa?.nome || '-',
+        t.pessoa?.paroquia?.nome || '-',
         t.tipo,
         formatarMoeda(t.valor),
       ]);
@@ -575,7 +643,7 @@ export default function RelatoriosPage() {
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar no extrato..."
+                  placeholder="Buscar pessoa, paróquia, comunidade, conta..."
                   value={buscaExtrato}
                   onChange={(e) => setBuscaExtrato(e.target.value)}
                   className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs focus:outline-none focus:bg-white focus:border-[#1351b4] font-medium text-slate-700"
@@ -627,9 +695,19 @@ export default function RelatoriosPage() {
                           <h4 className="font-bold text-slate-800 text-sm uppercase truncate">
                             {item.nome}
                           </h4>
-                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                            <span>{item.comunidade}</span>
-                          </div>
+                          {(item.paroquia || item.comunidade) && (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 mt-0.5 font-medium">
+                              {item.paroquia && (
+                                <span className="font-semibold text-slate-700 truncate">{item.paroquia}</span>
+                              )}
+                              {item.paroquia && item.comunidade && (
+                                <span className="text-slate-300">•</span>
+                              )}
+                              {item.comunidade && (
+                                <span className="text-slate-500 truncate">{item.comunidade}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -670,9 +748,6 @@ export default function RelatoriosPage() {
                     {/* Detalhamento de Transações Expandidas */}
                     {isExpanded && (
                       <div className="bg-slate-50/70 border-t border-slate-100 p-3 sm:p-4">
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                          Transações vinculadas a {item.nome}:
-                        </div>
                         <div className="space-y-1.5">
                           {item.transacoes.map((t: any) => (
                             <div
@@ -732,8 +807,17 @@ export default function RelatoriosPage() {
                         <td className="px-4 py-3 text-xs font-semibold text-slate-800 max-w-xs truncate">
                           {t.descricao || '-'}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-600 max-w-xs truncate">
-                          {t.pessoa?.nome || '-'}
+                        <td className="px-4 py-3 text-xs max-w-xs truncate">
+                          <div className="font-semibold text-slate-700 truncate">
+                            {t.pessoa?.nome || '-'}
+                          </div>
+                          {(t.pessoa?.paroquia?.nome || t.pessoa?.comunidade) && (
+                            <div className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                              {t.pessoa?.paroquia?.nome && <span>{t.pessoa.paroquia.nome}</span>}
+                              {t.pessoa?.paroquia?.nome && t.pessoa?.comunidade && <span>•</span>}
+                              {t.pessoa?.comunidade && <span>{t.pessoa.comunidade}</span>}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">
                           {t.conta?.nome || '-'}
@@ -770,7 +854,7 @@ export default function RelatoriosPage() {
       {/* ============================================================== */}
       {modalAberto && eventoSelecionado && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl rounded-lg sm:rounded-md shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-5xl rounded-lg sm:rounded-md shadow-2xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
             {/* CABEÇALHO DO MODAL */}
             <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
               <div className="min-w-0 flex-1">
@@ -861,31 +945,30 @@ export default function RelatoriosPage() {
                   </span>
                 </button>
 
-                {totalDesistencias > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setFiltroStatus('DESISTENCIA')}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'DESISTENCIA'
-                      ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/30'
-                      : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60'
+                <button
+                  type="button"
+                  onClick={() => setFiltroStatus('EM_ANALISE')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-md sm:rounded-sm text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${filtroStatus === 'EM_ANALISE'
+                    ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600/30'
+                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/60'
+                    }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Em Análise</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'EM_ANALISE' ? 'bg-white/20 text-white' : 'bg-indigo-200/70 text-indigo-800'
                       }`}
                   >
-                    <span>Desistências</span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filtroStatus === 'DESISTENCIA' ? 'bg-white/20 text-white' : 'bg-rose-200/70 text-rose-800'
-                        }`}
-                    >
-                      {totalDesistencias}
-                    </span>
-                  </button>
-                )}
+                    {totalEmAnalise}
+                  </span>
+                </button>
               </div>
 
               <div className="relative w-full sm:w-64 shrink-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar nome, fone..."
+                  placeholder="Buscar nome, fone, paróquia..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-md sm:rounded-sm text-xs focus:outline-none focus:bg-white focus:border-[#1351b4] font-medium text-slate-700 placeholder:text-slate-400"
@@ -930,18 +1013,57 @@ export default function RelatoriosPage() {
               ) : (
                 <>
                   <div className="block md:hidden space-y-2">
+                    {/* Barra rápida de ordenação no mobile */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-lg text-xs">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        Ordenar:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {(['nome', 'paroquia', 'comunidade', 'status'] as const).map((col) => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => toggleOrdenacao(col)}
+                            className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors flex items-center gap-1 ${ordenacao.coluna === col
+                              ? 'bg-[#1351b4] text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                          >
+                            <span>
+                              {col === 'nome'
+                                ? 'Nome'
+                                : col === 'paroquia'
+                                  ? 'Paróquia'
+                                  : col === 'comunidade'
+                                    ? 'Comunidade'
+                                    : 'Status'}
+                            </span>
+                            {ordenacao.coluna === col &&
+                              (ordenacao.direcao === 'asc' ? (
+                                <ArrowUp className="w-3 h-3 text-white" />
+                              ) : (
+                                <ArrowDown className="w-3 h-3 text-white" />
+                              ))}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     {inscritosFiltrados.map((insc, idx) => {
                       let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
                       let dotColor = 'bg-slate-400';
+                      let labelStatus = insc.status?.replace('_', ' ') || '-';
                       if (insc.status === 'CONFIRMADO') {
                         badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                         dotColor = 'bg-emerald-500';
-                      } else if (insc.status === 'DESISTENCIA' || insc.status === 'CANCELADO') {
-                        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-                        dotColor = 'bg-rose-500';
+                        labelStatus = 'Confirmado';
                       } else if (insc.status === 'PENDENTE') {
                         badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
                         dotColor = 'bg-amber-500';
+                        labelStatus = 'Pendente';
+                      } else if (insc.status === 'EM_ANALISE') {
+                        badgeColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        dotColor = 'bg-indigo-500';
+                        labelStatus = 'Em Análise';
                       }
 
                       return (
@@ -954,6 +1076,12 @@ export default function RelatoriosPage() {
                               {insc.pessoa?.nome || '-'}
                             </div>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-slate-500 font-medium">
+                              {insc.pessoa?.paroquia?.nome && (
+                                <span className="text-slate-700 font-semibold truncate">{insc.pessoa.paroquia.nome}</span>
+                              )}
+                              {insc.pessoa?.paroquia?.nome && (insc.pessoa?.comunidade || insc.pessoa?.telefone) && (
+                                <span className="text-slate-300">•</span>
+                              )}
                               {insc.pessoa?.comunidade && (
                                 <span className="text-slate-600 truncate">{insc.pessoa.comunidade}</span>
                               )}
@@ -970,7 +1098,7 @@ export default function RelatoriosPage() {
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                              {insc.status?.replace('_', ' ') || '-'}
+                              {labelStatus}
                             </span>
                           </div>
                         </div>
@@ -982,24 +1110,65 @@ export default function RelatoriosPage() {
                     <table className="w-full text-sm text-left border-collapse">
                       <thead>
                         <tr className="bg-[#1351b4]">
-                          <th className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider">Inscrito</th>
-                          <th className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider">Comunidade</th>
-                          <th className="w-36 px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wider">Status</th>
+                          <th
+                            className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#0f449a] transition-colors select-none"
+                            onClick={() => toggleOrdenacao('nome')}
+                            title="Clique para ordenar por Inscrito"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>Inscrito</span>
+                              {renderIconeOrdenacao('nome')}
+                            </div>
+                          </th>
+                          <th
+                            className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#0f449a] transition-colors select-none"
+                            onClick={() => toggleOrdenacao('paroquia')}
+                            title="Clique para ordenar por Paróquia"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>Paróquia</span>
+                              {renderIconeOrdenacao('paroquia')}
+                            </div>
+                          </th>
+                          <th
+                            className="px-5 py-3 text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#0f449a] transition-colors select-none"
+                            onClick={() => toggleOrdenacao('comunidade')}
+                            title="Clique para ordenar por Comunidade"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>Comunidade</span>
+                              {renderIconeOrdenacao('comunidade')}
+                            </div>
+                          </th>
+                          <th
+                            className="w-36 px-4 py-3 text-center text-xs font-bold text-white uppercase tracking-wider cursor-pointer hover:bg-[#0f449a] transition-colors select-none"
+                            onClick={() => toggleOrdenacao('status')}
+                            title="Clique para ordenar por Status"
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span>Status</span>
+                              {renderIconeOrdenacao('status')}
+                            </div>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {inscritosFiltrados.map((insc, idx) => {
                           let badgeColor = 'bg-slate-50 text-slate-600 border-slate-200';
                           let dotColor = 'bg-slate-400';
+                          let labelStatus = insc.status?.replace('_', ' ') || '-';
                           if (insc.status === 'CONFIRMADO') {
                             badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                             dotColor = 'bg-emerald-500';
-                          } else if (insc.status === 'DESISTENCIA' || insc.status === 'CANCELADO') {
-                            badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-                            dotColor = 'bg-rose-500';
+                            labelStatus = 'Confirmado';
                           } else if (insc.status === 'PENDENTE') {
                             badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
                             dotColor = 'bg-amber-500';
+                            labelStatus = 'Pendente';
+                          } else if (insc.status === 'EM_ANALISE') {
+                            badgeColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                            dotColor = 'bg-indigo-500';
+                            labelStatus = 'Em Análise';
                           }
 
                           return (
@@ -1015,7 +1184,13 @@ export default function RelatoriosPage() {
 
                               <td className="px-5 py-3">
                                 <div className="text-slate-600 text-xs font-medium truncate max-w-xs">
-                                  {insc.pessoa?.comunidade || ''}
+                                  {insc.pessoa?.paroquia?.nome || '-'}
+                                </div>
+                              </td>
+
+                              <td className="px-5 py-3">
+                                <div className="text-slate-600 text-xs font-medium truncate max-w-xs">
+                                  {insc.pessoa?.comunidade || '-'}
                                 </div>
                               </td>
 
@@ -1024,7 +1199,7 @@ export default function RelatoriosPage() {
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeColor}`}
                                 >
                                   <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                                  {insc.status?.replace('_', ' ') || '-'}
+                                  {labelStatus}
                                 </span>
                               </td>
                             </tr>
