@@ -235,10 +235,15 @@ export default function InscricoesPage() {
   const gerarPDF = () => {
     const doc = new jsPDF('landscape');
 
-    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(19, 81, 180);
     doc.text(`Relatório de Inscrições - ${eventoSelecionado?.nome || ''}`, 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Total de Inscritos: ${inscricoes.length}`, 14, 22);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Total de Inscritos: ${inscricoes.length}`, 14, 21);
 
     const inscricoesFiltradas = inscricoes
       .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()))
@@ -264,12 +269,29 @@ export default function InscricoesPage() {
     });
 
     autoTable(doc, {
-      startY: 30,
+      startY: 26,
       head: [['Nome Completo', 'Paróquia', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillColor: [19, 81, 180] },
-      styles: { fontSize: 8 },
+      headStyles: {
+        fillColor: [19, 81, 180],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2,
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        5: { halign: 'center' },
+        6: { halign: 'right' },
+      },
     });
 
     doc.save(`Inscricoes.pdf`);
