@@ -281,8 +281,10 @@ export default function RelatoriosPage() {
     if (!eventoSelecionado) return;
 
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(`Relatório de Inscrições`, 14, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(19, 81, 180);
+    doc.text(`Relatório de Inscrições`, 14, 18);
 
     const filtroDescricao =
       filtroStatus === 'TODOS'
@@ -295,12 +297,14 @@ export default function RelatoriosPage() {
               ? 'Em Análise'
               : filtroStatus;
 
-    doc.setFontSize(12);
-    doc.text(`Evento: ${eventoSelecionado.nome}`, 14, 30);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Evento: ${eventoSelecionado.nome}`, 14, 25);
     doc.text(
       `Filtro: ${filtroDescricao} | Total: ${inscritosFiltrados.length} inscrito(s)`,
       14,
-      36
+      30
     );
 
     const tableColumn = ['Nome', 'Data Nasc.', 'Paróquia', 'Comunidade', 'Status'];
@@ -328,7 +332,27 @@ export default function RelatoriosPage() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 42,
+      startY: 35,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [19, 81, 180],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2,
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        1: { halign: 'center', cellWidth: 26 },
+        4: { halign: 'center', cellWidth: 28 },
+      },
       didParseCell: (data: any) => {
         if (data.section === 'body' && data.column.index === 4) {
           const status = data.cell.raw;
@@ -355,22 +379,26 @@ export default function RelatoriosPage() {
 
     const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text(`Extrato Financeiro do Evento`, 14, 20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(19, 81, 180);
+    doc.text(`Extrato Financeiro do Evento`, 14, 18);
 
-    doc.setFontSize(11);
-    doc.text(`Evento: ${eventoExtrato.nome}`, 14, 28);
-    doc.text(`Fundo de Caixa: ${extratoData.conta?.nome || 'N/A'} (Saldo: ${formatarMoeda(extratoData.saldoConta)})`, 14, 34);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Evento: ${eventoExtrato.nome}`, 14, 25);
+    doc.text(`Fundo de Caixa: ${extratoData.conta?.nome || 'N/A'} (Saldo: ${formatarMoeda(extratoData.saldoConta)})`, 14, 30);
     doc.text(
       `Saldo do Extrato: ${formatarMoeda(saldoLiquidoFiltrado)}`,
       14,
-      40
+      35
     );
 
-    let startY = 48;
+    let startY = 41;
 
     if (agrupamentoExtrato === 'PESSOA') {
-      const tableColumn = ['Pessoa / Inscrito', 'Paróquia', 'Comunidade', 'Entradas', 'Saidas', 'Saldo'];
+      const tableColumn = ['Pessoa / Inscrito', 'Paróquia', 'Comunidade', 'Entradas', 'Saídas', 'Saldo'];
       const tableRows = agrupadoPorPessoa.map((p: any) => [
         p.nome,
         p.paroquia || '-',
@@ -384,6 +412,27 @@ export default function RelatoriosPage() {
         head: [tableColumn],
         body: tableRows,
         startY,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [19, 81, 180],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 2,
+          textColor: [51, 65, 85],
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          3: { halign: 'right' },
+          4: { halign: 'right' },
+          5: { halign: 'right' },
+        },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 5) {
             data.cell.styles.fontStyle = 'bold';
@@ -405,6 +454,27 @@ export default function RelatoriosPage() {
         head: [tableColumn],
         body: tableRows,
         startY,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [19, 81, 180],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 2,
+          textColor: [51, 65, 85],
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { halign: 'right' },
+        },
       });
     }
 
