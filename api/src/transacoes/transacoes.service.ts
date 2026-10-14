@@ -41,7 +41,7 @@ export class TransacoesService {
 
   buscarTodas() {
     return this.prisma.transacao.findMany({
-      include: { pessoa: true, conta: true },
+      include: { pessoa: true, conta: true, evento: true },
       orderBy: { data: 'desc' },
     });
   }
@@ -91,7 +91,7 @@ export class TransacoesService {
         where,
         skip,
         take,
-        include: { pessoa: true, conta: true },
+        include: { pessoa: true, conta: true, evento: true },
         orderBy: { data: 'desc' },
       }),
     ]);
@@ -107,7 +107,7 @@ export class TransacoesService {
   async buscarUma(id: number) {
     const transacao = await this.prisma.transacao.findUnique({
       where: { id },
-      include: { pessoa: true, conta: true },
+      include: { pessoa: true, conta: true, evento: true },
     });
     if (!transacao) {
       throw new NotFoundException(`Transação com ID ${id} não encontrada.`);
