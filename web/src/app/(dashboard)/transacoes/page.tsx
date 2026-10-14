@@ -24,7 +24,8 @@ import {
   TrendingUp,
   Info,
   CheckCircle2,
-  Banknote
+  Banknote,
+  Pencil
 } from 'lucide-react';
 
 export default function TransacoesPage() {
@@ -32,6 +33,7 @@ export default function TransacoesPage() {
   const [pessoas, setPessoas] = useState<any[]>([]);
   const [contas, setContas] = useState<any[]>([]);
   const [eventosAtivos, setEventosAtivos] = useState<any[]>([]);
+  const [todosEventos, setTodosEventos] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtroTipo, setFiltroTipo] = useState('Todos');
   const [filtroVinculo, setFiltroVinculo] = useState('TODOS');
@@ -47,6 +49,7 @@ export default function TransacoesPage() {
 
   // Estado do Modal
   const [modalAberto, setModalAberto] = useState(false);
+  const [transacaoEdicao, setTransacaoEdicao] = useState<any | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [dadosForm, setDadosForm] = useState({
     tipo: 'RECEITA',
@@ -84,6 +87,7 @@ export default function TransacoesPage() {
       ]);
       setPessoas(pessoasRes.data || []);
       setContas(contasRes.data || []);
+      setTodosEventos(eventosRes.data || []);
       setEventosAtivos(eventosRes.data?.filter((e: any) => e.status === 'ATIVO') || []);
     } catch (err) {
       console.error(err);
@@ -120,15 +124,59 @@ export default function TransacoesPage() {
     buscarTransacoes();
   };
 
+  const abrirModalNovo = () => {
+    setTransacaoEdicao(null);
+    setDadosForm({
+      tipo: 'RECEITA',
+      origem: 'DEPOSITO',
+      descricao: '',
+      valor: '',
+      vinculoTipo: 'PESSOA',
+      pessoaId: '',
+      contaId: '',
+      eventoId: eventosAtivos.length > 0 ? String(eventosAtivos[0].id) : '',
+      metodo: '',
+      data: new Date().toISOString().split('T')[0]
+    });
+    setModalAberto(true);
+  };
+
+  const abrirModalEdicao = (tx: any) => {
+    setTransacaoEdicao(tx);
+    const dataFormatada = tx.data ? tx.data.split('T')[0] : new Date().toISOString().split('T')[0];
+    const vinculoTipo: 'PESSOA' | 'CONTA' = tx.contaId ? 'CONTA' : 'PESSOA';
+
+    setDadosForm({
+      tipo: tx.tipo || 'RECEITA',
+      origem: tx.origem || (tx.tipo === 'RECEITA' ? 'DEPOSITO' : 'PAGAMENTO'),
+      descricao: tx.descricao || '',
+      valor: tx.valor !== undefined && tx.valor !== null ? String(tx.valor) : '',
+      vinculoTipo,
+      pessoaId: tx.pessoaId ? String(tx.pessoaId) : '',
+      contaId: tx.contaId ? String(tx.contaId) : '',
+      eventoId: tx.eventoId ? String(tx.eventoId) : '',
+      metodo: tx.metodo || '',
+      data: dataFormatada
+    });
+    setModalAberto(true);
+  };
+
   const confirmarEnvio = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true);
     try {
+      const valorNum = parseFloat(dadosForm.valor);
+      if (isNaN(valorNum) || valorNum <= 0) {
+        alert('Por favor, informe um valor válido maior que zero.');
+        setEnviando(false);
+        return;
+      }
+
       const cargaUtil = {
         tipo: dadosForm.tipo,
         origem: dadosForm.origem || null,
         descricao: dadosForm.descricao,
-        valor: parseFloat(dadosForm.valor),
+        valor: valorNum,
         pessoaId: dadosForm.vinculoTipo === 'PESSOA' && dadosForm.pessoaId ? Number(dadosForm.pessoaId) : null,
         contaId: dadosForm.vinculoTipo === 'CONTA' && dadosForm.contaId ? Number(dadosForm.contaId) : null,
         eventoId: dadosForm.eventoId ? Number(dadosForm.eventoId) : null,
@@ -136,7 +184,7 @@ export default function TransacoesPage() {
         metodo: dadosForm.metodo || null
       };
 
-      if (!cargaUtil.eventoId) {
+      if (!transacaoEdicao && !cargaUtil.eventoId) {
         alert('Por favor, selecione um evento.');
         setEnviando(false);
         return;
@@ -152,8 +200,19 @@ export default function TransacoesPage() {
         return;
       }
 
-      await api.post('/transacoes', cargaUtil);
+      if (transacaoEdicao) {
+        if (usuarioAtual?.papel !== 'ADMIN') {
+          alert('Apenas administradores podem alterar transações.');
+          setEnviando(false);
+          return;
+        }
+        await api.patch(`/transacoes/${transacaoEdicao.id}`, cargaUtil);
+      } else {
+        await api.post('/transacoes', cargaUtil);
+      }
+
       setModalAberto(false);
+      setTransacaoEdicao(null);
       setDadosForm({
         tipo: 'RECEITA',
         origem: 'DEPOSITO',
@@ -357,7 +416,7 @@ export default function TransacoesPage() {
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{totalTransacoes} movimentação{totalTransacoes !== 1 ? 'ões' : ''}</span>
           {usuarioAtual && hasPermission(usuarioAtual.papel, 'transacoes', 'escrever') && (
             <button
-              onClick={() => setModalAberto(true)}
+              onClick={abrirModalNovo}
               className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
@@ -427,17 +486,26 @@ export default function TransacoesPage() {
                       </div>
                     </td>
                     <td className="px-2 py-1 border-b border-slate-100">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {usuarioAtual?.papel === 'ADMIN' && (
+                          <button
+                            onClick={() => abrirModalEdicao(tx)}
+                            className="w-7 h-7 flex items-center justify-center bg-white text-[#1351b4] hover:text-[#0047b7] hover:bg-blue-50 border border-slate-200 rounded-sm transition-all shadow-sm"
+                            title="Editar Transação (Admin)"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         {usuarioAtual && hasPermission(usuarioAtual.papel, 'transacoes', 'escrever') ? (
                           <button
                             onClick={() => confirmarExclusao(tx.id)}
-                            className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                            className="w-7 h-7 flex items-center justify-center bg-white text-rose-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-sm transition-all shadow-sm"
                             title="Excluir Lançamento"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         ) : (
-                          <span className="text-slate-300">-</span>
+                          usuarioAtual?.papel !== 'ADMIN' && <span className="text-slate-300">-</span>
                         )}
                       </div>
                     </td>
@@ -480,11 +548,19 @@ export default function TransacoesPage() {
           <div className="bg-white w-full max-w-xl rounded-sm shadow-2xl overflow-hidden animate-in flex flex-col max-h-[90vh] fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">Novo Lançamento</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Gestão de Auditoria Financeira</p>
+                <h2 className="text-lg font-black text-[#1351b4] uppercase tracking-tight">
+                  {transacaoEdicao ? 'Editar Lançamento' : 'Novo Lançamento'}
+                </h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  {transacaoEdicao ? `Movimentação #${transacaoEdicao.id} • Exclusivo Administrador` : 'Gestão de Auditoria Financeira'}
+                </p>
               </div>
-              <button onClick={() => setModalAberto(false)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-                <ArrowRight className="w-6 h-6 rotate-45" />
+              <button
+                type="button"
+                onClick={() => { setModalAberto(false); setTransacaoEdicao(null); }}
+                className="p-2 text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -635,20 +711,24 @@ export default function TransacoesPage() {
                 </div>
               </div>
 
-              {/* Seleção do Evento (Obrigatório) */}
+              {/* Seleção do Evento (Obrigatório apenas para novos lançamentos) */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Evento Vinculado</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  Evento Vinculado {transacaoEdicao ? '(Opcional)' : ''}
+                </label>
                 <div className="relative group">
                   <Calendar className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#1351b4] transition-colors" />
                   <select
                     value={dadosForm.eventoId}
                     onChange={(e) => setDadosForm({ ...dadosForm, eventoId: e.target.value })}
-                    required
+                    required={!transacaoEdicao}
                     className="w-full pl-14 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm focus:outline-none focus:border-[#1351b4] focus:ring-4 focus:ring-[#1351b4]/5 transition-all font-black text-slate-700 appearance-none cursor-pointer"
                   >
-                    <option value="">Selecione um evento...</option>
-                    {eventosAtivos.map((e) => (
-                      <option key={e.id} value={e.id}>{e.nome}</option>
+                    <option value="">{transacaoEdicao ? 'Nenhum evento vinculado' : 'Selecione um evento...'}</option>
+                    {(transacaoEdicao ? todosEventos : eventosAtivos).map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.nome} {e.status !== 'ATIVO' ? '(Inativo)' : ''}
+                      </option>
                     ))}
                   </select>
                   <ChevronDownIcon className="w-4 h-4 absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -699,7 +779,7 @@ export default function TransacoesPage() {
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setModalAberto(false)}
+                  onClick={() => { setModalAberto(false); setTransacaoEdicao(null); }}
                   className="px-6 py-3 text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-widest transition-all"
                 >
                   Descartar
@@ -710,7 +790,7 @@ export default function TransacoesPage() {
                   className="px-6 py-3 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[#0047b7] shadow-lg shadow-blue-900/20 flex items-center gap-2 disabled:opacity-50"
                 >
                   {enviando && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Confirmar Lançamento
+                  {transacaoEdicao ? 'Salvar Alterações' : 'Confirmar Lançamento'}
                 </button>
               </div>
             </form>
