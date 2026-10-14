@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -29,17 +29,21 @@ import {
   Eye,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  FileText
 } from 'lucide-react';
 
 export default function InscricoesPage() {
   const [eventos, setEventos] = useState<any[]>([]);
   const [pessoas, setPessoas] = useState<any[]>([]);
+  const [paroquias, setParoquias] = useState<any[]>([]);
   const [inscricoes, setInscricoes] = useState<any[]>([]);
   const [eventoSelecionadoId, setEventoSelecionadoId] = useState<string>('');
   const [carregando, setCarregando] = useState(true);
   const [carregandoInscricoes, setCarregandoInscricoes] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [filtroParoquia, setFiltroParoquia] = useState<string>('TODAS');
   const [ordenacao, setOrdenacao] = useState<{ coluna: string, direcao: 'asc' | 'desc' }>({ coluna: 'nome', direcao: 'asc' });
 
   // Estado do Modal
@@ -93,13 +97,15 @@ export default function InscricoesPage() {
 
   const buscarDadosIniciais = async () => {
     try {
-      const [eventsRes, personsRes] = await Promise.all([
+      const [eventsRes, personsRes, paroquiasRes] = await Promise.all([
         api.get('/eventos'),
-        api.get('/pessoas')
+        api.get('/pessoas'),
+        api.get('/paroquias').catch(() => ({ data: [] }))
       ]);
       const eventosAtivos = eventsRes.data.filter((e: any) => e.status === 'ATIVO');
       setEventos(eventosAtivos);
       setPessoas(personsRes.data);
+      setParoquias(paroquiasRes.data || []);
       if (eventosAtivos.length > 0) {
         setEventoSelecionadoId(String(eventosAtivos[0].id));
       }
@@ -232,76 +238,36 @@ export default function InscricoesPage() {
     return `${day}/${month}/${year}`;
   };
 
-  const gerarPDF = () => {
-    const doc = new jsPDF('landscape');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(19, 81, 180);
-    doc.text(`Relatório de Inscrições - ${eventoSelecionado?.nome || ''}`, 14, 15);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Total de Inscritos: ${inscricoes.length}`, 14, 21);
-
-    const inscricoesFiltradas = inscricoes
-      .filter((insc) => insc.pessoa.nome.toLowerCase().includes(termoBusca.toLowerCase()))
-      .sort((a, b) => a.pessoa.nome.localeCompare(b.pessoa.nome));
-
-    const tableData = inscricoesFiltradas.map((insc) => {
-      const totalPagoCru = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
-      const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
-
-      return [
-        insc.pessoa.nome || '-',
-        insc.pessoa.paroquia?.nome || '-',
-        insc.pessoa.comunidade || '-',
-        insc.pessoa.telefone || '-',
-        insc.pessoa.email || '-',
-        insc.status === 'CONFIRMADO' ? 'Confirmado' :
-          insc.status === 'PENDENTE' ? 'Pendente' :
-          insc.status === 'DESISTENCIA' ? 'Desistência' :
-          insc.status === 'EM_ANALISE' ? 'Em Análise' :
-          insc.status === 'AGUARDANDO_VAGA' ? 'Fila de Espera' : insc.status,
-        formatarMoeda(totalPago)
-      ];
-    });
-
-    autoTable(doc, {
-      startY: 26,
-      head: [['Nome Completo', 'Paróquia', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [19, 81, 180],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      styles: {
-        fontSize: 7.5,
-        cellPadding: 2,
-        textColor: [51, 65, 85],
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252],
-      },
-      columnStyles: {
-        5: { halign: 'center' },
-        6: { halign: 'right' },
-      },
-    });
-
-    doc.save(`Inscricoes.pdf`);
-  };
-
   const eventoSelecionado = eventos.find(e => String(e.id) === String(eventoSelecionadoId));
   const eventoAbertoInscricao = eventoSelecionado && eventoSelecionado.status === 'ATIVO' && new Date() <= new Date(eventoSelecionado.limiteInscricao);
 
   // Filtrar pessoas que NÃO estão inscritas no evento
   const pessoasDisponiveis = pessoas.filter(p => !inscricoes.some(r => r.pessoaId === p.id));
+
+  // Lista consolidada de paróquias (todas as paróquias cadastradas + eventuais paróquias vindas das pessoas nas inscrições)
+  const listaParoquias = useMemo(() => {
+    const map = new Map<string, { id: string | number; nome: string }>();
+    paroquias.forEach((p: any) => {
+      if (p && p.id && p.nome) {
+        map.set(String(p.id), { id: p.id, nome: p.nome });
+      }
+    });
+    inscricoes.forEach((insc: any) => {
+      const p = insc.pessoa?.paroquia;
+      if (p && p.id && p.nome && !map.has(String(p.id))) {
+        map.set(String(p.id), { id: p.id, nome: p.nome });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [paroquias, inscricoes]);
+
+  const filtrosAtivos = filtroStatus !== 'TODOS' || filtroParoquia !== 'TODAS' || termoBusca.trim() !== '';
+
+  const limparFiltros = () => {
+    setFiltroStatus('TODOS');
+    setFiltroParoquia('TODAS');
+    setTermoBusca('');
+  };
 
   // Cálculos financeiros do Evento (Receitas de pagamentos e Despesas de estornos)
   const totalReceitas = inscricoes.reduce((acc, insc) => {
@@ -331,11 +297,41 @@ export default function InscricoesPage() {
 
   const inscricoesFiltradas = inscricoes
     .filter((insc) => {
-      const termo = termoBusca.toLowerCase();
-      const nome = (insc.pessoa?.nome || '').toLowerCase();
-      const paroquia = (insc.pessoa?.paroquia?.nome || '').toLowerCase();
-      const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
-      return nome.includes(termo) || paroquia.includes(termo) || comunidade.includes(termo);
+      // 1. Filtro por status
+      if (filtroStatus !== 'TODOS') {
+        if (insc.status !== filtroStatus) return false;
+      }
+
+      // 2. Filtro por paróquia
+      if (filtroParoquia !== 'TODAS') {
+        const paroquiaId = insc.pessoa?.paroquiaId ?? insc.pessoa?.paroquia?.id;
+        if (String(paroquiaId) !== String(filtroParoquia)) return false;
+      }
+
+      // 3. Filtro por termo de busca
+      if (termoBusca.trim()) {
+        const termo = termoBusca.toLowerCase().trim();
+        const nome = (insc.pessoa?.nome || '').toLowerCase();
+        const paroquia = (insc.pessoa?.paroquia?.nome || '').toLowerCase();
+        const comunidade = (insc.pessoa?.comunidade || '').toLowerCase();
+        const email = (insc.pessoa?.email || '').toLowerCase();
+        const telefone = (insc.pessoa?.telefone || '').toLowerCase();
+        const doc = (insc.pessoa?.documento || '').toLowerCase();
+        const idStr = String(insc.pessoa?.id || '');
+
+        const match =
+          nome.includes(termo) ||
+          paroquia.includes(termo) ||
+          comunidade.includes(termo) ||
+          email.includes(termo) ||
+          telefone.includes(termo) ||
+          doc.includes(termo) ||
+          idStr.includes(termo);
+
+        if (!match) return false;
+      }
+
+      return true;
     })
     .sort((a, b) => {
       let valA = '';
@@ -358,6 +354,142 @@ export default function InscricoesPage() {
       const compare = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base' });
       return ordenacao.direcao === 'asc' ? compare : -compare;
     });
+
+  const somaPagosFiltrados = inscricoesFiltradas.reduce((acc, insc) => {
+    const pago = insc.pagamentos?.reduce((sum: number, p: any) => sum + p.valor, 0) || 0;
+    return acc + pago;
+  }, 0);
+
+  const gerarPDF = () => {
+    if (inscricoesFiltradas.length === 0) {
+      alert('Nenhuma inscrição encontrada com os filtros selecionados para gerar o relatório.');
+      return;
+    }
+
+    const doc = new jsPDF('landscape');
+
+    // Título Principal
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(19, 81, 180);
+    doc.text(`Relatório de Inscrições - ${eventoSelecionado?.nome || 'Evento'}`, 14, 14);
+
+    // Identificação dos filtros
+    const labelStatus =
+      filtroStatus === 'TODOS' ? 'Todos' :
+      filtroStatus === 'CONFIRMADO' ? 'Confirmado' :
+      filtroStatus === 'PENDENTE' ? 'Pendente' :
+      filtroStatus === 'EM_ANALISE' ? 'Em Análise' :
+      filtroStatus === 'DESISTENCIA' ? 'Desistência' : filtroStatus;
+
+    const paroquiaObj = listaParoquias.find(p => String(p.id) === String(filtroParoquia));
+    const labelParoquia = filtroParoquia === 'TODAS' ? 'Todas' : (paroquiaObj?.nome || 'Selecionada');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+
+    const linhaFiltros = [
+      `Status: ${labelStatus}`,
+      `Paróquia: ${labelParoquia}`,
+      termoBusca.trim() ? `Busca: "${termoBusca.trim()}"` : null
+    ].filter(Boolean).join('  |  ');
+
+    doc.text(`Filtros: ${linhaFiltros}`, 14, 20);
+
+    const agora = new Date();
+    const dataHoraStr = `${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `Total Listado: ${inscricoesFiltradas.length} de ${inscricoes.length} inscritos  |  Total Pago (Filtro): ${formatarMoeda(somaPagosFiltrados)}  |  Emissão: ${dataHoraStr}`,
+      14,
+      25
+    );
+
+    const tableData = inscricoesFiltradas.map((insc) => {
+      const totalPagoCru = insc.pagamentos?.reduce((acc: number, p: any) => acc + p.valor, 0) || 0;
+      const totalPago = Number(Number(totalPagoCru).toFixed(2)) || 0;
+      const codPessoa = insc.pessoa?.id ? insc.pessoa.id.toString().padStart(3, '0') : '-';
+
+      return [
+        codPessoa,
+        insc.pessoa?.nome || '-',
+        insc.pessoa?.paroquia?.nome || '-',
+        insc.pessoa?.comunidade || '-',
+        insc.pessoa?.telefone || '-',
+        insc.pessoa?.email || '-',
+        insc.status === 'CONFIRMADO' ? 'Confirmado' :
+          insc.status === 'PENDENTE' ? 'Pendente' :
+          insc.status === 'DESISTENCIA' ? 'Desistência' :
+          insc.status === 'EM_ANALISE' ? 'Em Análise' :
+          insc.status === 'AGUARDANDO_VAGA' ? 'Fila de Espera' : insc.status,
+        formatarMoeda(totalPago)
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 29,
+      head: [['Cód.', 'Nome Completo', 'Paróquia', 'Comunidade', 'Telefone', 'E-mail', 'Status', 'Valor Pago']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [19, 81, 180],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2,
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 14 },
+        6: { halign: 'center' },
+        7: { halign: 'right' },
+      },
+      foot: [
+        [
+          {
+            content: `Total: ${inscricoesFiltradas.length} inscrição(ões)`,
+            colSpan: 7,
+            styles: { halign: 'right', fontStyle: 'bold' }
+          },
+          {
+            content: formatarMoeda(somaPagosFiltrados),
+            styles: { halign: 'right', fontStyle: 'bold' }
+          }
+        ]
+      ],
+      footStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [15, 23, 42],
+        fontStyle: 'bold',
+        fontSize: 8,
+      },
+      didDrawPage: (data) => {
+        const pageSize = doc.internal.pageSize;
+        const pageHeight = pageSize.height || pageSize.getHeight();
+        const pageWidth = pageSize.width || pageSize.getWidth();
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Página ${data.pageNumber}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+      }
+    });
+
+    const nomeEventoLimpo = (eventoSelecionado?.nome || 'Inscricoes')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .substring(0, 30);
+    const sufixoStatus = filtroStatus !== 'TODOS' ? `_${filtroStatus}` : '';
+    doc.save(`Inscricoes_${nomeEventoLimpo}${sufixoStatus}.pdf`);
+  };
 
   const handleStatusChange = (inscricao: any, novoStatus: string, originalElement?: HTMLSelectElement) => {
     if (novoStatus === 'DESISTENCIA') {
@@ -429,6 +561,12 @@ export default function InscricoesPage() {
               <span className="text-[10px] font-black text-emerald-600 tracking-widest">Confirmados</span>
               <span className="text-xs font-black text-emerald-800">{inscritosConfirmados}</span>
             </div>
+            {filtrosAtivos && (
+              <div className="flex flex-col items-center justify-center px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-sm" title="Inscrições Filtradas">
+                <span className="text-[10px] font-black text-indigo-600 tracking-widest">Filtrados</span>
+                <span className="text-xs font-black text-indigo-800">{inscricoesFiltradas.length}</span>
+              </div>
+            )}
             {/* <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-sm" title="Inscrições Pendentes">
               <span className="text-[9px] font-black text-amber-600 tracking-widest">Pendente: </span>
               <span className="text-xs font-black text-amber-800">{inscritosPendentes}</span>
@@ -439,32 +577,86 @@ export default function InscricoesPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Campo de Busca */}
+            <div className="relative min-w-[200px] flex-1 sm:flex-initial">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Buscar por nome, paróquia, comunidade..."
                 value={termoBusca}
                 onChange={(e) => setTermoBusca(e.target.value)}
-                className="pl-9 pr-4 py-2.5 md:py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full md:w-70 shadow-sm"
+                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-full sm:w-56 shadow-sm"
               />
             </div>
+
+            {/* Filtro por Status */}
+            <div className="relative">
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] shadow-sm appearance-none cursor-pointer"
+                title="Filtrar por Status"
+              >
+                <option value="TODOS">Todos os Status</option>
+                <option value="CONFIRMADO">Confirmado</option>
+                <option value="PENDENTE">Pendente</option>
+                <option value="EM_ANALISE">Em Análise</option>
+                <option value="DESISTENCIA">Desistência</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Filtro por Paróquia */}
+            <div className="relative">
+              <select
+                value={filtroParoquia}
+                onChange={(e) => setFiltroParoquia(e.target.value)}
+                className="pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] shadow-sm appearance-none cursor-pointer max-w-[200px] truncate"
+                title="Filtrar por Paróquia"
+              >
+                <option value="TODAS">Todas as Paróquias</option>
+                {listaParoquias.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Botão Limpar Filtros */}
+            {filtrosAtivos && (
+              <button
+                type="button"
+                onClick={limparFiltros}
+                title="Limpar filtros"
+                className="flex items-center gap-1 px-2.5 py-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-wider transition-colors shadow-sm"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpar</span>
+              </button>
+            )}
+
+            {/* Botão Nova Inscrição */}
             <button
               disabled={!eventoAbertoInscricao}
               onClick={abrirModal}
               title='Nova Inscrição'
-              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group"
             >
               <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-              Nova Inscrição
+              <span>Nova Inscrição</span>
             </button>
+
+            {/* Botão Relatório PDF */}
             <button
               onClick={gerarPDF}
-              title='Relatório PDF'
-              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm group"
+              title='Gerar Relatório PDF com filtros aplicados'
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm group"
             >
-              Relatório
+              <FileText className="w-3.5 h-3.5" />
+              <span>Relatório</span>
             </button>
           </div>
         </div>
@@ -488,8 +680,19 @@ export default function InscricoesPage() {
             <div className="px-8 py-32 text-center text-slate-300">
               <div className="flex flex-col items-center gap-4 opacity-20">
                 <AlertCircle className="w-16 h-16" />
-                <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada na busca</span>
+                <span className="font-black uppercase tracking-[0.2em] text-xs">Nenhuma inscrição encontrada com os filtros selecionados</span>
               </div>
+              {filtrosAtivos && (
+                <div className="flex justify-center mt-4">
+                  <button
+                    type="button"
+                    onClick={limparFiltros}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1351b4] rounded-sm text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
