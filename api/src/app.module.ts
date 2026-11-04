@@ -17,6 +17,7 @@ import { TrabalhosModule } from './trabalhos/trabalhos.module';
 import { ProdutosVendaModule } from './produtos-venda/produtos-venda.module';
 import { VendasModule } from './vendas/vendas.module';
 import { LancamentosExtratoModule } from './lancamentos-extrato/lancamentos-extrato.module';
+import { ConciliacaoModule } from './conciliacao/conciliacao.module';
 import { ArquivosModule } from './arquivos/arquivos.module';
 import { MailModule } from './mail/mail.module';
 
@@ -42,6 +43,7 @@ import { MailModule } from './mail/mail.module';
     ProdutosVendaModule,
     VendasModule,
     LancamentosExtratoModule,
+    ConciliacaoModule,
     ArquivosModule,
     MailModule,
   ],
