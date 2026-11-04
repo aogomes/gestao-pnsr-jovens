@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { hasPermission, PapelUsuario } from '@/lib/permissions.config';
 import Cookies from 'js-cookie';
+import ConciliacaoBancariaTab from './ConciliacaoBancariaTab';
 import {
   Plus,
   Church,
@@ -47,7 +48,7 @@ export default function ContasPage() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab');
 
-  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'paroquias' | 'importar'>((tab as any) || 'contas');
+  const [abaAtiva, setAbaAtiva] = useState<'importar' | 'contas' | 'paroquias'>((tab as any) || 'importar');
   const [carregando, setCarregando] = useState(true);
 
   // Estados de Importação de Extrato
@@ -691,6 +692,17 @@ export default function ContasPage() {
       <div className="border-b border-slate-200 overflow-x-auto custom-scrollbar no-scrollbar">
         <div className="flex gap-8">
           <button
+            key="importar"
+            onClick={() => setAbaAtiva('importar')}
+            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'importar'
+              ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
+              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+              }`}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Conciliação Bancária
+          </button>
+          <button
             key="contas"
             onClick={() => setAbaAtiva('contas')}
             className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'contas'
@@ -712,243 +724,12 @@ export default function ContasPage() {
             <Church className="w-4 h-4" />
             Paróquias
           </button>
-          <button
-            key="importar"
-            onClick={() => setAbaAtiva('importar')}
-            className={`px-6 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2 ${abaAtiva === 'importar'
-              ? 'bg-[#1351b4] text-white shadow-lg shadow-blue-900/20'
-              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-              }`}
-          >
-            <RefreshCw className="w-4 h-4" />
-            Importar
-          </button>
         </div>
       </div>
 
-
-
-      {/* Conteúdo - Tabela de Contas */}
-      {abaAtiva === 'contas' && (
-        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{contasFiltradas.length} conta{contasFiltradas.length !== 1 ? 's' : ''} encontrada{contasFiltradas.length !== 1 ? 's' : ''}</span>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Buscar conta ou paróquia..."
-                  value={termoBusca}
-                  onChange={(e) => setTermoBusca(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
-                />
-              </div>
-              {podeEditar && (
-                <button
-                  onClick={() => abrirModalConta()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-                  Nova Conta
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="bg-[#1351b4]">
-                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Identificação</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia Vinculada</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Saldo Atual</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {carregando ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-[#1351b4]" /></td></tr>
-                ) : contasFiltradas.length === 0 ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">Nenhuma conta encontrada</td></tr>
-                ) : (
-                  contasFiltradas.map((conta) => (
-                    <tr key={conta.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                            <Building2 className="w-4 h-4" />
-                          </div>
-                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{conta.nome}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-1 border-b border-slate-100">
-                        <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
-                          <Church className="w-3.5 h-3.5" />
-                          {conta.paroquia?.nome || '-'}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1 border-b border-slate-100">
-                        <span className="font-bold text-[12px] text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-sm">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.saldo)}
-                        </span>
-                      </td>
-                      <td className="px-2 py-1 border-b border-slate-100 text-center relative">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => setMenuAbertoId(menuAbertoId === `conta_${conta.id}` ? null : `conta_${conta.id}`)}
-                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
-
-                          {menuAbertoId === `conta_${conta.id}` && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
-                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-48">
-                                <button
-                                  onClick={() => { setMenuAbertoId(null); abrirModalExtrato(conta); }}
-                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-sm text-left transition-colors"
-                                >
-                                  <ArrowRightLeft className="w-3.5 h-3.5" /> Ver Movimentações
-                                </button>
-                                {podeEditar && (
-                                  <>
-                                    <button
-                                      onClick={() => { setMenuAbertoId(null); abrirModalConta(conta); }}
-                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" /> Editar
-                                    </button>
-                                    <button
-                                      onClick={() => { setMenuAbertoId(null); excluirConta(conta.id); }}
-                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Conteúdo - Tabela de Paróquias */}
-      {abaAtiva === 'paroquias' && (
-        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{paroquiasFiltradas.length} paróquia{paroquiasFiltradas.length !== 1 ? 's' : ''} encontrada{paroquiasFiltradas.length !== 1 ? 's' : ''}</span>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome ou cidade..."
-                  value={termoBusca}
-                  onChange={(e) => setTermoBusca(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
-                />
-              </div>
-              {podeEditar && (
-                <button
-                  onClick={() => abrirModalParoquia()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
-                  Nova Paróquia
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="bg-[#1351b4]">
-                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Responsável</th>
-                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Localização</th>
-                  {podeEditar && <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {carregando ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-[#1351b4]" /></td></tr>
-                ) : paroquiasFiltradas.length === 0 ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">Nenhuma paróquia encontrada</td></tr>
-                ) : (
-                  paroquiasFiltradas.map((paroquia) => (
-                    <tr key={paroquia.id} className="hover:bg-slate-50 transition-colors group">
-                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
-                            <Church className="w-4 h-4" />
-                          </div>
-                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{paroquia.nome}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
-                        <div className="flex items-center gap-2 uppercase">
-                          <UserIcon className="w-3.5 h-3.5" />
-                          {paroquia.paroco}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
-                        <div className="flex items-center gap-2 uppercase">
-                          <MapPin className="w-3.5 h-3.5" />
-                          {paroquia.cidade}
-                        </div>
-                      </td>
-                      {podeEditar && (
-                        <td className="px-2 py-1 border-b border-slate-100 text-center relative">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => setMenuAbertoId(menuAbertoId === `paroquia_${paroquia.id}` ? null : `paroquia_${paroquia.id}`)}
-                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
-                            >
-                              <MoreVertical className="w-5 h-5" />
-                            </button>
-
-                            {menuAbertoId === `paroquia_${paroquia.id}` && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
-                                <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
-                                  <button
-                                    onClick={() => { setMenuAbertoId(null); abrirModalParoquia(paroquia); }}
-                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
-                                  >
-                                    <Pencil className="w-3.5 h-3.5" /> Editar
-                                  </button>
-                                  <button
-                                    onClick={() => { setMenuAbertoId(null); excluirParoquia(paroquia.id); }}
-                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" /> Excluir
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Conteúdo - Importação de Extrato */}
-      {abaAtiva === 'importar' && (
+      {abaAtiva === 'importar' && <ConciliacaoBancariaTab contas={contas} podeEditar={podeEditar} />}
+      {(abaAtiva as string) === 'importar_legado' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="bg-white border border-slate-200 rounded-sm shadow-sm p-6 md:p-8 space-y-6">
             <div className="border-b border-slate-100 pb-4">
@@ -1276,6 +1057,225 @@ export default function ContasPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Conteúdo - Tabela de Contas */}
+      {abaAtiva === 'contas' && (
+        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{contasFiltradas.length} conta{contasFiltradas.length !== 1 ? 's' : ''} encontrada{contasFiltradas.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar conta ou paróquia..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                />
+              </div>
+              {podeEditar && (
+                <button
+                  onClick={() => abrirModalConta()}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                  Nova Conta
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="bg-[#1351b4]">
+                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Identificação</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia Vinculada</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Saldo Atual</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {carregando ? (
+                  <tr><td colSpan={4} className="px-8 py-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-[#1351b4]" /></td></tr>
+                ) : contasFiltradas.length === 0 ? (
+                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">Nenhuma conta encontrada</td></tr>
+                ) : (
+                  contasFiltradas.map((conta) => (
+                    <tr key={conta.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{conta.nome}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-b border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
+                          <Church className="w-3.5 h-3.5" />
+                          {conta.paroquia?.nome || '-'}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-b border-slate-100">
+                        <span className="font-bold text-[12px] text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-sm">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(conta.saldo)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1 border-b border-slate-100 text-center relative">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => setMenuAbertoId(menuAbertoId === `conta_${conta.id}` ? null : `conta_${conta.id}`)}
+                            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+
+                          {menuAbertoId === `conta_${conta.id}` && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                              <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-48">
+                                <button
+                                  onClick={() => { setMenuAbertoId(null); abrirModalExtrato(conta); }}
+                                  className="flex items-center gap-2 p-2 text-[11px] font-bold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-sm text-left transition-colors"
+                                >
+                                  <ArrowRightLeft className="w-3.5 h-3.5" /> Ver Movimentações
+                                </button>
+                                {podeEditar && (
+                                  <>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); abrirModalConta(conta); }}
+                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" /> Editar
+                                    </button>
+                                    <button
+                                      onClick={() => { setMenuAbertoId(null); excluirConta(conta.id); }}
+                                      className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Conteúdo - Tabela de Paróquias */}
+      {abaAtiva === 'paroquias' && (
+        <div className="flex-1 bg-white border border-slate-200 rounded-sm shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 gap-4 flex-wrap">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{paroquiasFiltradas.length} paróquia{paroquiasFiltradas.length !== 1 ? 's' : ''} encontrada{paroquiasFiltradas.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome ou cidade..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 uppercase placeholder:normal-case placeholder:font-normal focus:outline-none focus:border-[#1351b4] focus:ring-1 focus:ring-[#1351b4] w-64 shadow-sm"
+                />
+              </div>
+              {podeEditar && (
+                <button
+                  onClick={() => abrirModalParoquia()}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm group shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                  Nova Paróquia
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="overflow-x-auto overflow-y-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="bg-[#1351b4]">
+                  <th className="pl-6 pr-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Paróquia</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Responsável</th>
+                  <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4]">Localização</th>
+                  {podeEditar && <th className="px-2 py-2 text-sm font-bold text-white border-b border-[#1351b4] text-center">Ações</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {carregando ? (
+                  <tr><td colSpan={4} className="px-8 py-20 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-[#1351b4]" /></td></tr>
+                ) : paroquiasFiltradas.length === 0 ? (
+                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-widest text-[10px]">Nenhuma paróquia encontrada</td></tr>
+                ) : (
+                  paroquiasFiltradas.map((paroquia) => (
+                    <tr key={paroquia.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="pl-6 pr-2 py-1 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-8 rounded-sm bg-slate-100 flex items-center justify-center text-[#1351b4] border border-slate-200 group-hover:bg-[#1351b4] group-hover:text-white transition-all">
+                            <Church className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-[12px] text-slate-700 uppercase leading-tight">{paroquia.nome}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
+                        <div className="flex items-center gap-2 uppercase">
+                          <UserIcon className="w-3.5 h-3.5" />
+                          {paroquia.paroco}
+                        </div>
+                      </td>
+                      <td className="px-2 py-1 border-b border-slate-100 text-slate-500 font-bold text-xs">
+                        <div className="flex items-center gap-2 uppercase">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {paroquia.cidade}
+                        </div>
+                      </td>
+                      {podeEditar && (
+                        <td className="px-2 py-1 border-b border-slate-100 text-center relative">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => setMenuAbertoId(menuAbertoId === `paroquia_${paroquia.id}` ? null : `paroquia_${paroquia.id}`)}
+                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#1351b4] rounded-full transition-colors"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+
+                            {menuAbertoId === `paroquia_${paroquia.id}` && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setMenuAbertoId(null)} />
+                                <div className="absolute right-8 top-1/2 -translate-y-1/2 z-50 bg-white border border-slate-200 shadow-xl rounded-md flex flex-col p-1 w-40">
+                                  <button
+                                    onClick={() => { setMenuAbertoId(null); abrirModalParoquia(paroquia); }}
+                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-slate-600 hover:bg-blue-50 hover:text-[#1351b4] rounded-sm text-left transition-colors"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" /> Editar
+                                  </button>
+                                  <button
+                                    onClick={() => { setMenuAbertoId(null); excluirParoquia(paroquia.id); }}
+                                    className="flex items-center gap-2 p-2 text-[11px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-700 rounded-sm text-left transition-colors"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" /> Excluir
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
