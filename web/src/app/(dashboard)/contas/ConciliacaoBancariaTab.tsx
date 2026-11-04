@@ -30,6 +30,7 @@ import {
   Check,
   Ban,
   Download,
+  RefreshCw,
 } from 'lucide-react';
 
 const MESES = [
@@ -122,8 +123,9 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   const [buscaItem, setBuscaItem] = useState('');
   const [filtroTipoLancamentoItem, setFiltroTipoLancamentoItem] =
     useState<string>('TODOS');
+  const [filtroPessoaItem, setFiltroPessoaItem] = useState<string>('TODAS');
   const [filtroAssociacaoItem, setFiltroAssociacaoItem] = useState<
-    'TODOS' | 'PENDENTES' | 'ASSOCIADOS'
+    'TODOS' | 'PENDENTES' | 'ASSOCIADOS' | 'DESCONSIDERADOS'
   >('TODOS');
 
   // Modal de Associação Manual de Pessoa
@@ -170,6 +172,10 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
 
   const abrirDetalheConciliacao = async (id: number) => {
     setCarregandoDetalhe(true);
+    setBuscaItem('');
+    setFiltroTipoLancamentoItem('TODOS');
+    setFiltroPessoaItem('TODAS');
+    setFiltroAssociacaoItem('TODOS');
     setModoVisao('detalhe');
     try {
       const res = await api.get(`/conciliacao/${id}`);
@@ -712,6 +718,32 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   const isItemAssociado = (it: any) =>
     it.pessoaId !== null || Boolean(it.desconsiderado);
 
+  const pessoasAssociadasConciliacao = useMemo(() => {
+    if (!conciliacaoAtual?.itens) return [];
+    const mapa: Record<
+      number,
+      { id: number; nome: string; qtd: number; total: number }
+    > = {};
+    conciliacaoAtual.itens.forEach((it: any) => {
+      if (it.pessoaId && it.pessoa?.nome && !it.desconsiderado) {
+        const pid = Number(it.pessoaId);
+        if (!mapa[pid]) {
+          mapa[pid] = {
+            id: pid,
+            nome: it.pessoa.nome,
+            qtd: 0,
+            total: 0,
+          };
+        }
+        mapa[pid].qtd += 1;
+        mapa[pid].total += Number(it.valor || 0);
+      }
+    });
+    return Object.values(mapa).sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }),
+    );
+  }, [conciliacaoAtual]);
+
   const itensDetalheFiltrados = useMemo(() => {
     if (!conciliacaoAtual?.itens) return [];
     return conciliacaoAtual.itens.filter((it: any) => {
@@ -722,8 +754,25 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       ) {
         return false;
       }
+      if (
+        filtroPessoaItem !== 'TODAS' &&
+        (it.desconsiderado || String(it.pessoaId || '') !== filtroPessoaItem)
+      ) {
+        return false;
+      }
       if (filtroAssociacaoItem === 'PENDENTES' && associado) return false;
-      if (filtroAssociacaoItem === 'ASSOCIADOS' && !associado) return false;
+      if (
+        filtroAssociacaoItem === 'ASSOCIADOS' &&
+        (it.pessoaId === null || Boolean(it.desconsiderado))
+      ) {
+        return false;
+      }
+      if (
+        filtroAssociacaoItem === 'DESCONSIDERADOS' &&
+        !Boolean(it.desconsiderado)
+      ) {
+        return false;
+      }
 
       if (buscaItem.trim()) {
         const termo = normalizarTexto(buscaItem);
@@ -756,6 +805,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   }, [
     conciliacaoAtual,
     filtroTipoLancamentoItem,
+    filtroPessoaItem,
     filtroAssociacaoItem,
     buscaItem,
   ]);
@@ -1448,9 +1498,36 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   const totalItens = conciliacaoAtual.itens?.length || 0;
   const totalAssociados =
     conciliacaoAtual.itens?.filter((i: any) => isItemAssociado(i)).length || 0;
+  const qtdPendentes =
+    conciliacaoAtual.itens?.filter((i: any) => !isItemAssociado(i)).length || 0;
+  const qtdAssociadosPessoa =
+    conciliacaoAtual.itens?.filter(
+      (i: any) => i.pessoaId !== null && !Boolean(i.desconsiderado),
+    ).length || 0;
+  const qtdDesconsiderados =
+    conciliacaoAtual.itens?.filter((i: any) => Boolean(i.desconsiderado))
+      .length || 0;
   const nomeMesConciliacao =
     MESES.find((m) => m.valor === conciliacaoAtual.mes)?.nome ||
     conciliacaoAtual.mes;
+  const pessoaSelecionadaFiltro =
+    filtroPessoaItem !== 'TODAS'
+      ? pessoasAssociadasConciliacao.find(
+        (p) => String(p.id) === filtroPessoaItem,
+      ) || null
+      : null;
+  const totalFiltradoItens = itensDetalheFiltrados.reduce(
+    (acc: number, it: any) => acc + Number(it.valor || 0),
+    0,
+  );
+  const labelStatusFiltro =
+    filtroAssociacaoItem === 'PENDENTES'
+      ? 'Pendentes'
+      : filtroAssociacaoItem === 'ASSOCIADOS'
+        ? 'Associados'
+        : filtroAssociacaoItem === 'DESCONSIDERADOS'
+          ? 'Desconsiderados'
+          : 'Todos os Status';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -1521,11 +1598,26 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
 
           <div className="flex items-center gap-2 flex-wrap">
             <select
+              value={filtroPessoaItem}
+              onChange={(e) => setFiltroPessoaItem(e.target.value)}
+              className="px-3 py-2.5 bg-white border border-slate-200 rounded-sm text-[10px] font-black text-[#1351b4] uppercase max-w-xs"
+            >
+              <option value="TODAS">
+                Todas as Pessoas Associadas ({pessoasAssociadasConciliacao.length})
+              </option>
+              {pessoasAssociadasConciliacao.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.nome.toUpperCase()} ({p.qtd})
+                </option>
+              ))}
+            </select>
+
+            <select
               value={filtroTipoLancamentoItem}
               onChange={(e) => setFiltroTipoLancamentoItem(e.target.value)}
               className="px-3 py-2.5 bg-white border border-slate-200 rounded-sm text-[10px] font-black text-slate-700 uppercase"
             >
-              <option value="TODOS">Todos os Tipos de Lançamento</option>
+              <option value="TODOS">Todos os Tipos</option>
               {TIPOS_LANCAMENTO_BB.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -1533,24 +1625,86 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
               ))}
             </select>
 
-            {(['TODOS', 'PENDENTES', 'ASSOCIADOS'] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFiltroAssociacaoItem(status)}
-                className={`px-4 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-wider border transition-all ${filtroAssociacaoItem === status
-                  ? 'bg-[#1351b4] text-white border-[#1351b4]'
-                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                  }`}
-              >
-                {status === 'TODOS'
-                  ? 'Todos'
-                  : status === 'PENDENTES'
-                    ? 'Pendentes'
-                    : 'Associados'}
-              </button>
-            ))}
+            <select
+              value={filtroAssociacaoItem}
+              onChange={(e) =>
+                setFiltroAssociacaoItem(
+                  e.target.value as
+                  | 'TODOS'
+                  | 'PENDENTES'
+                  | 'ASSOCIADOS'
+                  | 'DESCONSIDERADOS',
+                )
+              }
+              className="px-3 py-2.5 bg-white border border-slate-200 rounded-sm text-[10px] font-black text-slate-700 uppercase"
+            >
+              <option value="TODOS">Todos os Status ({totalItens})</option>
+              <option value="PENDENTES">Pendentes ({qtdPendentes})</option>
+              <option value="ASSOCIADOS">
+                Associados ({qtdAssociadosPessoa})
+              </option>
+              <option value="DESCONSIDERADOS">
+                Desconsiderados ({qtdDesconsiderados})
+              </option>
+            </select>
           </div>
         </div>
+
+        {/* Resumo do Total quando filtrado por Pessoa ou por Status */}
+        {(filtroPessoaItem !== 'TODAS' || filtroAssociacaoItem !== 'TODOS') && (
+          <div className="px-3.5 py-2 bg-emerald-50/70 border border-emerald-200 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 bg-emerald-600 text-white rounded-sm">
+                <UserCheck className="w-3.5 h-3.5" />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase">
+                  {filtroPessoaItem !== 'TODAS' &&
+                    filtroAssociacaoItem !== 'TODOS'
+                    ? `Filtro: Pessoa + Status (${labelStatusFiltro}):`
+                    : filtroPessoaItem !== 'TODAS'
+                      ? 'Pessoa Filtrada:'
+                      : 'Status Filtrado:'}
+                </span>
+                <span className="text-xs font-black text-emerald-950 uppercase">
+                  {filtroPessoaItem !== 'TODAS'
+                    ? pessoaSelecionadaFiltro?.nome || 'Pessoa Selecionada'
+                    : labelStatusFiltro}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-700">
+                  ({itensDetalheFiltrados.length}{' '}
+                  {itensDetalheFiltrados.length === 1
+                    ? 'lançamento'
+                    : 'lançamentos'}
+                  )
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase">
+                  Total:
+                </span>
+                <span className="text-sm font-black text-emerald-800">
+                  {formatarMoeda(totalFiltradoItens)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFiltroPessoaItem('TODAS');
+                  setFiltroAssociacaoItem('TODOS');
+                }}
+                className="px-2 py-1 bg-white border border-emerald-200 text-emerald-700 rounded-sm text-[9px] font-black uppercase hover:bg-emerald-100 flex items-center gap-1"
+              >
+                <X className="w-3 h-3" />
+                Limpar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tabela de Itens da Conciliação (conciliacao_itens) */}
         <div className="overflow-x-auto border border-slate-200 rounded-sm">
@@ -1604,10 +1758,10 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                         : 'hover:bg-slate-50'
                         }`}
                     >
-                      <td className="pl-4 pr-2 py-2.5 font-bold text-slate-600 whitespace-nowrap">
+                      <td className="pl-4 pr-2 py-1.5 font-bold text-slate-600 whitespace-nowrap">
                         {formatarData(item.dataLancamento)}
                       </td>
-                      <td className="px-2 py-2.5 text-center">
+                      <td className="px-2 py-1.5 text-center">
                         {item.lote ? (
                           <span className="px-2 py-0.5 rounded-sm text-[10px] font-black bg-slate-100 text-slate-700">
                             {item.lote}
@@ -1616,20 +1770,20 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                           <span className="text-slate-300 text-[10px]">—</span>
                         )}
                       </td>
-                      {/* <td className="px-2 py-2.5 font-mono text-[11px] font-bold text-slate-500">
+                      {/* <td className="px-2 py-1.5 font-mono text-[11px] font-bold text-slate-500">
                         {item.documento || (
                           <span className="text-slate-300">—</span>
                         )}
                       </td> */}
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         <span className="inline-block px-2 py-0.5 bg-blue-50 text-[#1351b4] border border-blue-100 rounded-sm text-[10px] font-black uppercase">
                           {item.tipoLancamento || 'Outros'}
                         </span>
                       </td>
-                      <td className="px-2 py-2.5 font-bold text-slate-700 uppercase text-[11px]">
+                      <td className="px-2 py-1.5 font-bold text-slate-700 uppercase text-[11px]">
                         {item.historico}
                       </td>
-                      <td className="px-2 py-2.5">
+                      <td className="px-2 py-1.5">
                         {item.cpf || item.nomeExtrato ? (
                           <div className="flex flex-col">
                             {item.nomeExtrato && (
@@ -1650,7 +1804,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                         )}
                       </td>
                       <td
-                        className={`px-2 py-2.5 font-black text-right whitespace-nowrap ${isCredito ? 'text-emerald-600' : 'text-rose-600'
+                        className={`px-2 py-1.5 font-black text-right whitespace-nowrap ${isCredito ? 'text-emerald-600' : 'text-rose-600'
                           }`}
                       >
                         {formatarMoeda(item.valor)}{' '}
@@ -1658,11 +1812,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                           {isCredito ? '(+)' : '(-)'}
                         </span>
                       </td>
-                      <td className="pl-2 pr-4 py-2.5">
+                      <td className="pl-2 pr-4 py-1.5">
                         {item.pessoa ? (
-                          <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-sm">
+                          <div className="flex items-center justify-between gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-sm">
                             <div className="flex flex-col min-w-0">
-                              <span className="font-black text-[11px] text-emerald-900 uppercase truncate">
+                              <span className="font-black text-[10px] text-emerald-900 uppercase truncate">
                                 {item.pessoa.nome}
                               </span>
                               {item.pessoa.documento && (
@@ -1672,12 +1826,13 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               )}
                             </div>
                             {podeEditar && (
-                              <div className="flex items-center gap-1 shrink-0">
+                              <div className="flex items-center gap-0.5 shrink-0">
                                 <button
                                   onClick={() => abrirModalAssociar(item)}
-                                  className="px-2 py-1 text-[9px] font-black uppercase bg-white border border-emerald-200 text-emerald-700 rounded-sm hover:bg-emerald-100"
+                                  title="Trocar associação"
+                                  className="p-1 text-emerald-700 hover:bg-emerald-100 rounded-sm transition-colors"
                                 >
-                                  Trocar
+                                  <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() =>
@@ -1688,7 +1843,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                       false,
                                     )
                                   }
-                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-sm"
+                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-sm transition-colors"
                                   title="Desvincular pessoa"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -1697,7 +1852,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                             )}
                           </div>
                         ) : item.desconsiderado ? (
-                          <div className="flex items-center justify-between gap-2 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-sm">
+                          <div className="flex items-center justify-between gap-1.5 bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-sm">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <Ban className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                               <div className="flex flex-col min-w-0">
@@ -1710,12 +1865,13 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               </div>
                             </div>
                             {podeEditar && (
-                              <div className="flex items-center gap-1 shrink-0">
+                              <div className="flex items-center gap-0.5 shrink-0">
                                 <button
                                   onClick={() => abrirModalAssociar(item)}
-                                  className="px-2 py-1 text-[9px] font-black uppercase bg-white border border-slate-300 text-slate-700 rounded-sm hover:bg-slate-200"
+                                  title="Trocar associação"
+                                  className="p-1 text-slate-600 hover:bg-slate-200 rounded-sm transition-colors"
                                 >
-                                  Trocar
+                                  <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() =>
@@ -1726,7 +1882,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                       false,
                                     )
                                   }
-                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-sm"
+                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-sm transition-colors"
                                   title="Remover associação DESCONSIDERAR"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -1788,7 +1944,6 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                   className="px-2.5 py-1.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-700 rounded-sm text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 shrink-0"
                                 >
                                   <Ban className="w-3 h-3" />
-                                  Desconsiderar
                                 </button>
                               </div>
                             ) : (
