@@ -463,6 +463,14 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
     doc.setTextColor(19, 81, 180);
     doc.text('Relatório de Conciliação Bancária', 14, 13);
 
+    const totalRecebido = itens
+      .filter(
+        (item: any) =>
+          !item.desconsiderado &&
+          (item.tipo === 'CREDITO' || item.tipo === 'RECEITA'),
+      )
+      .reduce((acc: number, item: any) => acc + Number(item.valor || 0), 0);
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(71, 85, 105);
@@ -472,7 +480,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       17.5,
     );
     doc.text(
-      `Conta: ${conciliacaoDados.conta?.nome || 'Não informada'}  |  Total de Itens Importados: ${itens.length}`,
+      `Conta: ${conciliacaoDados.conta?.nome || 'Não informada'}  |  Total de Itens Importados: ${itens.length}  |  Total Recebido Identificado: ${formatarMoeda(totalRecebido)}`,
       14,
       21,
     );
@@ -513,6 +521,17 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
     autoTable(doc, {
       head: [colunasItens],
       body: linhasItens,
+      foot: [
+        [
+          '',
+          '',
+          '',
+          'TOTAL RECEBIDO IDENTIFICADO',
+          `${formatarMoeda(totalRecebido)} (+)`,
+          '',
+        ],
+      ],
+      showFoot: 'lastPage',
       startY: 24,
       theme: 'grid',
       headStyles: {
@@ -530,6 +549,13 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       alternateRowStyles: {
         fillColor: [248, 250, 252],
       },
+      footStyles: {
+        fillColor: [236, 253, 245],
+        textColor: [6, 95, 70],
+        fontStyle: 'bold',
+        fontSize: 6,
+        cellPadding: 1.4,
+      },
       columnStyles: {
         0: { halign: 'center', cellWidth: 15 },
         1: { halign: 'center', cellWidth: 12 },
@@ -539,6 +565,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
         5: { cellWidth: 46 },
       },
       didParseCell: (data: any) => {
+        if (data.section === 'foot') {
+          if (data.column.index === 3 || data.column.index === 4) {
+            data.cell.styles.halign = 'right';
+          }
+        }
         if (data.section === 'body' && data.column.index === 4) {
           const rawVal = String(data.cell.raw || '');
           data.cell.styles.fontStyle = 'bold';
@@ -888,11 +919,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                   <th className="px-3 py-2.5 text-xs font-bold text-center">
                     Total Itens
                   </th>
-                  <th className="px-3 py-2.5 text-xs font-bold text-center">
+                  {/* <th className="px-3 py-2.5 text-xs font-bold text-center">
                     Itens com CPF (Pix)
-                  </th>
+                  </th> */}
                   <th className="px-3 py-2.5 text-xs font-bold text-center">
-                    Itens Associados
+                    Itens Identificados
                   </th>
                   <th className="px-3 py-2.5 text-xs font-bold text-right">
                     Entradas (+)
@@ -951,11 +982,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                         <td className="px-3 py-3 text-center font-black text-xs text-slate-700">
                           {total}
                         </td>
-                        <td className="px-3 py-3 text-center">
+                        {/* <td className="px-3 py-3 text-center">
                           <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-sm text-[11px] font-black">
                             {comCpfAssoc} / {comCpf} associados
                           </span>
-                        </td>
+                        </td> */}
                         <td className="px-3 py-3 text-center">
                           <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-sm text-[11px] font-black">
                             {assoc} / {total}
@@ -1711,7 +1742,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
           <table className="w-full text-xs text-left">
             <thead>
               <tr className="bg-[#1351b4] text-white">
-                <th className="pl-4 pr-2 py-2.5 font-bold w-24">Dia</th>
+                <th className="pl-4 pr-2 py-2.5 font-bold w-20">Dia</th>
                 <th className="px-2 py-2.5 font-bold w-20 text-center">
                   Lote
                 </th>
@@ -1719,15 +1750,15 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                 <th className="px-2 py-2.5 font-bold w-35">
                   Tipo
                 </th>
-                <th className="px-2 py-2.5 font-bold w-40">Histórico</th>
+                <th className="px-2 py-2.5 font-bold w-60">Histórico</th>
                 <th className="px-2 py-2.5 font-bold w-35">
-                  Nome / CPF
+                  Nome Comprovante
                 </th>
-                <th className="px-2 py-2.5 font-bold w-36 text-right">
-                  Valor (+ / -)
+                <th className="px-2 py-2.5 font-bold w-32 text-right">
+                  Valor
                 </th>
-                <th className="pl-2 pr-4 py-2.5 font-bold w-40">
-                  Associação (Pessoa / Desconsiderar)
+                <th className="pl-2 pr-4 py-2.5 font-bold w-40 text-center">
+                  Pessoa Identificada
                 </th>
               </tr>
             </thead>
@@ -1791,11 +1822,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                 {item.nomeExtrato}
                               </span>
                             )}
-                            {item.cpf && (
+                            {/* {item.cpf && (
                               <span className="font-mono text-[10px] font-bold text-amber-700">
                                 CPF: {item.cpf}
                               </span>
-                            )}
+                            )} */}
                           </div>
                         ) : (
                           <span className="text-slate-300 text-[10px] font-bold uppercase">
@@ -1819,11 +1850,11 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               <span className="font-black text-[10px] text-emerald-900 uppercase truncate">
                                 {item.pessoa.nome}
                               </span>
-                              {item.pessoa.documento && (
+                              {/* {item.pessoa.documento && (
                                 <span className="text-[9px] font-bold text-emerald-700">
                                   Doc: {item.pessoa.documento}
                                 </span>
-                              )}
+                              )} */}
                             </div>
                             {podeEditar && (
                               <div className="flex items-center gap-0.5 shrink-0">
@@ -1856,11 +1887,8 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                             <div className="flex items-center gap-1.5 min-w-0">
                               <Ban className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                               <div className="flex flex-col min-w-0">
-                                <span className="font-black text-[10px] text-slate-700 uppercase truncate">
-                                  DESCONSIDERAR
-                                </span>
-                                <span className="text-[8px] font-bold text-emerald-700 uppercase">
-                                  Item Associado
+                                <span className="font-black text-[10px] text-slate-700 truncate">
+                                  Item não associável
                                 </span>
                               </div>
                             </div>
