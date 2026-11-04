@@ -13,7 +13,7 @@ import { hasPermission, PapelUsuario } from './permissions.config';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredPermission =
@@ -29,7 +29,6 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    console.log('PermissionsGuard - User:', user);
 
     if (!user || !user.papel) {
       throw new ForbiddenException(
