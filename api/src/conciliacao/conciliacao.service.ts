@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateConciliacaoDto,
@@ -8,8 +8,51 @@ import { UpdateConciliacaoDto } from './dto/update-conciliacao.dto';
 import { AssociarPessoaDto } from './dto/associar-pessoa.dto';
 
 @Injectable()
-export class ConciliacaoService {
-  constructor(private readonly prisma: PrismaService) { }
+export class ConciliacaoService implements OnModuleInit {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit() {
+    try {
+      await this.prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "conciliacao" (
+          "id" SERIAL NOT NULL,
+          "mes" INTEGER NOT NULL,
+          "ano" INTEGER NOT NULL,
+          "descricao" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'ABERTA',
+          "id_conta" INTEGER,
+          "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "conciliacao_pkey" PRIMARY KEY ("id"),
+          CONSTRAINT "conciliacao_id_conta_fkey" FOREIGN KEY ("id_conta") REFERENCES "contas"("id") ON DELETE SET NULL ON UPDATE CASCADE
+        );
+      `);
+      await this.prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "conciliacao_itens" (
+          "id" SERIAL NOT NULL,
+          "id_conciliacao" INTEGER NOT NULL,
+          "data_lancamento" TIMESTAMP(3) NOT NULL,
+          "lote" TEXT,
+          "documento" TEXT,
+          "historico" TEXT NOT NULL,
+          "tipo_lancamento" TEXT,
+          "cpf" TEXT,
+          "nome_extrato" TEXT,
+          "valor" DOUBLE PRECISION NOT NULL,
+          "tipo" TEXT NOT NULL DEFAULT 'CREDITO',
+          "desconsiderado" BOOLEAN NOT NULL DEFAULT false,
+          "id_pessoa" INTEGER,
+          "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "atualizado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "conciliacao_itens_pkey" PRIMARY KEY ("id"),
+          CONSTRAINT "conciliacao_itens_id_conciliacao_fkey" FOREIGN KEY ("id_conciliacao") REFERENCES "conciliacao"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+          CONSTRAINT "conciliacao_itens_id_pessoa_fkey" FOREIGN KEY ("id_pessoa") REFERENCES "pessoas"("id") ON DELETE SET NULL ON UPDATE CASCADE
+        );
+      `);
+    } catch (err) {
+      console.warn('Aviso ao verificar tabelas de conciliação no boot:', err);
+    }
+  }
 
   async criar(dto: CreateConciliacaoDto) {
     return this.prisma.$transaction(async (tx) => {
