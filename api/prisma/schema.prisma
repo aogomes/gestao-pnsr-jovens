@@ -89,10 +89,12 @@ model Transacao {
   rifa         Rifa?         @relation(fields: [rifaId], references: [id], onDelete: SetNull)
   
   // Vínculos relacionais de integridade com inscrições e eventos
-  inscricaoId  Int?
-  inscricao    Inscricao?    @relation(fields: [inscricaoId], references: [id], onDelete: SetNull)
-  eventoId     Int?
-  evento       Evento?       @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  inscricaoId   Int?
+  inscricao     Inscricao?    @relation(fields: [inscricaoId], references: [id], onDelete: SetNull)
+  eventoId      Int?
+  evento        Evento?       @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  conciliacaoId Int?          @map("id_conciliacao")
+  conciliacao   Conciliacao?  @relation(fields: [conciliacaoId], references: [id], onDelete: Cascade)
 
   criadoEm     DateTime      @default(now())
   atualizadoEm DateTime      @updatedAt
@@ -512,6 +514,7 @@ model Conciliacao {
   contaId      Int?              @map("id_conta")
   conta        Conta?            @relation(fields: [contaId], references: [id], onDelete: SetNull)
   itens        ConciliacaoItem[]
+  transacoes   Transacao[]
   criadoEm     DateTime          @default(now()) @map("criado_em")
   atualizadoEm DateTime          @updatedAt @map("atualizado_em")
 
