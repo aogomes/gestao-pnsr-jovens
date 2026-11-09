@@ -17,6 +17,7 @@ import {
 } from './dto/create-conciliacao.dto';
 import { UpdateConciliacaoDto } from './dto/update-conciliacao.dto';
 import { AssociarPessoaDto } from './dto/associar-pessoa.dto';
+import { RatearConciliacaoDto } from './dto/ratear-conciliacao.dto';
 import { JwtAuthGuard } from '../autenticacao/jwt-auth.guard';
 import { PermissionsGuard } from '../autenticacao/permissions.guard';
 import { RequirePermissions } from '../autenticacao/permissions.decorator';
@@ -70,6 +71,21 @@ export class ConciliacaoController {
     return this.service.adicionarItens(id, itens);
   }
 
+  @Post(':id/ratear')
+  @RequirePermissions('contas', 'escrever')
+  ratear(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RatearConciliacaoDto,
+  ) {
+    return this.service.ratear(id, dto);
+  }
+
+  @Post(':id/estornar-rateio')
+  @RequirePermissions('contas', 'escrever')
+  estornarRateio(@Param('id', ParseIntPipe) id: number) {
+    return this.service.estornarRateio(id);
+  }
+
   @Patch('itens/:itemId/pessoa')
   @RequirePermissions('contas', 'escrever')
   associarPessoaItem(
@@ -91,4 +107,3 @@ export class ConciliacaoController {
     return this.service.remover(id);
   }
 }
-

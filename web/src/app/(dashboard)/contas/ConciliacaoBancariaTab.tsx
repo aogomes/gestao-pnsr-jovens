@@ -31,6 +31,10 @@ import {
   Ban,
   Download,
   RefreshCw,
+  Split,
+  RotateCcw,
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
 
 const MESES = [
@@ -101,8 +105,37 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   const [filtroMesLista, setFiltroMesLista] = useState<string>('');
   const [filtroAnoLista, setFiltroAnoLista] = useState<string>('');
 
-  // Pessoas para associação manual
+  // Pessoas para associação manual e Eventos para rateio
   const [pessoas, setPessoas] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<any[]>([]);
+
+  // Estados do Modal de Rateio da Conciliação
+  const [modalRateioAberto, setModalRateioAberto] = useState(false);
+  const [itensRateioModal, setItensRateioModal] = useState<
+    {
+      pessoaId: number;
+      nome: string;
+      documento?: string;
+      qtd: number;
+      valorOriginal: number;
+      valorEditado: string;
+      extra?: boolean;
+    }[]
+  >([]);
+  const [eventoIdRateio, setEventoIdRateio] = useState<string>('');
+  const [contaIdRateio, setContaIdRateio] = useState<string>('');
+  const [dataRateio, setDataRateio] = useState<string>(
+    new Date().toISOString().split('T')[0],
+  );
+  const [descricaoRateio, setDescricaoRateio] = useState<string>('');
+  const [buscaPessoaExtraRateio, setBuscaPessoaExtraRateio] =
+    useState<string>('');
+  const [pessoaExtraSelecionadaId, setPessoaExtraSelecionadaId] =
+    useState<string>('');
+  const [salvandoRateio, setSalvandoRateio] = useState(false);
+  const [estornandoRateio, setEstornandoRateio] = useState(false);
+  const [modalVisualizarRateioAberto, setModalVisualizarRateioAberto] =
+    useState(false);
 
   // Estados de Nova Conciliação (Importação PDF BB)
   const [mesForm, setMesForm] = useState<number>(hoje.getMonth() + 1);
@@ -143,7 +176,17 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   useEffect(() => {
     carregarConciliacoes();
     carregarPessoas();
+    carregarEventos();
   }, [filtroMesLista, filtroAnoLista]);
+
+  const carregarEventos = async () => {
+    try {
+      const res = await api.get('/eventos');
+      setEventos(res.data || []);
+    } catch (err) {
+      console.error('Erro ao carregar eventos:', err);
+    }
+  };
 
   const carregarConciliacoes = async () => {
     setCarregandoLista(true);
@@ -347,8 +390,10 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
         setModoVisao('lista');
       }
       carregarConciliacoes();
-    } catch (err) {
-      alert('Erro ao excluir conciliação.');
+    } catch (err: any) {
+      alert(
+        err.response?.data?.message || 'Erro ao excluir conciliação.',
+      );
     }
   };
 
@@ -430,6 +475,212 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       );
     } finally {
       setSalvandoAssociacao(false);
+    }
+  };
+
+  const abrirModalRateio = () => {
+    if (!conciliacaoAtual) return;
+    const pendentes =
+      conciliacaoAtual.itens?.filter(
+        (i: any) => i.pessoaId === null && !Boolean(i.desconsiderado),
+      ).length || 0;
+
+    if (pendentes > 0) {
+      alert(
+        `Não é possível realizar o rateio enquanto houver itens pendentes (${pendentes} pendente(s)). Associe ou desconsidere todos os itens primeiro.`,
+      );
+      return;
+    }
+
+    if (pessoasAssociadasConciliacao.length === 0) {
+      alert(
+        'Não há nenhuma pessoa associada nesta conciliação para realizar o rateio.',
+      );
+      return;
+    }
+
+    const iniciais = pessoasAssociadasConciliacao.map((p) => {
+      const cad = pessoas.find((pe) => Number(pe.id) === Number(p.id));
+      const val = Number(p.total.toFixed(2));
+      return {
+        pessoaId: Number(p.id),
+        nome: p.nome,
+        documento: cad?.documento || '',
+        qtd: p.qtd,
+        valorOriginal: val,
+        valorEditado: val.toFixed(2),
+        extra: false,
+      };
+    });
+
+    const eventosAtivos = eventos.filter((e) => e.status === 'ATIVO');
+    const contaConciliacao = conciliacaoAtual.contaId
+      ? String(conciliacaoAtual.contaId)
+      : '';
+
+    const eventoSugerido =
+      (contaConciliacao
+        ? eventosAtivos.find(
+          (e) => String(e.contaId) === contaConciliacao,
+        )
+        : null) ||
+      eventosAtivos[0] ||
+      eventos[0] ||
+      null;
+
+    setItensRateioModal(iniciais);
+    setEventoIdRateio(eventoSugerido ? String(eventoSugerido.id) : '');
+    setContaIdRateio(
+      contaConciliacao ||
+      (eventoSugerido?.contaId ? String(eventoSugerido.contaId) : '') ||
+      (contas[0]?.id ? String(contas[0].id) : ''),
+    );
+    const mesPad = String(conciliacaoAtual.mes).padStart(2, '0');
+    setDescricaoRateio(
+      `Conciliação Bancária ${mesPad}/${conciliacaoAtual.ano}`,
+    );
+    setDataRateio(new Date().toISOString().split('T')[0]);
+    setBuscaPessoaExtraRateio('');
+    setPessoaExtraSelecionadaId('');
+    setModalRateioAberto(true);
+  };
+
+  const restaurarValoresOriginaisRateio = () => {
+    const iniciais = pessoasAssociadasConciliacao.map((p) => {
+      const cad = pessoas.find((pe) => Number(pe.id) === Number(p.id));
+      const val = Number(p.total.toFixed(2));
+      return {
+        pessoaId: Number(p.id),
+        nome: p.nome,
+        documento: cad?.documento || '',
+        qtd: p.qtd,
+        valorOriginal: val,
+        valorEditado: val.toFixed(2),
+        extra: false,
+      };
+    });
+    setItensRateioModal(iniciais);
+  };
+
+  const adicionarPessoaExtraRateio = (diferencaRestante: number) => {
+    if (!pessoaExtraSelecionadaId) return;
+    const pid = Number(pessoaExtraSelecionadaId);
+    if (itensRateioModal.some((it) => it.pessoaId === pid)) {
+      alert('Esta pessoa já está na lista do rateio.');
+      return;
+    }
+    const pessoaObj = pessoas.find((p) => Number(p.id) === pid);
+    if (!pessoaObj) return;
+
+    const valorSugerido =
+      diferencaRestante > 0 ? diferencaRestante.toFixed(2) : '0.00';
+
+    setItensRateioModal((prev) => [
+      ...prev,
+      {
+        pessoaId: pid,
+        nome: pessoaObj.nome,
+        documento: pessoaObj.documento || '',
+        qtd: 0,
+        valorOriginal: 0,
+        valorEditado: valorSugerido,
+        extra: true,
+      },
+    ]);
+    setPessoaExtraSelecionadaId('');
+    setBuscaPessoaExtraRateio('');
+  };
+
+  const removerPessoaExtraRateio = (pessoaId: number) => {
+    setItensRateioModal((prev) =>
+      prev.filter((it) => !(it.extra && it.pessoaId === pessoaId)),
+    );
+  };
+
+  const confirmarRateioConciliacao = async () => {
+    if (!conciliacaoAtual) return;
+    if (!eventoIdRateio) {
+      alert('Selecione o Evento onde serão lançadas as transações do rateio.');
+      return;
+    }
+
+    const totalIdentificado = Number(
+      pessoasAssociadasConciliacao
+        .reduce((acc, p) => acc + p.total, 0)
+        .toFixed(2),
+    );
+    const somaAtual = Number(
+      itensRateioModal
+        .reduce((acc, it) => acc + (parseFloat(it.valorEditado) || 0), 0)
+        .toFixed(2),
+    );
+
+    if (Math.abs(somaAtual - totalIdentificado) >= 0.01) {
+      alert(
+        `O total do rateio (${formatarMoeda(somaAtual)}) deve ser exatamente igual ao valor identificado na conciliação (${formatarMoeda(totalIdentificado)}).`,
+      );
+      return;
+    }
+
+    setSalvandoRateio(true);
+    try {
+      const payload = {
+        eventoId: Number(eventoIdRateio),
+        contaId: contaIdRateio ? Number(contaIdRateio) : null,
+        data: dataRateio,
+        descricao: descricaoRateio.trim(),
+        itens: itensRateioModal
+          .map((it) => ({
+            pessoaId: it.pessoaId,
+            valor: Number((parseFloat(it.valorEditado) || 0).toFixed(2)),
+          }))
+          .filter((it) => it.valor > 0),
+      };
+
+      const res = await api.post(
+        `/conciliacao/${conciliacaoAtual.id}/ratear`,
+        payload,
+      );
+      setConciliacaoAtual(res.data);
+      setModalRateioAberto(false);
+      await carregarConciliacoes();
+      alert('Rateio confirmado e transações geradas com sucesso!');
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'Erro ao realizar o rateio da conciliação.';
+      alert(`Erro: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+    } finally {
+      setSalvandoRateio(false);
+    }
+  };
+
+  const estornarRateioConciliacao = async () => {
+    if (!conciliacaoAtual) return;
+    if (
+      !confirm(
+        'Tem certeza que deseja estornar/cancelar o rateio desta conciliação? Todas as transações geradas por este rateio serão excluídas e a conciliação voltará ao status ABERTA.',
+      )
+    ) {
+      return;
+    }
+
+    setEstornandoRateio(true);
+    try {
+      const res = await api.post(
+        `/conciliacao/${conciliacaoAtual.id}/estornar-rateio`,
+      );
+      setConciliacaoAtual(res.data);
+      await carregarConciliacoes();
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'Erro ao estornar rateio.';
+      alert(`Erro: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+    } finally {
+      setEstornandoRateio(false);
     }
   };
 
@@ -734,6 +985,168 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
     doc.save(nomeArquivo);
   };
 
+  const gerarRelatorioPdfRateio = (conciliacaoDados: any) => {
+    if (!conciliacaoDados) return;
+    const transacoesRateio: any[] = [...(conciliacaoDados.transacoes || [])].sort(
+      (a, b) =>
+        (a.pessoa?.nome || '').localeCompare(b.pessoa?.nome || '', 'pt-BR', {
+          sensitivity: 'base',
+        }),
+    );
+    const itens: any[] = conciliacaoDados.itens || [];
+    const mesPad = String(conciliacaoDados.mes).padStart(2, '0');
+    const nomeMes =
+      MESES.find((m) => m.valor === conciliacaoDados.mes)?.nome ||
+      String(conciliacaoDados.mes);
+
+    const mapaOriginais: Record<number, { qtd: number; total: number }> = {};
+    itens.forEach((it: any) => {
+      if (it.pessoaId && !it.desconsiderado) {
+        const pid = Number(it.pessoaId);
+        if (!mapaOriginais[pid]) {
+          mapaOriginais[pid] = { qtd: 0, total: 0 };
+        }
+        mapaOriginais[pid].qtd += 1;
+        mapaOriginais[pid].total += Number(it.valor || 0);
+      }
+    });
+
+    const totalRateado = transacoesRateio.reduce(
+      (acc, t) => acc + Number(t.valor || 0),
+      0,
+    );
+    const totalOriginalConciliado = Object.values(mapaOriginais).reduce(
+      (acc, o) => acc + o.total,
+      0,
+    );
+    const totalItensConciliados = Object.values(mapaOriginais).reduce(
+      (acc, o) => acc + o.qtd,
+      0,
+    );
+
+    const eventoNome =
+      transacoesRateio[0]?.evento?.nome || 'Não informado';
+    const contaNome =
+      conciliacaoDados.conta?.nome ||
+      transacoesRateio[0]?.conta?.nome ||
+      'Não informada';
+    const dataRateioFormatada = transacoesRateio[0]?.data
+      ? formatarData(transacoesRateio[0].data)
+      : '-';
+
+    const doc = new jsPDF();
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(19, 81, 180);
+    doc.text('Relatório de Rateio da Conciliação Bancária', 14, 13);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      `Período: ${mesPad}/${conciliacaoDados.ano} (${nomeMes})  |  Descrição: ${conciliacaoDados.descricao || '-'}`,
+      14,
+      17.5,
+    );
+    doc.text(
+      `Evento: ${eventoNome}  |  Conta: ${contaNome}  |  Data do Rateio: ${dataRateioFormatada}  |  Pessoas Creditadas: ${transacoesRateio.length}  |  Total Rateado: ${formatarMoeda(totalRateado)}`,
+      14,
+      21,
+    );
+
+    const colunas = [
+      '#',
+      'Nome da Pessoa Creditada',
+      'Qtd. Lançamentos',
+      'Valor na Conciliação',
+      'Valor Rateado (Crédito)',
+    ];
+
+    const linhas =
+      transacoesRateio.length > 0
+        ? transacoesRateio.map((t, idx) => {
+          const orig = mapaOriginais[Number(t.pessoaId)] || {
+            qtd: 0,
+            total: 0,
+          };
+          const nomePessoa = (t.pessoa?.nome || 'PESSOA NÃO IDENTIFICADA')
+            .toUpperCase()
+            .trim();
+          return [
+            String(idx + 1),
+            nomePessoa,
+            String(orig.qtd),
+            formatarMoeda(orig.total),
+            formatarMoeda(Number(t.valor || 0)),
+          ];
+        })
+        : [['-', 'NENHUMA TRANSAÇÃO DE RATEIO ENCONTRADA', '0', formatarMoeda(0), formatarMoeda(0)]];
+
+    autoTable(doc, {
+      head: [colunas],
+      body: linhas,
+      foot: [
+        [
+          '',
+          'TOTAL DO RATEIO',
+          String(totalItensConciliados),
+          formatarMoeda(totalOriginalConciliado),
+          formatarMoeda(totalRateado),
+        ],
+      ],
+      showFoot: 'lastPage',
+      startY: 24,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [19, 81, 180],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 6,
+        cellPadding: 1.2,
+      },
+      styles: {
+        fontSize: 5.5,
+        cellPadding: 1.1,
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      footStyles: {
+        fillColor: [236, 253, 245],
+        textColor: [6, 95, 70],
+        fontStyle: 'bold',
+        fontSize: 6.5,
+        cellPadding: 1.5,
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { cellWidth: 92 },
+        2: { halign: 'center', cellWidth: 24 },
+        3: { halign: 'right', cellWidth: 27 },
+        4: { halign: 'right', cellWidth: 27, fontStyle: 'bold' },
+      },
+      didParseCell: (data: any) => {
+        if (data.section === 'foot') {
+          if (data.column.index === 2) {
+            data.cell.styles.halign = 'center';
+          }
+          if (data.column.index === 3 || data.column.index === 4) {
+            data.cell.styles.halign = 'right';
+          }
+        }
+        if (data.section === 'body' && data.column.index === 4) {
+          data.cell.styles.textColor = [5, 150, 105];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    const nomeArquivo = `relatorio_rateio_conciliacao_${mesPad}_${conciliacaoDados.ano}.pdf`;
+    doc.save(nomeArquivo);
+  };
+
   const baixarRelatorioPorId = async (id: number) => {
     setGerandoRelatorioId(id);
     try {
@@ -974,7 +1387,18 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                           </span>
                         </td>
                         <td className="px-3 py-3 font-bold text-xs text-slate-700 uppercase">
-                          {c.descricao}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{c.descricao}</span>
+                            {c.status === 'CONCILIADA' ? (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-sm text-[9px] font-black uppercase">
+                                Rateio Concluído
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-sm text-[9px] font-black uppercase">
+                                Aberta
+                              </span>
+                            )}
+                          </div>
                         </td>
                         {/* <td className="px-3 py-3 text-xs font-bold text-slate-500 uppercase">
                           {c.conta?.nome || '-'}
@@ -1020,15 +1444,17 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               )}
                               Relatório
                             </button>
-                            {podeEditar && (
-                              <button
-                                onClick={() => excluirConciliacao(c.id)}
-                                className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-sm transition-colors"
-                                title="Excluir conciliação"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            {podeEditar &&
+                              c.status !== 'CONCILIADA' &&
+                              !(c.resumo?.qtdTransacoesRateio > 0) && (
+                                <button
+                                  onClick={() => excluirConciliacao(c.id)}
+                                  className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-sm transition-colors"
+                                  title="Excluir conciliação"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                           </div>
                         </td>
                       </tr>
@@ -1063,7 +1489,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
               </button>
               <div>
                 <h2 className="text-sm font-black text-[#1351b4] uppercase tracking-tight">
-                  Nova Conciliação Bancária - Extrato PDF Banco do Brasil
+                  Nova Conciliação Bancária - Extrato PDF
                 </h2>
                 <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">
                   Separação em 5 colunas (Dia, Lote, Documento, Histórico e
@@ -1559,6 +1985,35 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
         : filtroAssociacaoItem === 'DESCONSIDERADOS'
           ? 'Desconsiderados'
           : 'Todos os Status';
+  const isConciliada = conciliacaoAtual.status === 'CONCILIADA';
+  const podeEditarAssociacoes = podeEditar && !isConciliada;
+  const totalIdentificadoRateio = Number(
+    pessoasAssociadasConciliacao
+      .reduce((acc, p) => acc + p.total, 0)
+      .toFixed(2),
+  );
+  const totalEditadoRateio = Number(
+    itensRateioModal
+      .reduce((acc, it) => acc + (parseFloat(it.valorEditado) || 0), 0)
+      .toFixed(2),
+  );
+  const diferencaRateio = Number(
+    (totalIdentificadoRateio - totalEditadoRateio).toFixed(2),
+  );
+  const rateioMatematicamenteValido =
+    totalIdentificadoRateio > 0 && Math.abs(diferencaRateio) < 0.01;
+  const pessoasDisponiveisParaAdicionarRateio = pessoas.filter((p) => {
+    if (itensRateioModal.some((it) => it.pessoaId === Number(p.id))) {
+      return false;
+    }
+    if (!buscaPessoaExtraRateio.trim()) return true;
+    const termo = normalizarTexto(buscaPessoaExtraRateio);
+    const termoDig = apenasDigitos(buscaPessoaExtraRateio);
+    return (
+      normalizarTexto(p.nome).includes(termo) ||
+      (termoDig.length > 0 && apenasDigitos(p.documento).includes(termoDig))
+    );
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -1577,7 +2032,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 bg-[#1351b4] text-white text-[10px] font-black uppercase rounded-sm">
                   {String(conciliacaoAtual.mes).padStart(2, '0')}/
                   {conciliacaoAtual.ano} - {nomeMesConciliacao}
@@ -1585,16 +2040,25 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                 <h2 className="text-base font-black text-slate-800 uppercase tracking-tight">
                   {conciliacaoAtual.descricao}
                 </h2>
+                {isConciliada ? (
+                  <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black uppercase rounded-sm flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Rateio Concluído
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase rounded-sm">
+                    Aberta
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                Associação manual de pessoas aos itens do extrato (Apenas
-                Conferência/Auditoria)
+                Associação manual de pessoas aos itens do extrato e geração de rateio financeiro
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="text-right">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-right mr-1">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
                 Progresso de Associação
               </span>
@@ -1603,16 +2067,96 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
               </span>
             </div>
 
+            {podeEditar && !isConciliada && (
+              <button
+                type="button"
+                onClick={abrirModalRateio}
+                disabled={
+                  qtdPendentes > 0 || pessoasAssociadasConciliacao.length === 0
+                }
+                title={
+                  qtdPendentes > 0
+                    ? `Resolva os ${qtdPendentes} item(ns) pendente(s) para liberar o rateio (necessário 0 Pendentes)`
+                    : pessoasAssociadasConciliacao.length === 0
+                      ? 'Associe ao menos uma pessoa para realizar o rateio'
+                      : 'Abrir popup de conferência e gerar transações do rateio'
+                }
+                className="px-4 py-2.5 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Split className="w-4 h-4" />
+                Rateio
+                {qtdPendentes > 0 && (
+                  <span className="px-1.5 py-0.5 bg-amber-400 text-slate-900 rounded-sm text-[9px] font-black">
+                    {qtdPendentes} pend.
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => gerarRelatorioPdfConciliacao(conciliacaoAtual)}
               className="px-4 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              Gerar Relatório PDF
+              Relatório
             </button>
           </div>
         </div>
+
+        {/* Banner de Conciliação Rateada / Concluída */}
+        {isConciliada && (
+          <div className="px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-600 text-white rounded-sm">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-emerald-950 uppercase">
+                  Rateio Realizado —{' '}
+                  {conciliacaoAtual.transacoes?.length || 0} transação(ões) gerada(s) • Total Rateado:{' '}
+                  {formatarMoeda(totalIdentificadoRateio)}
+                </p>
+                <p className="text-[10px] font-bold text-emerald-700 uppercase mt-0.5">
+                  {conciliacaoAtual.transacoes?.[0]?.evento?.nome
+                    ? `Evento: ${conciliacaoAtual.transacoes[0].evento.nome}`
+                    : ''}{' '}
+                  {conciliacaoAtual.conta?.nome
+                    ? `• Conta: ${conciliacaoAtual.conta.nome}`
+                    : ''}
+                  {' • '}As associações estão bloqueadas para preservar a integridade do rateio.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <button
+                type="button"
+                onClick={() => setModalVisualizarRateioAberto(true)}
+                className="px-3.5 py-2 bg-[#1351b4] text-white hover:bg-[#0047b7] rounded-sm text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Visualizar Rateio
+              </button>
+
+              {podeEditar && (
+                <button
+                  type="button"
+                  onClick={estornarRateioConciliacao}
+                  disabled={estornandoRateio}
+                  className="px-3.5 py-2 bg-white border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                >
+                  {estornandoRateio ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  )}
+                  Estornar Rateio
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filtros dos Itens */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
@@ -1856,7 +2400,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                 </span>
                               )} */}
                             </div>
-                            {podeEditar && (
+                            {podeEditarAssociacoes && (
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button
                                   onClick={() => abrirModalAssociar(item)}
@@ -1892,7 +2436,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                 </span>
                               </div>
                             </div>
-                            {podeEditar && (
+                            {podeEditarAssociacoes && (
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button
                                   onClick={() => abrirModalAssociar(item)}
@@ -1920,7 +2464,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-1.5">
-                            {sugestao && podeEditar && (
+                            {sugestao && podeEditarAssociacoes && (
                               <div className="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-sm">
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-[8px] font-black text-[#1351b4] uppercase flex items-center gap-1">
@@ -1949,7 +2493,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               </div>
                             )}
 
-                            {podeEditar ? (
+                            {podeEditarAssociacoes ? (
                               <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={() => abrirModalAssociar(item)}
@@ -2165,6 +2709,628 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                   Confirmar Associação
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal (Popup) de Rateio da Conciliação */}
+      {modalRateioAberto && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-4xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+            {/* Cabeçalho do Modal */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#1351b4] text-white rounded-sm">
+                  <Split className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#1351b4] uppercase tracking-tight">
+                    Rateio da Conciliação —{' '}
+                    {String(conciliacaoAtual.mes).padStart(2, '0')}/
+                    {conciliacaoAtual.ano} ({nomeMesConciliacao})
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                    Confira, ajuste os valores por pessoa ou adicione participantes antes de gerar as transações de crédito
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalRateioAberto(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Corpo do Modal */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Seleção de Evento, Conta, Data e Descrição */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-sm">
+                <div className="space-y-1 lg:col-span-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Evento de Destino dos Créditos *
+                  </label>
+                  <select
+                    value={eventoIdRateio}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEventoIdRateio(val);
+                      const ev = eventos.find((item) => String(item.id) === val);
+                      if (ev?.contaId) {
+                        setContaIdRateio(String(ev.contaId));
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-black text-[#1351b4] focus:outline-none focus:border-[#1351b4]"
+                  >
+                    <option value="">Selecione o Evento...</option>
+                    {eventos.map((ev) => (
+                      <option key={ev.id} value={String(ev.id)}>
+                        {ev.nome}
+                        {ev.conta?.nome ? ` (Conta: ${ev.conta.nome})` : ''}
+                        {ev.status !== 'ATIVO' ? ' [Inativo]' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Conta Bancária Vinculada
+                  </label>
+                  <select
+                    value={contaIdRateio}
+                    onChange={(e) => setContaIdRateio(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1351b4]"
+                  >
+                    <option value="">Selecione a Conta...</option>
+                    {contas.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Data das Transações
+                  </label>
+                  <input
+                    type="date"
+                    value={dataRateio}
+                    onChange={(e) => setDataRateio(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1351b4]"
+                  />
+                </div>
+
+                <div className="space-y-1 md:col-span-2 lg:col-span-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Descrição Padrão das Transações
+                  </label>
+                  <input
+                    type="text"
+                    value={descricaoRateio}
+                    onChange={(e) => setDescricaoRateio(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-700 uppercase focus:outline-none focus:border-[#1351b4]"
+                    placeholder="Descrição que constará no extrato das pessoas..."
+                  />
+                </div>
+              </div>
+
+              {/* Painel de Trava Matemática (Total Conciliação x Total Rateado x Diferença) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-sm">
+                  <span className="text-[9px] font-black text-[#1351b4] uppercase tracking-widest block">
+                    Total Identificado na Conciliação (Fixo)
+                  </span>
+                  <span className="text-base font-black text-slate-900 mt-0.5 block">
+                    {formatarMoeda(totalIdentificadoRateio)}
+                  </span>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-sm">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+                    Soma Atual do Rateio ({itensRateioModal.filter((i) => (parseFloat(i.valorEditado) || 0) > 0).length}{' '}
+                    pessoas)
+                  </span>
+                  <span className="text-base font-black text-slate-900 mt-0.5 block">
+                    {formatarMoeda(totalEditadoRateio)}
+                  </span>
+                </div>
+
+                <div
+                  className={`p-3.5 border rounded-sm ${rateioMatematicamenteValido
+                    ? 'bg-emerald-50 border-emerald-300'
+                    : 'bg-rose-50 border-rose-300'
+                    }`}
+                >
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-widest block ${rateioMatematicamenteValido
+                      ? 'text-emerald-700'
+                      : 'text-rose-700'
+                      }`}
+                  >
+                    {rateioMatematicamenteValido
+                      ? 'Saldo / Diferença (Exato)'
+                      : diferencaRateio > 0
+                        ? 'Falta Distribuir no Rateio'
+                        : 'Ultrapassou o Total em'}
+                  </span>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span
+                      className={`text-base font-black ${rateioMatematicamenteValido
+                        ? 'text-emerald-800'
+                        : 'text-rose-700'
+                        }`}
+                    >
+                      {rateioMatematicamenteValido
+                        ? 'R$ 0,00'
+                        : formatarMoeda(Math.abs(diferencaRateio))}
+                    </span>
+                    {rateioMatematicamenteValido ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-rose-600" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloco para Adicionar Pessoa Extra ao Rateio */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-sm flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <UserPlus className="w-3.5 h-3.5 text-[#1351b4]" />
+                    Adicionar outra pessoa ao Rateio (Ex.: Pix único pago para mais de uma pessoa)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={buscaPessoaExtraRateio}
+                      onChange={(e) => setBuscaPessoaExtraRateio(e.target.value)}
+                      placeholder="Filtrar pessoa por nome ou CPF..."
+                      className="sm:w-56 px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1351b4]"
+                    />
+                    <select
+                      value={pessoaExtraSelecionadaId}
+                      onChange={(e) => setPessoaExtraSelecionadaId(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-sm text-xs font-bold text-slate-700 focus:outline-none focus:border-[#1351b4]"
+                    >
+                      <option value="">
+                        Selecione uma pessoa para incluir ({pessoasDisponiveisParaAdicionarRateio.length} disponíveis)...
+                      </option>
+                      {pessoasDisponiveisParaAdicionarRateio.map((p) => (
+                        <option key={p.id} value={String(p.id)}>
+                          {p.nome.toUpperCase()}{' '}
+                          {p.documento ? `- CPF: ${p.documento}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  title='Adicionar Pessoa'
+                  disabled={!pessoaExtraSelecionadaId}
+                  onClick={() => adicionarPessoaExtraRateio(diferencaRateio)}
+                  className="px-4 py-2 bg-[#1351b4] text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-[#0047b7] disabled:opacity-50 flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Tabela de Pessoas e Valores Editáveis */}
+              <div className="border border-slate-200 rounded-sm overflow-x-auto max-h-80 overflow-y-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-[#1351b4] text-white">
+                      <th className="pl-4 pr-2 py-2.5 font-bold w-10">#</th>
+                      <th className="px-2 py-2.5 font-bold">
+                        Pessoa Identificada / Participante
+                      </th>
+                      <th className="px-2 py-2.5 font-bold text-center w-24">
+                        Qtd. Itens
+                      </th>
+                      <th className="px-2 py-2.5 font-bold text-right w-36">
+                        Valor na Conciliação
+                      </th>
+                      <th className="pl-2 pr-4 py-2.5 font-bold text-right w-56">
+                        Valor do Crédito (R$)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {itensRateioModal.map((it, idx) => {
+                      const valNum = parseFloat(it.valorEditado) || 0;
+                      const foiAlterado =
+                        Math.abs(valNum - it.valorOriginal) >= 0.01;
+                      const podeAplicarDiferenca =
+                        Math.abs(diferencaRateio) >= 0.01 &&
+                        valNum + diferencaRateio >= 0;
+
+                      return (
+                        <tr
+                          key={it.pessoaId}
+                          className={
+                            it.extra
+                              ? 'bg-blue-50/40 hover:bg-blue-50/70'
+                              : foiAlterado
+                                ? 'bg-amber-50/40 hover:bg-amber-50/60'
+                                : 'hover:bg-slate-50'
+                          }
+                        >
+                          <td className="pl-4 pr-2 py-2 font-black text-slate-400">
+                            {idx + 1}
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-slate-800 uppercase">
+                                {it.nome}
+                              </span>
+                              {it.extra && (
+                                <span className="px-1.5 py-0.5 bg-blue-100 text-[#1351b4] rounded-sm text-[9px] font-black uppercase">
+                                  Adicionada no Rateio
+                                </span>
+                              )}
+                              {!it.extra && foiAlterado && (
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-sm text-[9px] font-black uppercase">
+                                  Editado
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 text-center font-bold text-slate-600">
+                            {it.qtd}
+                          </td>
+                          <td className="px-2 py-2 text-right font-bold text-slate-500">
+                            {formatarMoeda(it.valorOriginal)}
+                          </td>
+                          <td className="pl-2 pr-4 py-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {podeAplicarDiferenca && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const novoVal = Math.max(
+                                      0,
+                                      Number((valNum + diferencaRateio).toFixed(2)),
+                                    );
+                                    setItensRateioModal((prev) =>
+                                      prev.map((row) =>
+                                        row.pessoaId === it.pessoaId
+                                          ? {
+                                            ...row,
+                                            valorEditado: novoVal.toFixed(2),
+                                          }
+                                          : row,
+                                      ),
+                                    );
+                                  }}
+                                  title={`Ajustar automaticamente com a diferença (${diferencaRateio > 0 ? '+' : ''}${formatarMoeda(diferencaRateio)})`}
+                                  className="px-1.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-sm text-[9px] font-black uppercase whitespace-nowrap"
+                                >
+                                  {diferencaRateio > 0 ? '+ Dif.' : '- Dif.'}
+                                </button>
+                              )}
+
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={it.valorEditado}
+                                onChange={(e) => {
+                                  const novoValor = e.target.value;
+                                  setItensRateioModal((prev) =>
+                                    prev.map((row) =>
+                                      row.pessoaId === it.pessoaId
+                                        ? { ...row, valorEditado: novoValor }
+                                        : row,
+                                    ),
+                                  );
+                                }}
+                                className="w-28 px-2.5 py-1.5 bg-white border border-slate-300 rounded-sm text-xs font-black text-right text-slate-800 focus:outline-none focus:border-[#1351b4]"
+                              />
+
+                              {!it.extra && foiAlterado && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setItensRateioModal((prev) =>
+                                      prev.map((row) =>
+                                        row.pessoaId === it.pessoaId
+                                          ? {
+                                            ...row,
+                                            valorEditado:
+                                              row.valorOriginal.toFixed(2),
+                                          }
+                                          : row,
+                                      ),
+                                    )
+                                  }
+                                  title="Restaurar valor original da conciliação"
+                                  className="p-1 text-slate-500 hover:text-[#1351b4] hover:bg-slate-100 rounded-sm"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {it.extra && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removerPessoaExtraRateio(it.pessoaId)
+                                  }
+                                  title="Remover pessoa adicionada"
+                                  className="p-1 text-rose-500 hover:bg-rose-50 rounded-sm"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {!rateioMatematicamenteValido && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-sm flex items-center gap-2.5 text-rose-800">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <p className="text-[11px] font-bold">
+                    {diferencaRateio > 0
+                      ? `A soma atual do rateio está menor que o valor identificado na conciliação. Faltam ${formatarMoeda(diferencaRateio)} para distribuir.`
+                      : `A soma atual do rateio ultrapassou o valor identificado na conciliação em ${formatarMoeda(Math.abs(diferencaRateio))}. Ajuste os valores para prosseguir.`}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={restaurarValoresOriginaisRateio}
+                className="px-4 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Restaurar Valores Originais
+              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalRateioAberto(false)}
+                  className="px-5 py-2.5 border border-slate-200 bg-white text-slate-600 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    !rateioMatematicamenteValido ||
+                    !eventoIdRateio ||
+                    salvandoRateio
+                  }
+                  onClick={confirmarRateioConciliacao}
+                  className="px-6 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
+                >
+                  {salvandoRateio ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  Confirmar e Gerar Transações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal (Popup) de Visualização do Rateio Concluído */}
+      {modalVisualizarRateioAberto && isConciliada && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-3xl rounded-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Cabeçalho */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-600 text-white rounded-sm">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-[#1351b4] uppercase tracking-tight">
+                    Rateio Concluído —{' '}
+                    {String(conciliacaoAtual.mes).padStart(2, '0')}/
+                    {conciliacaoAtual.ano} ({nomeMesConciliacao})
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                    {conciliacaoAtual.descricao}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalVisualizarRateioAberto(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Corpo */}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Resumo Superior */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-sm">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                    Evento / Conta Vinculada
+                  </span>
+                  <span className="text-xs font-black text-slate-800 uppercase mt-0.5 block">
+                    {conciliacaoAtual.transacoes?.[0]?.evento?.nome || '-'}
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                    Conta: {conciliacaoAtual.conta?.nome || 'Não informada'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-sm">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                    Pessoas Creditadas / Data
+                  </span>
+                  <span className="text-xs font-black text-slate-800 uppercase mt-0.5 block">
+                    {conciliacaoAtual.transacoes?.length || 0} transação(ões)
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                    Data:{' '}
+                    {conciliacaoAtual.transacoes?.[0]?.data
+                      ? formatarData(conciliacaoAtual.transacoes[0].data)
+                      : '-'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-sm">
+                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest block">
+                    Valor Total Rateado
+                  </span>
+                  <span className="text-base font-black text-emerald-800 mt-0.5 block">
+                    {formatarMoeda(
+                      (conciliacaoAtual.transacoes || []).reduce(
+                        (acc: number, t: any) => acc + Number(t.valor || 0),
+                        0,
+                      ),
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tabela de Transações do Rateio */}
+              <div className="border border-slate-200 rounded-sm overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-[#1351b4] text-white">
+                      <th className="pl-4 pr-2 py-2.5 font-bold w-10">#</th>
+                      <th className="px-2 py-2.5 font-bold">
+                        Pessoa Creditada
+                      </th>
+                      <th className="px-2 py-2.5 font-bold text-center w-24">
+                        Qtd. Itens
+                      </th>
+                      <th className="px-2 py-2.5 font-bold text-right w-36">
+                        Valor na Conciliação
+                      </th>
+                      <th className="pl-2 pr-4 py-2.5 font-bold text-right w-36">
+                        Valor Rateado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[...(conciliacaoAtual.transacoes || [])]
+                      .sort((a: any, b: any) =>
+                        (a.pessoa?.nome || '').localeCompare(
+                          b.pessoa?.nome || '',
+                          'pt-BR',
+                          { sensitivity: 'base' },
+                        ),
+                      )
+                      .map((tx: any, idx: number) => {
+                        const orig = pessoasAssociadasConciliacao.find(
+                          (p) => Number(p.id) === Number(tx.pessoaId),
+                        );
+                        const valorOrig = orig ? Number(orig.total.toFixed(2)) : 0;
+                        const qtdOrig = orig ? orig.qtd : 0;
+                        const valorRateado = Number(tx.valor || 0);
+                        const isExtra = !orig;
+                        const foiAjustado =
+                          !isExtra && Math.abs(valorRateado - valorOrig) >= 0.01;
+
+                        return (
+                          <tr
+                            key={tx.id || idx}
+                            className="hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="pl-4 pr-2 py-2 font-black text-slate-400">
+                              {idx + 1}
+                            </td>
+                            <td className="px-2 py-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-black text-slate-800 uppercase">
+                                  {tx.pessoa?.nome || 'Pessoa não identificada'}
+                                </span>
+                                {isExtra && (
+                                  <span className="px-1.5 py-0.5 bg-blue-100 text-[#1351b4] rounded-sm text-[9px] font-black uppercase">
+                                    Adicionada no Rateio
+                                  </span>
+                                )}
+                                {foiAjustado && (
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-sm text-[9px] font-black uppercase">
+                                    Valor Ajustado
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center font-bold text-slate-600">
+                              {qtdOrig}
+                            </td>
+                            <td className="px-2 py-2 text-right font-bold text-slate-500">
+                              {formatarMoeda(valorOrig)}
+                            </td>
+                            <td className="pl-2 pr-4 py-2 text-right font-black text-emerald-700">
+                              {formatarMoeda(valorRateado)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-emerald-50 border-t border-emerald-200 font-black text-emerald-900">
+                      <td colSpan={2} className="pl-4 pr-2 py-2.5 uppercase">
+                        Total do Rateio
+                      </td>
+                      <td className="px-2 py-2.5 text-center">
+                        {pessoasAssociadasConciliacao.reduce(
+                          (acc, p) => acc + p.qtd,
+                          0,
+                        )}
+                      </td>
+                      <td className="px-2 py-2.5 text-right">
+                        {formatarMoeda(totalIdentificadoRateio)}
+                      </td>
+                      <td className="pl-2 pr-4 py-2.5 text-right text-emerald-800">
+                        {formatarMoeda(
+                          (conciliacaoAtual.transacoes || []).reduce(
+                            (acc: number, t: any) => acc + Number(t.valor || 0),
+                            0,
+                          ),
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Rodapé */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setModalVisualizarRateioAberto(false)}
+                className="px-5 py-2.5 border border-slate-200 bg-white text-slate-600 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-slate-100"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => gerarRelatorioPdfRateio(conciliacaoAtual)}
+                className="px-5 py-2.5 bg-emerald-600 text-white rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Gerar PDF
+              </button>
             </div>
           </div>
         </div>
