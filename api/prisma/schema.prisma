@@ -64,6 +64,7 @@ model Pessoa {
   responsavelLegal String?
   fotoPassaporte String?
   perfis         String[]
+  conciliacaoCpfs Json?       @default("[]") @map("conciliacao_cpfs")
 
   criadoEm     DateTime     @default(now())
   atualizadoEm DateTime     @updatedAt
