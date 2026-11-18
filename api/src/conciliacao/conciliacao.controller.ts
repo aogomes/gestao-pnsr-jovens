@@ -95,6 +95,15 @@ export class ConciliacaoController {
     return this.service.associarPessoaItem(itemId, dto);
   }
 
+  @Patch('pessoas/:pessoaId/remover-cpf')
+  @RequirePermissions('contas', 'escrever')
+  removerCpfConciliacaoPessoa(
+    @Param('pessoaId', ParseIntPipe) pessoaId: number,
+    @Body() body: { cpf: string },
+  ) {
+    return this.service.removerCpfConciliacaoPessoa(pessoaId, body?.cpf);
+  }
+
   @Delete('itens/:itemId')
   @RequirePermissions('contas', 'escrever')
   removerItem(@Param('itemId', ParseIntPipe) itemId: number) {

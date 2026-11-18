@@ -59,6 +59,9 @@ export class ConciliacaoService implements OnModuleInit {
         ALTER TABLE "transacoes" ADD COLUMN IF NOT EXISTS "id_conciliacao" INTEGER;
       `);
       await this.prisma.$executeRawUnsafe(`
+        ALTER TABLE "pessoas" ADD COLUMN IF NOT EXISTS "conciliacao_cpfs" JSONB DEFAULT '[]'::jsonb;
+      `);
+      await this.prisma.$executeRawUnsafe(`
         DO $$
         BEGIN
           IF NOT EXISTS (
@@ -77,6 +80,60 @@ export class ConciliacaoService implements OnModuleInit {
     }
   }
 
+  private async obterMapaUnicoPessoaPorCpf(
+    txClient?: any,
+  ): Promise<Map<string, number>> {
+    const client = txClient || this.prisma;
+    const mapaCandidatos = new Map<string, Set<number>>();
+
+    try {
+      const rows: {
+        id: number;
+        documento: string | null;
+        conciliacao_cpfs: any;
+      }[] = await client.$queryRawUnsafe(`
+        SELECT "id", "documento", COALESCE("conciliacao_cpfs", '[]'::jsonb) AS "conciliacao_cpfs"
+        FROM "pessoas"
+        WHERE "ativo" = true
+      `);
+
+      const registrarCpf = (cpfRaw: any, pessoaId: number) => {
+        const str =
+          typeof cpfRaw === 'string'
+            ? cpfRaw
+            : typeof cpfRaw?.cpf === 'string'
+              ? cpfRaw.cpf
+              : '';
+        const digitos = str.replace(/\D/g, '');
+        if (digitos.length >= 11) {
+          if (!mapaCandidatos.has(digitos)) {
+            mapaCandidatos.set(digitos, new Set<number>());
+          }
+          mapaCandidatos.get(digitos)!.add(Number(pessoaId));
+        }
+      };
+
+      rows.forEach((p) => {
+        if (p.documento) {
+          registrarCpf(p.documento, p.id);
+        }
+        if (Array.isArray(p.conciliacao_cpfs)) {
+          p.conciliacao_cpfs.forEach((c: any) => registrarCpf(c, p.id));
+        }
+      });
+    } catch {
+      // Fallback caso coluna ainda não exista
+    }
+
+    const mapaUnico = new Map<string, number>();
+    for (const [cpfDigitos, idsSet] of mapaCandidatos.entries()) {
+      if (idsSet.size === 1) {
+        mapaUnico.set(cpfDigitos, Array.from(idsSet)[0]);
+      }
+    }
+    return mapaUnico;
+  }
+
   async criar(dto: CreateConciliacaoDto) {
     return this.prisma.$transaction(async (tx) => {
       const conciliacao = await tx.conciliacao.create({
@@ -90,11 +147,20 @@ export class ConciliacaoService implements OnModuleInit {
       });
 
       if (dto.itens && dto.itens.length > 0) {
+        const mapaUnicoCpf = await this.obterMapaUnicoPessoaPorCpf(tx);
+
         const itensData = dto.itens.map((item) => {
           const isRendeFacil =
             (item.tipoLancamento || '').toLowerCase().includes('bb rende') ||
             (item.historico || '').toLowerCase().includes('bb rende');
-          const desconsiderado = item.pessoaId
+          const cpfDigitos = (item.cpf || '').replace(/\D/g, '');
+          const pessoaAutoId =
+            !item.pessoaId && cpfDigitos.length >= 11
+              ? mapaUnicoCpf.get(cpfDigitos) || null
+              : null;
+          const pessoaIdFinal = item.pessoaId || pessoaAutoId || null;
+
+          const desconsiderado = pessoaIdFinal
             ? false
             : item.desconsiderado !== undefined
               ? Boolean(item.desconsiderado)
@@ -112,7 +178,7 @@ export class ConciliacaoService implements OnModuleInit {
             valor: item.valor,
             tipo: item.tipo || 'CREDITO',
             desconsiderado,
-            pessoaId: desconsiderado ? null : item.pessoaId || null,
+            pessoaId: desconsiderado ? null : pessoaIdFinal,
           };
         });
 
@@ -327,11 +393,20 @@ export class ConciliacaoService implements OnModuleInit {
         'Não é permitido adicionar itens em uma conciliação já rateada. Estorne o rateio primeiro.',
       );
     }
+    const mapaUnicoCpf = await this.obterMapaUnicoPessoaPorCpf();
+
     const itensData = itens.map((item) => {
       const isRendeFacil =
         (item.tipoLancamento || '').toLowerCase().includes('bb rende') ||
         (item.historico || '').toLowerCase().includes('bb rende');
-      const desconsiderado = item.pessoaId
+      const cpfDigitos = (item.cpf || '').replace(/\D/g, '');
+      const pessoaAutoId =
+        !item.pessoaId && cpfDigitos.length >= 11
+          ? mapaUnicoCpf.get(cpfDigitos) || null
+          : null;
+      const pessoaIdFinal = item.pessoaId || pessoaAutoId || null;
+
+      const desconsiderado = pessoaIdFinal
         ? false
         : item.desconsiderado !== undefined
           ? Boolean(item.desconsiderado)
@@ -349,7 +424,7 @@ export class ConciliacaoService implements OnModuleInit {
         valor: item.valor,
         tipo: item.tipo || 'CREDITO',
         desconsiderado,
-        pessoaId: desconsiderado ? null : item.pessoaId || null,
+        pessoaId: desconsiderado ? null : pessoaIdFinal,
       };
     });
 
@@ -406,10 +481,39 @@ export class ConciliacaoService implements OnModuleInit {
         dto.pessoaId &&
         item.cpf
       ) {
-        await tx.pessoa.update({
-          where: { id: dto.pessoaId },
-          data: { documento: item.cpf },
-        });
+        const cpfLimpo = item.cpf.trim();
+        const digitosNovo = cpfLimpo.replace(/\D/g, '');
+        if (digitosNovo.length >= 11) {
+          const rows: { conciliacao_cpfs: any }[] = await tx.$queryRawUnsafe(
+            `SELECT COALESCE("conciliacao_cpfs", '[]'::jsonb) AS "conciliacao_cpfs" FROM "pessoas" WHERE "id" = $1`,
+            Number(dto.pessoaId),
+          );
+          const atualRaw = rows[0]?.conciliacao_cpfs;
+          const listaAtual: string[] = Array.isArray(atualRaw)
+            ? atualRaw
+                .map((v: any) =>
+                  typeof v === 'string'
+                    ? v.trim()
+                    : typeof v?.cpf === 'string'
+                      ? v.cpf.trim()
+                      : '',
+                )
+                .filter(Boolean)
+            : [];
+
+          const jaExiste = listaAtual.some(
+            (c) => c.replace(/\D/g, '') === digitosNovo,
+          );
+
+          if (!jaExiste) {
+            const novaLista = [...listaAtual, cpfLimpo];
+            await tx.$executeRawUnsafe(
+              `UPDATE "pessoas" SET "conciliacao_cpfs" = $1::jsonb WHERE "id" = $2`,
+              JSON.stringify(novaLista),
+              Number(dto.pessoaId),
+            );
+          }
+        }
       }
 
       return atualizado;
@@ -612,5 +716,55 @@ export class ConciliacaoService implements OnModuleInit {
     return this.prisma.conciliacao.delete({
       where: { id },
     });
+  }
+
+  async removerCpfConciliacaoPessoa(pessoaId: number, cpfRemover: string) {
+    if (!cpfRemover || !cpfRemover.trim()) {
+      throw new BadRequestException('Informe o CPF a ser removido.');
+    }
+
+    const digitosRemover = cpfRemover.replace(/\D/g, '');
+    const rows: { id: number; conciliacao_cpfs: any }[] =
+      await this.prisma.$queryRawUnsafe(
+        `SELECT "id", COALESCE("conciliacao_cpfs", '[]'::jsonb) AS "conciliacao_cpfs" FROM "pessoas" WHERE "id" = $1`,
+        Number(pessoaId),
+      );
+
+    if (!rows || rows.length === 0) {
+      throw new NotFoundException(`Pessoa #${pessoaId} não encontrada.`);
+    }
+
+    const atualRaw = rows[0].conciliacao_cpfs;
+    const listaAtual: string[] = Array.isArray(atualRaw)
+      ? atualRaw
+          .map((v: any) =>
+            typeof v === 'string'
+              ? v.trim()
+              : typeof v?.cpf === 'string'
+                ? v.cpf.trim()
+                : '',
+          )
+          .filter(Boolean)
+      : [];
+
+    const novaLista = listaAtual.filter((c) => {
+      const dig = c.replace(/\D/g, '');
+      if (digitosRemover.length > 0 && dig.length > 0) {
+        return dig !== digitosRemover;
+      }
+      return c.trim() !== cpfRemover.trim();
+    });
+
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE "pessoas" SET "conciliacao_cpfs" = $1::jsonb WHERE "id" = $2`,
+      JSON.stringify(novaLista),
+      Number(pessoaId),
+    );
+
+    return {
+      id: Number(pessoaId),
+      conciliacaoCpfs: novaLista,
+      conciliacao_cpfs: novaLista,
+    };
   }
 }

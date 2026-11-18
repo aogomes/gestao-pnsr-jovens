@@ -178,9 +178,35 @@ export class PessoasService {
       });
     });
 
+    const cpfsConciliacaoMap: Record<number, any[]> = {};
+    try {
+      const rowsCpfs: { id: number; conciliacao_cpfs: any }[] =
+        await this.prisma.$queryRawUnsafe(`
+          SELECT "id", COALESCE("conciliacao_cpfs", '[]'::jsonb) AS "conciliacao_cpfs"
+          FROM "pessoas"
+          WHERE "ativo" = true
+        `);
+      rowsCpfs.forEach((r) => {
+        cpfsConciliacaoMap[Number(r.id)] = Array.isArray(r.conciliacao_cpfs)
+          ? r.conciliacao_cpfs
+          : [];
+      });
+    } catch {
+      // Coluna pode ainda estar sendo inicializada
+    }
+
     return pessoas.map((p: any) => {
       const saldoCalculado = Number(Number(saldosMap[p.id]).toFixed(2)) || 0;
-      return { ...p, saldo: saldoCalculado, saldos: saldosDetalhadosMap[p.id] };
+      const listaCpfs =
+        cpfsConciliacaoMap[p.id] ??
+        (Array.isArray(p.conciliacaoCpfs) ? p.conciliacaoCpfs : []);
+      return {
+        ...p,
+        conciliacaoCpfs: listaCpfs,
+        conciliacao_cpfs: listaCpfs,
+        saldo: saldoCalculado,
+        saldos: saldosDetalhadosMap[p.id],
+      };
     });
   }
 

@@ -88,6 +88,20 @@ function apenasDigitos(str?: string | null): string {
   return str.replace(/\D/g, '');
 }
 
+function obterCpfsConciliacao(pessoa: any): string[] {
+  const raw = pessoa?.conciliacaoCpfs ?? pessoa?.conciliacao_cpfs;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((v: any) =>
+      typeof v === 'string'
+        ? v.trim()
+        : typeof v?.cpf === 'string'
+          ? v.cpf.trim()
+          : '',
+    )
+    .filter(Boolean);
+}
+
 interface Props {
   contas: any[];
   podeEditar: boolean;
@@ -169,6 +183,9 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   );
   const [atualizarCpfPessoa, setAtualizarCpfPessoa] = useState(false);
   const [salvandoAssociacao, setSalvandoAssociacao] = useState(false);
+  const [removendoCpfChave, setRemovendoCpfChave] = useState<string | null>(
+    null,
+  );
   const [gerandoRelatorioId, setGerandoRelatorioId] = useState<number | null>(
     null,
   );
@@ -301,13 +318,30 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       setStatusPdfMsg(
         'Ignorando linhas de saldo e classificando tipos de lançamento...',
       );
-      const parsed: ItemConciliacaoExtraido[] =
+      const parsedRaw: ItemConciliacaoExtraido[] =
         extractedByCoords.length > 0
           ? extractedByCoords.map((item, idx) => ({
             ...item,
             idTemp: idx + 1,
           }))
           : parseLinhasExtratoBB(fallbackLines, mesRef, anoRef);
+
+      // Pré-associar automaticamente quando o CPF pertencer a uma única pessoa (em documento ou conciliacao_cpfs)
+      const parsed = parsedRaw.map((item) => {
+        const isRendeFacil = item.tipoLancamento === 'BB Rende Fácil';
+        if (isRendeFacil || item.desconsiderado) {
+          return { ...item, pessoaId: null };
+        }
+        const matchesCpf = encontrarPessoasPorCpf(item.cpf);
+        if (matchesCpf.length === 1) {
+          return {
+            ...item,
+            pessoaId: Number(matchesCpf[0].pessoa.id),
+          };
+        }
+        return item;
+      });
+
       setItensExtraidos(parsed);
 
       if (parsed.length === 0) {
@@ -397,41 +431,79 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
     }
   };
 
-  // Busca sugestão de pessoa pelo CPF ou Nome extraído do histórico
-  const encontrarSugestaoPessoa = (item: any) => {
+  // Busca todas as pessoas que possuem o CPF informado (em documento ou conciliacao_cpfs)
+  const encontrarPessoasPorCpf = (
+    cpf?: string | null,
+  ): { pessoa: any; motivo: string }[] => {
+    const cpfItem = apenasDigitos(cpf);
+    if (!cpfItem || cpfItem.length < 11) return [];
+
+    const resultado: { pessoa: any; motivo: string }[] = [];
+    pessoas.forEach((p) => {
+      if (apenasDigitos(p.documento) === cpfItem) {
+        resultado.push({ pessoa: p, motivo: 'CPF próprio' });
+        return;
+      }
+      const cpfsExtras = obterCpfsConciliacao(p);
+      if (cpfsExtras.some((c) => apenasDigitos(c) === cpfItem)) {
+        resultado.push({ pessoa: p, motivo: 'CPF conciliação' });
+      }
+    });
+    return resultado;
+  };
+
+  // Busca sugestões de pessoas pelo CPF (próprio ou conciliacao_cpfs) ou Nome extraído do histórico
+  const encontrarSugestoesPessoa = (
+    item: any,
+  ): { pessoa: any; motivo: string }[] => {
     if (!item || (!item.cpf && !item.nomeExtrato)) {
-      return null;
+      return [];
     }
 
-    const cpfItem = apenasDigitos(item.cpf);
-    if (cpfItem && cpfItem.length >= 11) {
-      const porCpf = pessoas.find(
-        (p) => apenasDigitos(p.documento) === cpfItem,
-      );
-      if (porCpf) return { pessoa: porCpf, motivo: 'CPF idêntico' };
-    }
+    const sugestoes: { pessoa: any; motivo: string }[] = [];
+    const idsAdicionados = new Set<number>();
+
+    const matchesCpf = encontrarPessoasPorCpf(item.cpf);
+    matchesCpf.forEach((m) => {
+      const pid = Number(m.pessoa.id);
+      if (!idsAdicionados.has(pid)) {
+        idsAdicionados.add(pid);
+        sugestoes.push(m);
+      }
+    });
 
     const nomeItem = normalizarTexto(item.nomeExtrato);
     if (nomeItem && nomeItem.length >= 4) {
       const porNomeExato = pessoas.find(
         (p) => normalizarTexto(p.nome) === nomeItem,
       );
-      if (porNomeExato) return { pessoa: porNomeExato, motivo: 'Nome exato' };
-
-      const partesItem = nomeItem.split(' ');
-      if (partesItem.length >= 2) {
-        const primeiro = partesItem[0];
-        const ultimo = partesItem[partesItem.length - 1];
-        const porNomeParcial = pessoas.find((p) => {
-          const n = normalizarTexto(p.nome);
-          return n.startsWith(primeiro + ' ') && n.endsWith(' ' + ultimo);
-        });
-        if (porNomeParcial)
-          return { pessoa: porNomeParcial, motivo: 'Nome similar' };
+      if (porNomeExato && !idsAdicionados.has(Number(porNomeExato.id))) {
+        idsAdicionados.add(Number(porNomeExato.id));
+        sugestoes.push({ pessoa: porNomeExato, motivo: 'Nome exato' });
+      } else if (!porNomeExato) {
+        const partesItem = nomeItem.split(' ');
+        if (partesItem.length >= 2) {
+          const primeiro = partesItem[0];
+          const ultimo = partesItem[partesItem.length - 1];
+          const porNomeParcial = pessoas.find((p) => {
+            const n = normalizarTexto(p.nome);
+            return n.startsWith(primeiro + ' ') && n.endsWith(' ' + ultimo);
+          });
+          if (
+            porNomeParcial &&
+            !idsAdicionados.has(Number(porNomeParcial.id))
+          ) {
+            idsAdicionados.add(Number(porNomeParcial.id));
+            sugestoes.push({
+              pessoa: porNomeParcial,
+              motivo: 'Nome similar',
+            });
+          }
+        }
       }
     }
 
-    return null;
+    return sugestoes;
   };
 
   const abrirModalAssociar = (item: any) => {
@@ -464,7 +536,22 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
         });
       }
 
-      if (!desconsiderado && atualizarCpf) {
+      if (!desconsiderado && atualizarCpf && pessoaId && itemParaAssociar?.cpf) {
+        const cpfNovo = itemParaAssociar.cpf.trim();
+        const digNovo = apenasDigitos(cpfNovo);
+        setPessoas((prev) =>
+          prev.map((p) => {
+            if (Number(p.id) !== Number(pessoaId)) return p;
+            const listaAtual = obterCpfsConciliacao(p);
+            const jaTem = listaAtual.some((c) => apenasDigitos(c) === digNovo);
+            const novaLista = jaTem ? listaAtual : [...listaAtual, cpfNovo];
+            return {
+              ...p,
+              conciliacaoCpfs: novaLista,
+              conciliacao_cpfs: novaLista,
+            };
+          }),
+        );
         carregarPessoas();
       }
       setItemParaAssociar(null);
@@ -475,6 +562,50 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
       );
     } finally {
       setSalvandoAssociacao(false);
+    }
+  };
+
+  const removerCpfConciliacaoDaPessoa = async (
+    pessoaId: number,
+    nomePessoa: string,
+    cpfParaRemover: string,
+  ) => {
+    if (
+      !confirm(
+        `Deseja remover o CPF "${cpfParaRemover}" da lista de CPFs de conciliação de ${nomePessoa}?`,
+      )
+    ) {
+      return;
+    }
+
+    const chave = `${pessoaId}-${cpfParaRemover}`;
+    setRemovendoCpfChave(chave);
+    try {
+      const res = await api.patch(
+        `/conciliacao/pessoas/${pessoaId}/remover-cpf`,
+        { cpf: cpfParaRemover },
+      );
+      const novaLista = Array.isArray(res.data?.conciliacaoCpfs)
+        ? res.data.conciliacaoCpfs
+        : [];
+      setPessoas((prev) =>
+        prev.map((p) =>
+          Number(p.id) === Number(pessoaId)
+            ? {
+              ...p,
+              conciliacaoCpfs: novaLista,
+              conciliacao_cpfs: novaLista,
+            }
+            : p,
+        ),
+      );
+    } catch (err: any) {
+      alert(
+        'Erro ao remover CPF da lista de conciliação: ' +
+        (err.response?.data?.message || err.message),
+      );
+    } finally {
+      setRemovendoCpfChave(null);
     }
   };
 
@@ -1263,8 +1394,13 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
         const matchNome = normalizarTexto(p.nome).includes(termo);
         const matchDoc =
           termoDig.length > 0 && apenasDigitos(p.documento).includes(termoDig);
+        const matchCpfsConciliacao =
+          termoDig.length > 0 &&
+          obterCpfsConciliacao(p).some((c) =>
+            apenasDigitos(c).includes(termoDig),
+          );
         const matchEmail = normalizarTexto(p.email).includes(termo);
-        return matchNome || matchDoc || matchEmail;
+        return matchNome || matchDoc || matchCpfsConciliacao || matchEmail;
       })
       .slice(0, 50);
   }, [pessoas, buscaPessoaModal]);
@@ -1475,6 +1611,9 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
   if (modoVisao === 'nova') {
     const selecionados = itensExtraidos.filter((i) => i.selecionado);
     const totalComCpf = selecionados.filter((i) => !!i.cpf).length;
+    const totalPreAssociados = selecionados.filter(
+      (i) => !!i.pessoaId && !i.desconsiderado,
+    ).length;
 
     return (
       <div className="space-y-6 animate-in fade-in duration-200">
@@ -1645,6 +1784,14 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                     <span className="text-amber-600">
                       {totalComCpf} com CPF identificado
                     </span>
+                    {totalPreAssociados > 0 && (
+                      <>
+                        {' • '}
+                        <span className="text-emerald-600">
+                          {totalPreAssociados} pré-associado(s) automaticamente
+                        </span>
+                      </>
+                    )}
                     )
                   </h3>
                   <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
@@ -1780,6 +1927,15 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                   item.historico,
                                   novoTipoLanc,
                                 );
+                                const isRendeFacil =
+                                  novoTipoLanc === 'BB Rende Fácil';
+                                const matches = !isRendeFacil
+                                  ? encontrarPessoasPorCpf(extra.cpf)
+                                  : [];
+                                const autoPessoaId =
+                                  matches.length === 1
+                                    ? Number(matches[0].pessoa.id)
+                                    : null;
                                 setItensExtraidos((prev) =>
                                   prev.map((it, i) =>
                                     i === idx
@@ -1788,8 +1944,10 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                         tipoLancamento: novoTipoLanc,
                                         cpf: extra.cpf,
                                         nomeExtrato: extra.nomeExtrato,
-                                        desconsiderado:
-                                          novoTipoLanc === 'BB Rende Fácil',
+                                        desconsiderado: isRendeFacil,
+                                        pessoaId: isRendeFacil
+                                          ? null
+                                          : autoPessoaId,
                                       }
                                       : it,
                                   ),
@@ -1811,6 +1969,15 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               onChange={(e) => {
                                 const novoHist = e.target.value;
                                 const extra = extrairDadosHistorico(novoHist);
+                                const isRendeFacil =
+                                  extra.tipoLancamento === 'BB Rende Fácil';
+                                const matches = !isRendeFacil
+                                  ? encontrarPessoasPorCpf(extra.cpf)
+                                  : [];
+                                const autoPessoaId =
+                                  matches.length === 1
+                                    ? Number(matches[0].pessoa.id)
+                                    : null;
                                 setItensExtraidos((prev) =>
                                   prev.map((it, i) =>
                                     i === idx
@@ -1820,9 +1987,10 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                                         tipoLancamento: extra.tipoLancamento,
                                         cpf: extra.cpf,
                                         nomeExtrato: extra.nomeExtrato,
-                                        desconsiderado:
-                                          extra.tipoLancamento ===
-                                          'BB Rende Fácil',
+                                        desconsiderado: isRendeFacil,
+                                        pessoaId: isRendeFacil
+                                          ? null
+                                          : autoPessoaId,
                                       }
                                       : it,
                                   ),
@@ -1839,9 +2007,22 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                               placeholder={semCpf ? 'Sem CPF' : 'CPF...'}
                               onChange={(e) => {
                                 const val = e.target.value;
+                                const matches = encontrarPessoasPorCpf(val);
+                                const autoPessoaId =
+                                  matches.length === 1
+                                    ? Number(matches[0].pessoa.id)
+                                    : null;
                                 setItensExtraidos((prev) =>
                                   prev.map((it, i) =>
-                                    i === idx ? { ...it, cpf: val } : it,
+                                    i === idx
+                                      ? {
+                                        ...it,
+                                        cpf: val,
+                                        pessoaId: it.desconsiderado
+                                          ? null
+                                          : autoPessoaId,
+                                      }
+                                      : it,
                                   ),
                                 );
                               }}
@@ -1849,23 +2030,52 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                             />
                           </td>
                           <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.nomeExtrato}
-                              disabled={semCpf}
-                              placeholder={semCpf ? '-' : 'Nome extraído...'}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setItensExtraidos((prev) =>
-                                  prev.map((it, i) =>
-                                    i === idx
-                                      ? { ...it, nomeExtrato: val }
-                                      : it,
-                                  ),
-                                );
-                              }}
-                              className="w-full p-1.5 bg-white border border-slate-200 rounded-sm text-[11px] font-bold text-slate-700 uppercase disabled:bg-slate-100 disabled:text-slate-400"
-                            />
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                value={item.nomeExtrato}
+                                disabled={semCpf}
+                                placeholder={semCpf ? '-' : 'Nome extraído...'}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setItensExtraidos((prev) =>
+                                    prev.map((it, i) =>
+                                      i === idx
+                                        ? { ...it, nomeExtrato: val }
+                                        : it,
+                                    ),
+                                  );
+                                }}
+                                className="w-full p-1.5 bg-white border border-slate-200 rounded-sm text-[11px] font-bold text-slate-700 uppercase disabled:bg-slate-100 disabled:text-slate-400"
+                              />
+                              {item.pessoaId && !item.desconsiderado && (
+                                <div className="flex items-center justify-between gap-1 px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded-sm">
+                                  <span className="text-[9px] font-black text-emerald-800 uppercase truncate">
+                                    ✓{' '}
+                                    {pessoas.find(
+                                      (p) =>
+                                        Number(p.id) === Number(item.pessoaId),
+                                    )?.nome || 'Pré-associado'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    title="Remover pré-associação"
+                                    onClick={() =>
+                                      setItensExtraidos((prev) =>
+                                        prev.map((it, i) =>
+                                          i === idx
+                                            ? { ...it, pessoaId: null }
+                                            : it,
+                                        ),
+                                      )
+                                    }
+                                    className="text-rose-500 hover:text-rose-700 shrink-0"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="p-2">
                             <select
@@ -2321,9 +2531,9 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                   const isCredito =
                     item.tipo === 'CREDITO' || item.tipo === 'RECEITA';
                   const associado = isItemAssociado(item);
-                  const sugestao = !associado
-                    ? encontrarSugestaoPessoa(item)
-                    : null;
+                  const sugestoes = !associado
+                    ? encontrarSugestoesPessoa(item)
+                    : [];
 
                   return (
                     <tr
@@ -2464,34 +2674,39 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-1.5">
-                            {sugestao && podeEditarAssociacoes && (
-                              <div className="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-sm">
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[8px] font-black text-[#1351b4] uppercase flex items-center gap-1">
-                                    <Sparkles className="w-2.5 h-2.5" />
-                                    Sugestão ({sugestao.motivo})
-                                  </span>
-                                  <span className="font-black text-[10px] text-slate-800 uppercase truncate">
-                                    {sugestao.pessoa.nome}
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    confirmarAssociacaoManual(
-                                      item.id,
-                                      sugestao.pessoa.id,
-                                      false,
-                                      false,
-                                    )
-                                  }
-                                  disabled={salvandoAssociacao}
-                                  className="px-2 py-1 bg-[#1351b4] text-white rounded-sm text-[9px] font-black uppercase hover:bg-[#0047b7] shrink-0 flex items-center gap-1"
+                            {sugestoes.length > 0 &&
+                              podeEditarAssociacoes &&
+                              sugestoes.map((sugestao) => (
+                                <div
+                                  key={sugestao.pessoa.id}
+                                  className="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-sm"
                                 >
-                                  <Check className="w-3 h-3" />
-                                  Vincular
-                                </button>
-                              </div>
-                            )}
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[8px] font-black text-[#1351b4] uppercase flex items-center gap-1">
+                                      <Sparkles className="w-2.5 h-2.5" />
+                                      Sugestão ({sugestao.motivo})
+                                    </span>
+                                    <span className="font-black text-[10px] text-slate-800 uppercase truncate">
+                                      {sugestao.pessoa.nome}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() =>
+                                      confirmarAssociacaoManual(
+                                        item.id,
+                                        sugestao.pessoa.id,
+                                        false,
+                                        false,
+                                      )
+                                    }
+                                    disabled={salvandoAssociacao}
+                                    className="px-2 py-1 bg-[#1351b4] text-white rounded-sm text-[9px] font-black uppercase hover:bg-[#0047b7] shrink-0 flex items-center gap-1"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                    Vincular
+                                  </button>
+                                </div>
+                              ))}
 
                             {podeEditarAssociacoes ? (
                               <div className="flex items-center gap-1.5">
@@ -2619,6 +2834,7 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                 ) : (
                   pessoasFiltradasModal.map((p) => {
                     const selecionada = pessoaSelecionadaId === p.id;
+                    const cpfsConciliacao = obterCpfsConciliacao(p);
                     return (
                       <div
                         key={p.id}
@@ -2636,6 +2852,48 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                             CPF: {p.documento || 'Não informado'}{' '}
                             {p.comunidade ? `• ${p.comunidade}` : ''}
                           </p>
+                          {cpfsConciliacao.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                              <span className="text-[9px] font-black text-slate-400 uppercase">
+                                CPFs Conciliação:
+                              </span>
+                              {cpfsConciliacao.map((cpfVinc) => {
+                                const chaveRem = `${p.id}-${cpfVinc}`;
+                                const removendoEste =
+                                  removendoCpfChave === chaveRem;
+                                return (
+                                  <span
+                                    key={cpfVinc}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100/80 text-[#1351b4] border border-blue-200 rounded-sm text-[9px] font-black"
+                                  >
+                                    {cpfVinc}
+                                    {podeEditar && (
+                                      <button
+                                        type="button"
+                                        disabled={removendoEste}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removerCpfConciliacaoDaPessoa(
+                                            p.id,
+                                            p.nome,
+                                            cpfVinc,
+                                          );
+                                        }}
+                                        title={`Remover CPF ${cpfVinc} de ${p.nome}`}
+                                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-100 rounded-sm p-0.5 transition-colors disabled:opacity-50"
+                                      >
+                                        {removendoEste ? (
+                                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                        ) : (
+                                          <X className="w-2.5 h-2.5" />
+                                        )}
+                                      </button>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                         {selecionada && (
                           <CheckCircle2 className="w-5 h-5 text-[#1351b4]" />
@@ -2646,22 +2904,76 @@ export default function ConciliacaoBancariaTab({ contas, podeEditar }: Props) {
                 )}
               </div>
 
-              {/* Opção de salvar o CPF extraído no cadastro da pessoa caso o item tenha CPF */}
-              {itemParaAssociar.cpf && pessoaSelecionadaId && (
-                <label className="flex items-center gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={atualizarCpfPessoa}
-                    onChange={(e) => setAtualizarCpfPessoa(e.target.checked)}
-                    className="w-4 h-4 text-[#1351b4] rounded"
-                  />
-                  <span className="text-[11px] font-bold text-amber-900">
-                    Salvar/atualizar também o CPF{' '}
-                    <strong>{itemParaAssociar.cpf}</strong> no cadastro desta
-                    pessoa
-                  </span>
-                </label>
-              )}
+              {/* Opção de adicionar o CPF extraído à lista conciliacao_cpfs da pessoa */}
+              {itemParaAssociar.cpf &&
+                pessoaSelecionadaId &&
+                (() => {
+                  const pessoaSel = pessoas.find(
+                    (p) => Number(p.id) === Number(pessoaSelecionadaId),
+                  );
+                  const cpfItemDig = apenasDigitos(itemParaAssociar.cpf);
+                  const jaEhCpfProprio =
+                    cpfItemDig.length >= 11 &&
+                    apenasDigitos(pessoaSel?.documento) === cpfItemDig;
+                  const jaEstaNaLista =
+                    cpfItemDig.length >= 11 &&
+                    obterCpfsConciliacao(pessoaSel).some(
+                      (c) => apenasDigitos(c) === cpfItemDig,
+                    );
+
+                  if (jaEhCpfProprio || jaEstaNaLista) {
+                    return (
+                      <div className="flex items-center justify-between gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="text-[11px] font-bold text-emerald-900">
+                            O CPF <strong>{itemParaAssociar.cpf}</strong> já está
+                            vinculado a esta pessoa (
+                            {jaEhCpfProprio
+                              ? 'CPF próprio do cadastro'
+                              : 'lista de CPFs de conciliação'}
+                            ).
+                          </span>
+                        </div>
+                        {!jaEhCpfProprio && jaEstaNaLista && pessoaSel && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removerCpfConciliacaoDaPessoa(
+                                pessoaSel.id,
+                                pessoaSel.nome,
+                                itemParaAssociar.cpf,
+                              )
+                            }
+                            className="px-2 py-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-sm text-[9px] font-black uppercase shrink-0 flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Remover CPF
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <label className="flex items-center gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={atualizarCpfPessoa}
+                        onChange={(e) =>
+                          setAtualizarCpfPessoa(e.target.checked)
+                        }
+                        className="w-4 h-4 text-[#1351b4] rounded"
+                      />
+                      <span className="text-[11px] font-bold text-amber-900">
+                        Adicionar o CPF{' '}
+                        <strong>{itemParaAssociar.cpf}</strong> à lista de CPFs
+                        de conciliação (<code>conciliacao_cpfs</code>) desta
+                        pessoa
+                      </span>
+                    </label>
+                  );
+                })()}
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 flex-wrap">

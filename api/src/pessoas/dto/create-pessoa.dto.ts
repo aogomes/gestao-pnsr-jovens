@@ -91,4 +91,8 @@ export class CreatePessoaDto {
   @IsString({ each: true })
   @IsOptional()
   perfis?: string[];
+
+  @IsArray()
+  @IsOptional()
+  conciliacaoCpfs?: string[];
 }
